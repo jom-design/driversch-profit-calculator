@@ -83,3 +83,7 @@ export function hasRequiredReviewData(item: InboxItem): boolean {
     field => item.draft.fields[field].value !== null
   )
 }
+
+export function deleteInboxItem(items: InboxItem[], id: string): InboxItem[] {
+  return items.filter(item => item.id !== id)
+}
