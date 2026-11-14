@@ -45,11 +45,9 @@ Input: fare 165 EGP; passenger distance 22 km; pickup and return distance 0 km; 
 
 Floating-point monetary assertions use a 0.01 EGP tolerance in the Node harness.
 
-## Follow-up hardening — sub-minute duration overflow
+## Initial mitigation — superseded by the latest correction
 
-A fresh adversarial execution found a defect not covered by the original suite: a positive but sub-minute duration such as `Number.MIN_VALUE` passed validation, made `hourlyProfit` become `Infinity`, and could still produce `accept`. This is a confirmed defect, not a hypothetical edge case.
-
-The calculator now rejects durations below one minute and uses a safe zero-minute fallback for invalid sub-minute values during arithmetic. This prevents the invalid duration from creating an infinite hourly-profit result. Regression coverage was added to both the Node and Vitest suites for zero, 0.5, and `Number.MIN_VALUE` durations. Boundary tests also verify that exact minimum-profit/hourly-target thresholds are inclusive, one cent below minimum is rejected, and a just-below hourly target is reviewed.
+The first response to the sub-minute overflow defect temporarily rejected every duration below one minute and used a zero-minute arithmetic fallback. That mitigation was too restrictive and was not a documented product requirement. It has been removed by commit `87d38946cf7116c8f11156c7739712a9cd9ed387`; see the latest numeric-range correction below.
 
 Fresh Node command:
 
