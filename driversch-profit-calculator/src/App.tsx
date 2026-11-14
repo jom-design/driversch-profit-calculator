@@ -3,6 +3,7 @@ import { Activity, Archive, Calculator, CarFront, Check, ChevronDown, Download, 
 import { calculateTrip } from './lib/calculator'
 import AssistantInbox from './assistant/AssistantInbox'
 import type { InboxItem } from './assistant/types'
+import { toCalculatorTripInput } from './assistant/calculatorTransfer'
 import { deleteTrip, getSettings, getTrips, replaceAllTrips, saveSettings, saveTrip } from './lib/db'
 import { readTripImage, type OcrDraft } from './lib/ocr'
 import { DEFAULT_SETTINGS, EMPTY_TRIP, type AppName, type FareMode, type SavedTrip, type Settings, type TripInput } from './types'
@@ -63,15 +64,9 @@ export default function App() {
     setPage('calculator');setDraft(null)
   }
   const transferConfirmedOffer=(item:InboxItem)=>{
-    if(item.status!=='confirmed'){setToast('لا يمكن نقل عرض غير مؤكد للحاسبة');return}
-    const fields=item.draft.fields
-    if(fields.fare.value===null||fields.pickupDistanceKm.value===null||fields.distanceKm.value===null||fields.durationMinutes.value===null){
-      setToast('بيانات العرض غير مكتملة؛ ارجع للمراجعة');return
-    }
-    const app:AppName=item.draft.provider==='uber'?'Uber':item.draft.provider==='didi'?'DiDi':item.draft.provider==='indrive'?'inDrive':'أخرى'
-    setTrip(current=>({...current,app,fare:fields.fare.value!,fareMode:'unknown',commissionRate:0,
-      pickupKm:fields.pickupDistanceKm.value!,passengerKm:fields.distanceKm.value!,
-      totalMinutes:fields.durationMinutes.value!,notes:'تم النقل من صندوق الرحلات بعد تأكيدك.'}))
+    const nextTrip=toCalculatorTripInput(item)
+    if(!nextTrip){setToast('لا يمكن نقل عرض غير مؤكد أو ناقص البيانات');return}
+    setTrip(current=>({...current,...nextTrip}))
     setPage('calculator')
     setToast('تم نقل العرض المؤكد للحاسبة. لم يتم حفظه في سجل الرحلات.')
   }
