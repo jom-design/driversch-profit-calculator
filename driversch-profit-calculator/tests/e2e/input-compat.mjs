@@ -48,6 +48,16 @@ try {
   check('no browser number inputs anywhere on the calculator', await page.locator('input[type="number"]').count() === 0)
 
   const fare = page.getByLabel('الأجرة المعروضة')
+  await fare.fill('١٢٣٫٤٥')
+  check('Arabic-Indic digits with Arabic decimal separator parse exactly', await fare.inputValue() === '123.45')
+  await fare.fill('۱۲۳٫۴۵')
+  check('Persian digits with Arabic decimal separator parse exactly', await fare.inputValue() === '123.45')
+  await fare.fill('1,234.56')
+  check('mixed thousands and decimal separators parse without ambiguity', await fare.inputValue() === '1234.56')
+  await fare.fill('1.000')
+  check('ambiguous single dot thousands value remains visible and invalid', await fare.inputValue() === '1.000' && await fare.getAttribute('aria-invalid') === 'true')
+  await fare.fill('1234567890123456')
+  check('overlong numeric input is rejected rather than truncated', await fare.inputValue() === '1234567890123456' && await fare.getAttribute('aria-invalid') === 'true')
   await fare.fill('١٦٥')
   check('fare accepts Arabic-Indic digits', await fare.inputValue() === '165')
 
