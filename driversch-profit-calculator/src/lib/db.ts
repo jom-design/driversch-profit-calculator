@@ -1,6 +1,7 @@
 import { openDB } from 'idb'
 import type { SavedTrip, Settings } from '../types'
 import { DEFAULT_SETTINGS } from '../types'
+import { isStoredTripSafe, prepareSavedTrip } from './persistence'
 
 const DB_NAME = 'driver-profit-calculator'
 const DB_VERSION = 1
@@ -15,11 +16,14 @@ const dbPromise = openDB(DB_NAME, DB_VERSION, {
 })
 export async function getTrips(): Promise<SavedTrip[]> {
   const db = await dbPromise
-  return (await db.getAll('trips')).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  const stored = await db.getAll('trips')
+  return stored.filter(isStoredTripSafe).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 }
-export async function saveTrip(trip: SavedTrip) {
+export async function saveTrip(trip: SavedTrip, settings: Settings = DEFAULT_SETTINGS) {
+  const safeTrip = prepareSavedTrip(trip, settings)
+  if (!safeTrip) throw new Error('لا يمكن حفظ رحلة ببيانات غير صالحة.')
   const db = await dbPromise
-  await db.put('trips', trip)
+  await db.put('trips', safeTrip)
 }
 export async function deleteTrip(id: string) {
   const db = await dbPromise
@@ -33,10 +37,12 @@ export async function saveSettings(settings: Settings) {
   const db = await dbPromise
   await db.put('settings', settings, 'main')
 }
-export async function replaceAllTrips(trips: SavedTrip[]) {
+export async function replaceAllTrips(trips: unknown[], settings: Settings = DEFAULT_SETTINGS) {
+  const safeTrips = trips.map(trip => prepareSavedTrip(trip, settings))
+  if (safeTrips.some(trip => trip === null)) throw new Error('النسخة الاحتياطية تحتوي على رحلة غير صالحة؛ لم يتم استبدال السجل.')
   const db = await dbPromise
   const tx = db.transaction('trips', 'readwrite')
   await tx.store.clear()
-  for (const trip of trips) await tx.store.put(trip)
+  for (const trip of safeTrips) await tx.store.put(trip!)
   await tx.done
 }
