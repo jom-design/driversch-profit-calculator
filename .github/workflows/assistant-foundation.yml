@@ -119,6 +119,27 @@ jobs:
       - uses: gradle/actions/wrapper-validation@v4
       - name: Test, lint, and assemble Android debug APK
         run: ./android/gradlew -p android :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+      - name: Summarize JUnit results
+        if: always()
+        run: |
+          {
+            echo "### JUnit results (testDebugUnitTest)"
+            echo "| Suite | Tests | Failures | Errors | Skipped |"
+            echo "| --- | --- | --- | --- | --- |"
+            for f in android/app/build/test-results/testDebugUnitTest/TEST-*.xml; do
+              [ -e "$f" ] || continue
+              tag=$(grep -o '<testsuite [^>]*>' "$f" | head -n 1)
+              attr() { grep -o " $1=\"[^\"]*\"" <<< "$tag" | head -n 1 | cut -d'"' -f2; }
+              echo "| $(attr name) | $(attr tests) | $(attr failures) | $(attr errors) | $(attr skipped) |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload JUnit XML results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-testDebugUnitTest
+          path: android/app/build/test-results/testDebugUnitTest/
+          if-no-files-found: error
       - name: Verify the APK contains the new launcher icon
         run: |
           apk=android/app/build/outputs/apk/debug/app-debug.apk

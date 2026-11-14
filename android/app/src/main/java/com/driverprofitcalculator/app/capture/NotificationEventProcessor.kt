@@ -70,10 +70,12 @@ object CaptureCounterNames {
     const val REMOVED = "removed"
     const val REMOVED_UNKNOWN = "removedUnknown"
     const val PROCESSING_EXCEPTION = "processingException"
+    /** The encrypted queue blob could not be authenticated or parsed and was replaced by an empty queue. */
+    const val QUEUE_RESET = "queueReset"
     val ALL = listOf(
         RECEIVED, UNSUPPORTED_PACKAGE, PROVIDER_DISABLED, GROUP_SUMMARY, EMPTY_PAYLOAD, NOT_RELEVANT,
         PARSER_FAILURE, DUPLICATE, UPDATED, STORED, PERSISTENCE_FAILURE, REMOVED, REMOVED_UNKNOWN,
-        PROCESSING_EXCEPTION,
+        PROCESSING_EXCEPTION, QUEUE_RESET,
     )
 }
 
