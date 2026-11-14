@@ -33,3 +33,5 @@ test('rejects oversized or malformed notification payloads', () => {
   assert.equal(acceptNativeNotification({ ...valid, text: 'x'.repeat(4001) }, new Set()), null)
   assert.equal(acceptNativeNotification({ ...valid, postedAt: 'not-a-date' }, new Set()), null)
 })
+
+test('uses nat¶»§q«^

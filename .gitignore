@@ -10,3 +10,6 @@ android/keystore.properties
 .gradle/
 **/build/
 local.properties
+
+/android/.kotlin/
+/android/app/src/main/assets/
