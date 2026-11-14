@@ -309,6 +309,23 @@ export const AR_TO_EN = {
   "دقيقة": "min",
   "جنيه": "EGP",
   "التقاط شاشة التطبيقات الأخرى مباشرة غير متاح بشكل موثوق من صفحة ويب عادية. لذلك نوفر رفع الصورة كحل يعمل على المتصفح. الالتقاط المباشر يحتاج تطبيق Android أصلي وصلاحية MediaProjection بموافقة النظام.": "Directly capturing other apps' screens is not reliably available from a normal web page. Uploading a screenshot is provided as a browser-compatible alternative. Direct capture requires a native Android app and MediaProjection permission granted by the system.",
+  "الميكروفون:": "Microphone:",
+  "التعرف الصوتي:": "Speech recognition:",
+  "مشاركة الشاشة:": "Screen sharing:",
+  "عرض": "offer",
+  "رفض": "Reject",
+  "حذف": "Delete",
+  "حذف نهائي": "Delete permanently",
+  "صندوق الوارد فارغ": "The inbox is empty",
+  "إضافة عرض يدويًا أو لصق نص إشعار": "Add an offer manually or paste a notification",
+  "تحليل وإضافة للإنبوكس": "Parse and add to inbox",
+  "قدرات المتصفح الحالية": "Current browser capabilities",
+  "رفع الصور: متاح": "Image upload: available",
+  "راجعت هذه القيمة وأؤكدها": "I reviewed and confirm this value",
+  "تأكيد العرض بعد المراجعة": "Confirm offer after review",
+  "نقل العرض المؤكد للحاسبة": "Transfer confirmed offer to calculator",
+  "تكامل Android لاحقًا:": "Future Android integration:",
+  "استقبال الإشعارات يتطلب تطبيقًا أصليًا يستخدم NotificationListenerService بعد موافقة المستخدم. صفحة الويب لا تقرأ إشعارات Uber أو DiDi أو inDrive بنفسها.": "Receiving notifications requires a native app using NotificationListenerService after user approval. A web page cannot read Uber, DiDi or inDrive notifications by itself."
 } as const
 export type TranslationKey = keyof typeof AR_TO_EN
 
