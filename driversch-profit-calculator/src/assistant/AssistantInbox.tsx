@@ -27,7 +27,7 @@ const fieldLabels: Record<'fare' | 'distanceKm' | 'pickupDistanceKm' | 'duration
   fare: 'الأجرة المعروضة', distanceKm: 'مسافة الرحلة بالراكب',
   pickupDistanceKm: 'مسافة الوصول للراكب', durationMinutes: 'المدة المتوقعة'
 }
-const formatValue = (field: keyof typeof fieldLabels, value: number | null) => {
+const formatValue = (field: keyof typeof fieldLabels, value: number | null, locale: 'ar' | 'en') => {
   if (value === null) return 'غير متوفر'
   if (field === 'fare') return `${value.toLocaleString(locale==='ar'?'ar-EG':'en-EG')} جنيه`
   if (field === 'durationMinutes') return `${value.toLocaleString(locale==='ar'?'ar-EG':'en-EG')} دقيقة`
@@ -153,7 +153,7 @@ export default function AssistantInbox({ items, onChange, onTransfer, locale }: 
           items.map(item => <button type="button" key={item.id} className={`inbox-row ${selectedId === item.id ? 'is-selected' : ''}`}
             onClick={() => { setSelectedId(item.id); setError('') }}>
             <span className="inbox-row-top"><strong>{providerLabels[item.draft.provider]}</strong><span className={`inbox-status status-${item.status}`}>{statusLabels[item.status]}</span></span>
-            <span>{formatValue('fare', item.draft.fields.fare.value)} · {formatValue('distanceKm', item.draft.fields.distanceKm.value)}</span>
+            <span>{formatValue('fare', item.draft.fields.fare.value, locale)} · {formatValue('distanceKm', item.draft.fields.distanceKm.value, locale)}</span>
             <small>{new Date(item.createdAt).toLocaleString(locale==='ar'?'ar-EG':'en-EG')}</small>
           </button>)}
       </div>
