@@ -65,6 +65,10 @@ test('assistant, voice, OCR, notification and backup messages have translations'
 test('dynamic status messages translate without losing variable values', () => {
   assert.equal(translateMessage('عندك 3 عرض غير مؤكد', 'en'), 'You have 3 unconfirmed offers')
   assert.equal(translateMessage('آخر إشعار مؤهل: 10:30', 'en'), 'Last eligible notification: 10:30')
+  assert.equal(translateMessage('تم تجاهل 2 سجل غير صالح داخل مخزن الإنبوكس. لم يتم حذف السجلات التالفة.', 'en'), 'Ignored 2 invalid inbox records. Corrupted records were not deleted.')
+  assert.equal(translateMessage('سيتم استيراد 3 رحلة واستبدال السجل الحالي. هل تريد المتابعة؟', 'en'), 'Import 3 trips and replace the current history. Continue?')
+  assert.equal(translateMessage('آخر رحلة: اقبل الرحلة · صافي الربح 90.00 EGP', 'en'), 'Last trip: Accept trip · Net profit 90.00 EGP')
+  assert.equal(translateMessage('اقبل الرحلة. صافي الربح 90.00 EGP', 'en'), 'Accept the trip. Net profit 90.00 EGP')
 })
 
 test('financial decision and OCR interpolations translate without losing numbers', () => {

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { BellRing, ExternalLink, RefreshCw, ShieldCheck } from 'lucide-react'
 import type { NativeNotificationPayload } from './notificationBridge'
 import './android-notification-panel.css'
-import { t, type TranslationKey } from '../lib/i18n'
+import { t, translateMessage, type TranslationKey } from '../lib/i18n'
 
 interface NativeBridge {
   getStatusJson: () => string
@@ -142,6 +142,6 @@ export default function AndroidNotificationPanel({ onImport, locale }: Props) {
     {!status?.queueHealthy && <p className="android-capture-message" role="alert">{t('تعذر فك تشفير قائمة الإشعارات المحلية. تم إيقاف الاستيراد لحماية البيانات؛ لا تحذف بيانات التطبيق قبل تصدير ما يلزم.', locale)}</p>}
     {status?.lastReceivedAt && <small>{t('آخر إشعار مؤهل:', locale)} {new Date(status.lastReceivedAt).toLocaleString(locale==='ar'?'ar-EG':'en-EG')}</small>}
     <p className="android-capture-note">{t('الإشعارات المؤهلة تُحفظ مؤقتًا مشفّرة على الجهاز، ثم تُحذف من قائمة الانتظار بعد نجاح حفظها في IndexedDB. لا يوجد إرسال إلى خادم.', locale)}</p>
-    {message && <p className="android-capture-message" role="status">{message === 'تم استيراد إشعارات' ? `${t(message, locale)} ${importedCount?.toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-EG') ?? 0} ${t('إشعار إلى صندوق المراجعة', locale)}` : t(message, locale)}</p>}
+    {message && <p className="android-capture-message" role="status">{message === 'تم استيراد إشعارات' ? translateMessage(`تم استيراد ${importedCount?.toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-EG') ?? 0} إشعار إلى صندوق المراجعة.`, locale) : t(message, locale)}</p>}
   </section>
 }
