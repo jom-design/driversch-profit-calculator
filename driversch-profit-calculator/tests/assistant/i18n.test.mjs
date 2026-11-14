@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { AR_TO_EN, translateText } from '../../src/lib/i18n.ts'
 
 test('navigation and key product areas translate in both directions', () => {
@@ -71,4 +72,25 @@ test('all dictionary entries have non-empty English values', () => {
   assert.ok(Object.keys(AR_TO_EN).length >= 150)
   assert.ok(values.every(value => value.trim().length > 0))
   assert.ok(values.length >= 150)
+})
+
+
+test('visible Arabic JSX copy in primary screens and assistant components has dictionary coverage', () => {
+  const sources = [
+    new URL('../../src/App.tsx', import.meta.url),
+    new URL('../../src/assistant/AssistantInbox.tsx', import.meta.url),
+    new URL('../../src/assistant/AndroidNotificationPanel.tsx', import.meta.url),
+    new URL('../../src/assistant/voice/VoiceCommandBar.tsx', import.meta.url)
+  ]
+  const missing = []
+  for (const url of sources) {
+    const source = readFileSync(url, 'utf8')
+    for (const match of source.matchAll(/>([^<>]*[\u0600-\u06FF][^<>]*)</g)) {
+      const copy = match[1].trim()
+      if (!copy || copy.length > 220 || copy.startsWith('=') || copy.includes('{') || copy.includes('=>')) continue
+      if (/^(Uber|DiDi|inDrive|Android|Chrome|API|OCR|PNG|JPG)$/.test(copy)) continue
+      if (!AR_TO_EN[copy]) missing.push(copy)
+    }
+  }
+  assert.deepEqual([...new Set(missing)], [])
 })
