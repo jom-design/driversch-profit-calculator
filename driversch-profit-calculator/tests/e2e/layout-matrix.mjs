@@ -124,7 +124,7 @@ try {
         }
 
         await page.getByRole('button', { name: /Settings|الإعدادات/ }).click()
-        const uber = page.getByLabel(/Uber commission|عمولة Uber/)
+        const uber = page.getByLabel(/Uber commission|Commission Uber|عمولة Uber/)
         check(`${vp.name}/${locale}/${theme}: Uber commission field exists`, await uber.count() === 1)
         await uber.scrollIntoViewIfNeeded()
         check(`${vp.name}/${locale}/${theme}: Uber commission field is visible`, await uber.isVisible())
