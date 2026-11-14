@@ -335,6 +335,9 @@ const INTERPOLATED: Array<[RegExp,(match:RegExpMatchArray)=>string]> = [
   [/^الميكروفون: (.+)$/, m => `Microphone: ${m[1] === 'واجهة API متاحة بعد الإذن' ? 'API available after permission' : 'Not supported'}`],
   [/^مشاركة الشاشة: (.+)$/, m => `Screen sharing: ${m[1] === 'واجهة API متاحة بعد الإذن' ? 'API available after permission' : 'Not supported'}`],
   [/^(.+) عرض$/, m => `${m[1]} offers`],
+  [/^القيمة (.+) في الإعدادات ليست رقمًا صحيحًا$/, m => `Setting value ${m[1]} is not a valid number.`],
+  [/^عمولة (.+) في الإعدادات ليست نسبة صحيحة من 0 إلى 100$/, m => `${m[1]} commission in settings must be between 0 and 100.`],
+  [/^بيانات الرحلة رقم (\d+) تالفة أو نتائجها المالية لا تطابق مدخلاتها؛ لم يتم استيراد أي بيانات\.$/, m => `Trip #${m[1]} is corrupted or its financial results do not match its inputs; no data was imported.`],
 ]
 export function translateText(value:string, locale:AppLocale):string {
   const trimmed=value.trim()
