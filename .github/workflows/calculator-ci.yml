@@ -1,0 +1,35 @@
+name: Calculator CI
+
+on:
+  push:
+    branches:
+      - review/calculator-hardening-20261114
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: driversch-profit-calculator
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install declared dependencies
+        run: npm install --no-package-lock --no-audit --no-fund
+      - name: Run Node regression tests
+        run: node --experimental-strip-types --test tests/calculator.node.test.mjs
+      - name: Run Vitest suite
+        run: npm test
+      - name: Run full production build (includes TypeScript project build)
+        run: npm run build
