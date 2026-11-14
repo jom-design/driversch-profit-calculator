@@ -13,4 +13,13 @@ class NativeVoiceTextPolicyTest {
         assertEquals(600, NativeVoiceTextPolicy.sanitizeForSpeech("أ".repeat(800)).length)
         assertEquals("", NativeVoiceTextPolicy.sanitizeForSpeech("   "))
     }
+
+    @Test fun mixedArabicEnglishAndDigitsAreNeverDropped() {
+        val text = "Trip مشوار ١٢٫٥ km ۳۰"
+        assertEquals(text, NativeVoiceTextPolicy.sanitizeForSpeech(text))
+    }
+
+    @Test fun persianAndArabicDigitsSurviveTheSpeechPath() {
+        assertEquals("صافي ٦١٫٠٥ جنيه", NativeVoiceTextPolicy.sanitizeForSpeech("صافي ٦١٫٠٥ جنيه"))
+    }
 }

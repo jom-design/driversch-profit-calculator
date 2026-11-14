@@ -38,12 +38,12 @@ export function normalizeArabicSpeech(text: string): string {
 
 /** Each rule is checked in order; the first phrase that appears in the transcript wins. */
 const RULE_SOURCES: Array<{ intent: VoiceIntent; phrases: string[] }> = [
-  { intent: 'cancel', phrases: ['إلغاء', 'الغ', 'الغي'] },
-  { intent: 'last-trip', phrases: ['اخر رحله', 'اخر مشوار', 'اخر حاجه اتسجلت'] },
-  { intent: 'unconfirmed-offers', phrases: ['غير المؤكده', 'غير مؤكده', 'الغير مؤكده', 'مش متاكد', 'مش مؤكده', 'مش مؤكد'] },
-  { intent: 'start-review', phrases: ['ابدأ مراجعة', 'مراجعة رحلة', 'راجع رحلة', 'راجع العرض', 'مراجعة'] },
-  { intent: 'open-inbox', phrases: ['صندوق', 'افتح الصندوق', 'صندوق الرحلات', 'الرحلات الملتقطة'] },
-  { intent: 'calculate', phrases: ['احسب', 'حساب', 'صافي الربح'] }
+  { intent: 'cancel', phrases: ['إلغاء', 'الغ', 'الغي', 'cancel', 'stop'] },
+  { intent: 'last-trip', phrases: ['اخر رحله', 'اخر مشوار', 'اخر حاجه اتسجلت', 'اخر trip', 'last trip', 'latest trip'] },
+  { intent: 'unconfirmed-offers', phrases: ['غير المؤكده', 'غير مؤكده', 'الغير مؤكده', 'مش متاكد', 'مش مؤكده', 'مش مؤكد', 'unconfirmed', 'pending offers'] },
+  { intent: 'start-review', phrases: ['ابدأ مراجعة', 'مراجعة رحلة', 'راجع رحلة', 'راجع العرض', 'مراجعة', 'start review', 'review trip', 'review offer'] },
+  { intent: 'open-inbox', phrases: ['صندوق', 'افتح الصندوق', 'صندوق الرحلات', 'الرحلات الملتقطة', 'inbox', 'open inbox', 'trip inbox'] },
+  { intent: 'calculate', phrases: ['احسب', 'حساب', 'صافي الربح', 'calculate', 'calc', 'calculate trip'] }
 ]
 
 // Phrases go through the same normalization as the transcript, so spelling variants match.

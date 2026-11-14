@@ -15,75 +15,123 @@ async function waitForServer() {
   throw new Error('Vite did not become ready on port ' + port)
 }
 
+const passed = []
 function check(name, condition) {
   if (!condition) throw new Error('Input check failed: ' + name)
-  return name
+  passed.push(name)
 }
+
+const backupWithArabicDigits = JSON.stringify({
+  schemaVersion: 1,
+  exportedAt: '2026-11-14T10:00:00.000Z',
+  settings: { fuelPrice: '٢١٫٧٥', consumptionPer100: '١٠', maintenancePerKm: 2.5, minNetProfit: 50, hourlyTarget: 75, commission: { inDrive: 0, DiDi: '١٢٫٥', 'أخرى': 0 } },
+  trips: []
+})
+const brokenBackup = JSON.stringify({ schemaVersion: 1, settings: { fuelPrice: 'عشرين' }, trips: [] })
 
 try {
   await waitForServer()
   const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
   browser = await chromium.launch({ headless: true, ...(executablePath ? { executablePath } : {}), args: ['--no-sandbox'] })
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'ar-EG' })
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: baseUrl })
   const page = await context.newPage()
   const pageErrors = []
   page.on('pageerror', error => pageErrors.push(error.message))
+  page.on('dialog', dialog => { void dialog.accept() })
 
   await page.goto(baseUrl, { waitUntil: 'networkidle' })
-  const checks = []
 
-  // Every numeric field is a text input that accepts Arabic-Indic digits.
+  // ---- Calculator ----
   const numericCount = await page.locator('input.numeric-input[type="text"][inputmode="decimal"]').count()
-  checks.push(check('numeric fields are text inputs with decimal keypad', numericCount >= 5))
-  checks.push(check('no browser number inputs remain on the calculator', await page.locator('input[type="number"]').count() === 0))
+  check('calculator numeric fields are text inputs with decimal keypad', numericCount >= 5)
+  check('no browser number inputs anywhere on the calculator', await page.locator('input[type="number"]').count() === 0)
 
-  // Arabic-Indic digits in the fare field produce the same value as ASCII digits.
   const fare = page.getByLabel('الأجرة المعروضة')
   await fare.fill('١٦٥')
-  checks.push(check('fare accepts Arabic digits', await fare.inputValue() === '165'))
+  check('fare accepts Arabic-Indic digits', await fare.inputValue() === '165')
 
-  // Commission regression: 10% of 100 EGP leaves 90 EGP net, typed with Arabic digits.
+  const passenger = page.getByLabel('مسافة الرحلة بالراكب')
+  await passenger.fill('۲۵')
+  check('passenger distance accepts Persian digits', await passenger.inputValue() === '25')
+
   await page.getByRole('button', { name: 'إجمالي قبل العمولة' }).click()
   await page.getByLabel('نسبة عمولة التطبيق').fill('١٠')
   await fare.fill('١٠٠')
   const netFareText = await page.locator('.metric', { hasText: 'صافي الأجرة' }).locator('strong').innerText()
-  checks.push(check('10% commission on 100 gives 90.00 net with Arabic digits', netFareText.includes('90.00')))
+  check('10% commission on 100 gives 90.00 net with Arabic digits', netFareText.includes('90.00'))
+  await page.getByRole('button', { name: 'صافي للسائق' }).click()
 
-  // Cursor stability: inserting an Arabic digit in the middle keeps the caret after it.
   await fare.fill('12')
   await fare.focus()
   await page.keyboard.press('Home')
   await page.keyboard.press('ArrowRight')
   await page.keyboard.type('٣')
-  checks.push(check('middle insertion gives 132', await fare.inputValue() === '132'))
-  checks.push(check('caret stays after the inserted digit', await fare.evaluate(el => el.selectionStart) === 2))
+  check('typing an Arabic digit mid-field keeps the value', await fare.inputValue() === '132')
+  check('caret stays after the inserted digit', await fare.evaluate(el => el.selectionStart) === 2)
 
-  // Negative and letters are dropped from distance fields; English text still works in notes.
-  const passenger = page.getByLabel('مسافة الرحلة بالراكب')
   await passenger.fill('-5abc')
-  checks.push(check('minus and letters are dropped from distance', await passenger.inputValue() === '5'))
+  check('minus sign and letters are dropped from distance', await passenger.inputValue() === '5')
   await passenger.fill('')
-  checks.push(check('empty distance stays empty', await passenger.inputValue() === ''))
+  check('empty distance stays empty', await passenger.inputValue() === '')
+
+  await passenger.fill('')
+  await page.evaluate(text => navigator.clipboard.writeText(text), '٣٠')
+  await passenger.focus()
+  await page.keyboard.press('Control+A')
+  await page.keyboard.press('Control+V')
+  check('pasting Arabic digits into a numeric field keeps them as numbers', await passenger.inputValue() === '30')
 
   const notes = page.getByPlaceholder('أي تفاصيل تساعدك في مراجعة الرحلة...')
   await notes.fill('مشوار Good trip ١٢')
-  checks.push(check('mixed Arabic and English notes are kept as typed', await notes.inputValue() === 'مشوار Good trip ١٢'))
-  checks.push(check('notes use automatic direction', await notes.getAttribute('dir') === 'auto'))
+  check('mixed Arabic and English notes are kept as typed', await notes.inputValue() === 'مشوار Good trip ١٢')
+  check('notes use automatic direction', await notes.getAttribute('dir') === 'auto')
 
-  // Settings: an Arabic decimal value is saved and restored after reload.
+  // ---- Assistant (screenshot capture) ----
+  await page.getByRole('button', { name: /المساعد الذكي/ }).click()
+  check('screenshot upload control is present', await page.locator('input[type="file"][accept="image/*"]').count() === 1)
+  check('assistant screen has no raw number inputs', await page.locator('input[type="number"]').count() === 0)
+
+  // ---- Inbox: pasted offer text in Arabic digits, English labels, manual correction ----
+  await page.getByRole('button', { name: /الرحلات الملتقطة/ }).click()
+  await page.getByLabel('إضافة عرض يدويًا أو لصق نص إشعار').fill('inDrive\nالقبول مقابل ١٦٥ جنيه\nمسافة الوصول: ٤ كم\nمسافة الرحلة: ٢٢ كم\n٤٠ دقيقة')
+  await page.locator('#ride-offer-text').press('Tab')
+  await page.keyboard.press('Enter')
+  await page.locator('.inbox-row').first().waitFor()
+  const inboxFare = page.locator('.inbox-field input.numeric-input').first()
+  check('inbox parses an offer written with Arabic digits', await inboxFare.inputValue() === '165')
+  await inboxFare.fill('١٧٥')
+  check('inbox manual correction accepts Arabic digits', await inboxFare.inputValue() === '175')
+  check('inbox offer text uses automatic direction', await page.locator('#ride-offer-text').getAttribute('dir') === 'auto')
+
+  // ---- History and reports: read-only screens must not contain raw number inputs ----
+  await page.getByRole('button', { name: /سجل الرحلات/ }).click()
+  check('history has no raw number inputs', await page.locator('input[type="number"]').count() === 0)
+  await page.getByRole('button', { name: /التقارير/ }).click()
+  check('reports have no editable number inputs', await page.locator('input').count() === 0)
+
+  // ---- Settings: decimal values, commission, backup import with Arabic digits ----
   await page.getByRole('button', { name: 'الإعدادات' }).click()
   await page.getByLabel('سعر لتر البنزين').fill('٢٢٫٥')
   await page.getByRole('button', { name: /حفظ الإعدادات/ }).click()
   await page.reload({ waitUntil: 'networkidle' })
   await page.getByRole('button', { name: 'الإعدادات' }).click()
-  const restoredFuel = await page.getByLabel('سعر لتر البنزين').inputValue()
-  checks.push(check('saved fuel price is restored as 22.5', restoredFuel === '22.5'))
+  check('saved fuel price is restored as 22.5', await page.getByLabel('سعر لتر البنزين').inputValue() === '22.5')
+
+  await page.locator('input[type="file"][accept="application/json"]').setInputFiles({ name: 'backup.json', mimeType: 'application/json', buffer: Buffer.from(backupWithArabicDigits) })
+  await page.locator('.toast', { hasText: 'تم استيراد' }).waitFor()
+  check('backup with Arabic digits imports as 21.75 fuel price', await page.getByLabel('سعر لتر البنزين').inputValue() === '21.75')
+  check('backup with Arabic digits imports the DiDi commission as 12.5', await page.getByLabel('عمولة DiDi').inputValue() === '12.5')
+
+  await page.locator('input[type="file"][accept="application/json"]').setInputFiles({ name: 'broken.json', mimeType: 'application/json', buffer: Buffer.from(brokenBackup) })
+  await page.locator('.toast', { hasText: 'fuelPrice' }).waitFor()
+  check('broken backup is refused and the stored fuel price is kept', await page.getByLabel('سعر لتر البنزين').inputValue() === '21.75')
 
   const bodyText = await page.locator('body').innerText()
-  checks.push(check('no NaN is shown anywhere', !bodyText.includes('NaN')))
-  checks.push(check('no page errors', pageErrors.length === 0))
+  check('no NaN is shown anywhere', !bodyText.includes('NaN'))
+  check('no page errors', pageErrors.length === 0)
 
-  console.log(JSON.stringify({ passed: checks, pageErrors }, null, 2))
+  console.log(JSON.stringify({ passed, count: passed.length, pageErrors }, null, 2))
   await context.close()
 } finally {
   if (browser) await browser.close()

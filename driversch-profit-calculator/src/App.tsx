@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Activity, Archive, Calculator, CarFront, Check, ChevronDown, Download, FileImage, Gauge, History, LayoutDashboard, Mic, MicOff, RotateCcw, Save, Settings as SettingsIcon, ShieldCheck, Trash2, Upload, Wallet, X } from 'lucide-react'
 import { calculateTrip } from './lib/calculator'
 import NumericInput from './components/NumericInput'
+import { normalizeBackup } from './lib/backupImport'
 import AssistantInbox from './assistant/AssistantInbox'
 import type { InboxItem } from './assistant/types'
 import { toCalculatorTripInput } from './assistant/calculatorTransfer'
@@ -147,12 +148,17 @@ export default function App() {
   }
   const importBackup=async(file?:File)=>{
     if(!file)return
+    let data:unknown
+    try{data=JSON.parse(await file.text())}catch{setToast('ملف النسخة الاحتياطية غير صالح أو غير متوافق');return}
+    // Everything is validated before anything is stored. Numbers in any digit system are accepted.
+    const checked=normalizeBackup(data,DEFAULT_SETTINGS)
+    if(!checked.ok){setToast(checked.reason);return}
+    const {settings:nextSettings,trips:nextTrips,skippedTrips}=checked.value
+    if(!confirm(`سيتم استيراد ${nextTrips.length} رحلة واستبدال السجل الحالي. هل تريد المتابعة؟`))return
     try{
-      const data=JSON.parse(await file.text())
-      if(data.schemaVersion!==1||!Array.isArray(data.trips)||!data.settings)throw new Error('invalid')
-      if(!confirm(`سيتم استيراد ${data.trips.length} رحلة واستبدال السجل الحالي. هل تريد المتابعة؟`))return
-      await replaceAllTrips(data.trips);await saveSettings(data.settings);setTrips(await getTrips());setSettings(await getSettings());setToast('تم استيراد النسخة الاحتياطية')
-    }catch{setToast('ملف النسخة الاحتياطية غير صالح أو غير متوافق')}
+      await replaceAllTrips(nextTrips);await saveSettings(nextSettings);setTrips(await getTrips());setSettings(await getSettings())
+      setToast(skippedTrips?`تم استيراد النسخة. تم تجاهل ${skippedTrips} رحلة تالفة`:'تم استيراد النسخة الاحتياطية')
+    }catch{setToast('تعذر حفظ النسخة الاحتياطية على هذا الجهاز')}
   }
   const exportCsv=()=>{
     const headers=['التاريخ','التطبيق','الأجرة المدخلة','صافي الأجرة','المسافة كم','الوقت دقيقة','التكلفة','صافي الربح','ربح الساعة','القرار']

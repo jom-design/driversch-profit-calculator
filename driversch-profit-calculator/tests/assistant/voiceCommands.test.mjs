@@ -64,3 +64,18 @@ test('normalises alef, ya, ta marbuta, diacritics and Arabic digits', () => {
   assert.equal(normalizeArabicSpeech('مدرسة ى'), 'مدرسه ي')
   assert.equal(normalizeArabicSpeech('رحلة ٣٠'), 'رحله 30')
 })
+
+test('English command phrases work the same as Arabic ones', () => {
+  assert.equal(parseVoiceCommand('calculate the trip').intent, 'calculate')
+  assert.equal(parseVoiceCommand('last trip').intent, 'last-trip')
+  assert.equal(parseVoiceCommand('open inbox').intent, 'open-inbox')
+  assert.equal(parseVoiceCommand('show unconfirmed').intent, 'unconfirmed-offers')
+  assert.equal(parseVoiceCommand('Start review').intent, 'start-review')
+  assert.equal(parseVoiceCommand('Cancel').intent, 'cancel')
+})
+
+test('mixed Arabic and English commands are recognised', () => {
+  assert.equal(parseVoiceCommand('افتح inbox').intent, 'open-inbox')
+  assert.equal(parseVoiceCommand('احسب the trip').intent, 'calculate')
+  assert.equal(parseVoiceCommand('آخر trip').intent, 'last-trip')
+})
