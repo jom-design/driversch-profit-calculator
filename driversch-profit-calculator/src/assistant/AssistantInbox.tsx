@@ -128,7 +128,7 @@ export default function AssistantInbox({ items, onChange, onTransfer, locale }: 
       <span className="inbox-count" aria-label={`عدد العروض ${active.length}`}>{active.length} عرض</span>
     </div>
 
-    <AndroidNotificationPanel onImport={importNativeNotifications} />
+    <AndroidNotificationPanel onImport={importNativeNotifications} locale={locale} />
 
     <div className="inbox-capabilities" aria-label="قدرات المتصفح الحالية">
       <span>رفع الصور: متاح</span>
