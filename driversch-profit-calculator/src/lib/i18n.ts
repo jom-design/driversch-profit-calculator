@@ -311,6 +311,11 @@ export const AR_TO_EN = {
   "التقاط شاشة التطبيقات الأخرى مباشرة غير متاح بشكل موثوق من صفحة ويب عادية. لذلك نوفر رفع الصورة كحل يعمل على المتصفح. الالتقاط المباشر يحتاج تطبيق Android أصلي وصلاحية MediaProjection بموافقة النظام.": "Directly capturing other apps' screens is not reliably available from a normal web page. Uploading a screenshot is provided as a browser-compatible alternative. Direct capture requires a native Android app and MediaProjection permission granted by the system.",
 } as const
 export type TranslationKey = keyof typeof AR_TO_EN
+
+/** Typed translation lookup for application code; raw user/source text uses translateText instead. */
+export function t(key: TranslationKey, locale: AppLocale): string {
+  return locale === 'ar' ? key : AR_TO_EN[key]
+}
 const EN_TO_AR: Readonly<Record<string,string>> = Object.fromEntries(
   Object.entries(AR_TO_EN).map(([ar,en]) => [en,ar])
 )
