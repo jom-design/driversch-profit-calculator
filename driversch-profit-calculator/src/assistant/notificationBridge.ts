@@ -24,7 +24,7 @@ export function acceptNativeNotification(
 ): InboxItem | null {
   if (!payload || typeof payload.notificationId !== 'string' || !payload.notificationId.trim() ||
       typeof payload.packageName !== 'string' || !payload.packageName.trim() ||
-      typeof payload.text !== 'string' || !payload.text.trim() ||
+      typeof payload.title !== 'string' || typeof payload.text !== 'string' || !payload.text.trim() ||
       typeof payload.postedAt !== 'string') return null
   if (seenNotificationIds.has(payload.notificationId)) return null
   const postedAt = new Date(payload.postedAt)
