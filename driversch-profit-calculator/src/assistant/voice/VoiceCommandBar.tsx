@@ -35,9 +35,9 @@ const ERROR_TEXT: Record<string, string> = {
   network: 'التعرف على الصوت يحتاج اتصالًا بالإنترنت في هذا المتصفح.'
 }
 type Phase = 'idle' | 'listening' | 'confirm' | 'error'
-interface Props { onCommand: (intent: VoiceIntent) => void }
+interface Props { onCommand: (intent: VoiceIntent) => void; locale: 'ar' | 'en' }
 
-export default function VoiceCommandBar({ onCommand }: Props) {
+export default function VoiceCommandBar({ onCommand, locale }: Props) {
   const native = typeof window === 'undefined' ? undefined : window.DriverAndroid
   const nativeSupported = typeof native?.startSpeechRecognition === 'function'
   const supported = nativeSupported || getRecognitionCtor() !== null
@@ -85,7 +85,7 @@ export default function VoiceCommandBar({ onCommand }: Props) {
       setHeard('')
       setMessage('')
       setPhase('listening')
-      if (!native.startSpeechRecognition()) {
+      if (!native.startSpeechRecognition(locale === 'ar' ? 'ar-EG' : 'en-US')) {
         setMessage('تعذر بدء التعرف الصوتي على Android.')
         setPhase('error')
       }
@@ -95,7 +95,7 @@ export default function VoiceCommandBar({ onCommand }: Props) {
     if (!Ctor) return
     recognitionRef.current?.abort()
     const recognition = new Ctor()
-    recognition.lang = 'ar-EG'
+    recognition.lang = locale === 'ar' ? 'ar-EG' : 'en-US'
     recognition.continuous = false
     recognition.interimResults = false
     recognition.maxAlternatives = 1
