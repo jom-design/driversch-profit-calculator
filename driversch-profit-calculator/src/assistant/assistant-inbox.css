@@ -9,3 +9,5 @@
 .inbox-reviewed{display:flex;align-items:center;gap:7px;color:#b8c8dc;font-size:11px;cursor:pointer;min-height:28px}.inbox-reviewed input{width:17px;height:17px;accent-color:#12a982;flex:none}
 
 .inbox-capabilities{display:flex;flex-wrap:wrap;gap:7px;margin:-3px 0 14px}.inbox-capabilities span{border:1px solid #2c405b;background:#101f35;color:#b9c9de;border-radius:20px;padding:5px 9px;font-size:10px;line-height:1.5}
+
+.assistant-inbox button:focus-visible,.assistant-inbox input:focus-visible,.assistant-inbox select:focus-visible,.assistant-inbox textarea:focus-visible,.assistant-inbox summary:focus-visible{outline:2px solid #f1bd55;outline-offset:3px}
