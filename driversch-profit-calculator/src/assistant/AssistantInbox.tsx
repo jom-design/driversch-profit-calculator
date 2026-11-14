@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { AlertCircle, Archive, Check, ChevronDown, CircleHelp, ClipboardPaste, RotateCcw, ShieldAlert, Trash2, X } from 'lucide-react'
-import { createInboxItem, markInboxParsed, requestInboxReview, updateInboxDraft, confirmInboxItem, rejectInboxItem, hasRequiredReviewData } from './inbox'
+import { createInboxItem, markInboxParsed, requestInboxReview, updateInboxDraft, confirmInboxItem, rejectInboxItem, hasRequiredReviewData, deleteInboxItem } from './inbox'
 import { parseRideOffer } from './parser'
 import type { InboxItem, RideFieldName, RideOfferDraft, RideProvider } from './types'
 import './assistant-inbox.css'
@@ -97,7 +97,7 @@ export default function AssistantInbox({ items, onChange, onTransfer }: Props) {
   }
   const remove = (item: InboxItem) => {
     if (!window.confirm('حذف العرض من صندوق الوارد؟ لا يمكن التراجع عن الحذف.')) return
-    onChange(items.filter(current => current.id !== item.id))
+    onChange(deleteInboxItem(items, item.id))
     setSelectedId(null)
   }
   const transfer = (item: InboxItem) => {
