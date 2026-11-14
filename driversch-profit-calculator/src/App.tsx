@@ -299,7 +299,7 @@ export default function App() {
           <Field label={tr('هدف الربح في الساعة')} value={settings.hourlyTarget} onChange={v=>updateSettings('hourlyTarget',v??0)} unit="ج.م"/>
         </div>
         <div className="section-head"><h3>{tr('عمولة التطبيقات (اختيارية)')}</h3><span>{tr('كل تطبيق له نسبته المستقلة. القيمة 0% افتراضية حتى تُدخل نسبتك، وتُستخدم عند اختيار أجرة إجمالية')}</span></div>
-        <div className="field-grid">{(['Uber','inDrive','DiDi','أخرى'] as const).map(a=><Field label={translateMessage(`عمولة ${a}`,locale)} value={settings.commission[a]} onChange={v=>setSettings(s=>({...s,commission:{...s.commission,[a]:v??0}}))} unit="%"/>)}</div>
+        <div className="field-grid">{(['Uber','inDrive','DiDi','أخرى'] as const).map(a=><Field label={`${tr('عمولة')} ${a==='أخرى'?tr('أخرى'):a}`} value={settings.commission[a]} onChange={v=>setSettings(s=>({...s,commission:{...s.commission,[a]:v??0}}))} unit="%"/>)}</div>
         <div className="backup-actions"><button className="subtle-btn" onClick={exportBackup}><Download size={16}/> {tr('تصدير نسخة احتياطية')}</button><label className="subtle-btn file-button"><Upload size={16}/> {tr('استيراد نسخة احتياطية')}<input type="file" accept="application/json" onChange={e=>importBackup(e.target.files?.[0])}/></label><button className="subtle-btn" onClick={()=>{if(confirm(tr('إعادة الإعدادات الافتراضية؟')))setSettings(DEFAULT_SETTINGS)}}><RotateCcw size={16}/> {tr('استعادة الافتراضي')}</button></div>
         <p className="formula-note">{tr('البيانات محفوظة محليًا في هذا المتصفح باستخدام IndexedDB. مسح بيانات المتصفح قد يؤدي إلى حذفها؛ صدّر نسخة احتياطية بانتظام.')}</p>
       </section>}

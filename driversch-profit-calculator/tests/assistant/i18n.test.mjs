@@ -86,6 +86,10 @@ test('unknown user content and mixed platform names remain unchanged', () => {
   assert.equal(translateMessage('ملاحظة كتبها المستخدم', 'en'), 'ملاحظة كتبها المستخدم')
   const rawOcr = 'Uber 165 ج.م 22 كم 40 دقيقة'
   assert.equal(translateMessage(rawOcr, 'en'), rawOcr)
+  assert.equal(translateMessage('165 كم', 'en'), '165 كم')
+  assert.equal(translateMessage('165 جنيه', 'en'), '165 جنيه')
+  const rawOcr = 'Uber 165 ج.م 22 كم 40 دقيقة'
+  assert.equal(translateMessage(rawOcr, 'en'), rawOcr)
 })
 
 test('translation preserves surrounding whitespace and reversible exact keys', () => {
