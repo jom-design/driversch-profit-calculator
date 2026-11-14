@@ -216,24 +216,24 @@ export default function App() {
         break
     }
   }
-  return <div className="app-shell">
+  return <div className="app-shell" data-locale={locale}>
     <header className="topbar">
       <div className="brand"><div className="brand-icon"><ScaleIcon/></div><div><strong>حاسبة عدالة المشاوير</strong><small>DRIVER PROFIT CALCULATOR</small></div></div>
       <div className="top-actions"><button type="button" className="utility-btn" onClick={()=>setLocale(v=>v==="ar"?"en":"ar")} aria-label={locale==="ar"?"Switch to English":"التبديل إلى العربية"}>{locale==="ar"?"English":"العربية"}</button><button type="button" className="utility-btn" onClick={()=>setTheme(v=>v==="dark"?"light":"dark")} aria-label={theme==="dark"?"Switch to light mode":"التبديل للوضع الداكن"}>{theme==="dark"?(locale==="ar"?"الوضع الفاتح":"Light mode"):(locale==="ar"?"الوضع الداكن":"Dark mode")}</button><span className="free-tag"><ShieldCheck size={14}/> مجاني 100%</span><span className="local-tag"><span/> حفظ محلي</span></div>
     </header>
-    <nav className="nav">{nav.map(n=><button key={n.id} className={page===n.id?'active':''} onClick={()=>setPage(n.id)}><n.icon size={17}/>{n.label}{n.id==='inbox'&&inbox.filter(item=>item.status!=='rejected'&&item.status!=='dismissed'&&item.status!=='transferred').length>0?<b>{inbox.filter(item=>item.status!=='rejected'&&item.status!=='dismissed'&&item.status!=='transferred').length}</b>:null}</button>)}</nav>
-    <main className="main">
+    <nav className="nav" aria-label={locale==='ar'?'التنقل الرئيسي':'Primary navigation'}>{nav.map(n=><button key={n.id} className={page===n.id?'active':''} aria-current={page===n.id?'page':undefined} onClick={()=>setPage(n.id)}><n.icon size={17}/>{n.label}{n.id==='inbox'&&inbox.filter(item=>item.status!=='rejected'&&item.status!=='dismissed'&&item.status!=='transferred').length>0?<b>{inbox.filter(item=>item.status!=='rejected'&&item.status!=='dismissed'&&item.status!=='transferred').length}</b>:null}</button>)}</nav>
+    <main className={`main main-${page}`} id="main-content">
       {inboxStorageMessage&&<div className="inbox-storage-alert" role="alert"><span>{inboxStorageMessage}</span>{inboxSaveFailed&&<button type="button" onClick={()=>void commitInbox(inbox)}>إعادة محاولة الحفظ</button>}</div>}
       <VoiceCommandBar onCommand={runVoiceCommand} locale={locale}/>
       {page==='calculator'&&<><section className="hero"><div><span className="eyebrow">قرار أذكى • ربح أوضح</span><h1>احسبها قبل ما تقبل المشوار</h1><p>اعرف تكلفة الرحلة وصافي ربحك الحقيقي في ثوانٍ.</p></div><div className="hero-stat"><Gauge size={26}/><span>القرار بيتحسب تلقائيًا</span></div></section>
         <section className="templates"><div className="section-head"><h2>نماذج جاهزة للاختبار السريع</h2><span>اضغط لملء الحقول</span></div><div className="template-grid">{templates.map(t=><button className="template" key={t.name} onClick={()=>loadTemplate(t.trip)}><strong>{t.name}</strong><small>{t.desc}</small></button>)}</div></section>
         <div className="work-grid"><section className="panel form-panel"><div className="panel-head"><div><span className="eyebrow">بيانات العرض</span><h2><CarFront/> بيانات المشوار المقترح</h2></div><button className="subtle-btn" onClick={()=>setTrip(EMPTY_TRIP)}><RotateCcw size={15}/> تفريغ الحقول</button></div>
-          <div className="app-select">{(['Uber','DiDi','inDrive','أخرى'] as AppName[]).map(a=><button key={a} className={trip.app===a?'selected':''} onClick={()=>{patch('app',a);patch('commissionRate',settings.commission[a]??0);patch('fareMode',a==='Uber'?'net':'unknown')}}>{a}</button>)}</div>
+          <div className="app-select">{(['Uber','DiDi','inDrive','أخرى'] as AppName[]).map(a=><button key={a} className={trip.app===a?'selected':''} aria-pressed={trip.app===a} onClick={()=>{patch('app',a);patch('commissionRate',settings.commission[a]??0);patch('fareMode',a==='Uber'?'net':'unknown')}}>{a}</button>)}</div>
           <Field label="الأجرة المعروضة" value={trip.fare} onChange={v=>patch('fare',v??0)} unit="ج.م"/>
           <div className="field"><span>نوع الأجرة</span><div className="choice-row">
-            <button className={trip.fareMode==='net'?'chosen':''} onClick={()=>patch('fareMode','net')}>صافي للسائق</button>
-            <button className={trip.fareMode==='gross'?'chosen':''} onClick={()=>patch('fareMode','gross')}>إجمالي قبل العمولة</button>
-            <button className={trip.fareMode==='unknown'?'chosen':''} onClick={()=>patch('fareMode','unknown')}>غير متأكد</button>
+            <button className={trip.fareMode==='net'?'chosen':''} aria-pressed={trip.fareMode==='net'} onClick={()=>patch('fareMode','net')}>صافي للسائق</button>
+            <button className={trip.fareMode==='gross'?'chosen':''} aria-pressed={trip.fareMode==='gross'} onClick={()=>patch('fareMode','gross')}>إجمالي قبل العمولة</button>
+            <button className={trip.fareMode==='unknown'?'chosen':''} aria-pressed={trip.fareMode==='unknown'} onClick={()=>patch('fareMode','unknown')}>غير متأكد</button>
           </div></div>
           {trip.fareMode==='gross'&&<Field label="نسبة عمولة التطبيق" value={trip.commissionRate} onChange={v=>patch('commissionRate',v??0)} unit="%"/>}
           <div className="field-grid">
@@ -306,7 +306,7 @@ export default function App() {
       </section>}
     </main>
     <footer><span>حاسبة عدالة المشاوير</span><span>مجانية 100% • بياناتك على جهازك</span></footer>
-    {toast&&<div className="toast">{toast}</div>}
+    {toast&&<div className="toast" role="status" aria-live="polite">{toast}</div>}
   </div>
 }
 function Metric({label,value}:{label:string;value:string}){return <div className="metric"><span>{label}</span><strong>{value}</strong></div>}
