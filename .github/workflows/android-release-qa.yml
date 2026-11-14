@@ -18,10 +18,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: driversch-profit-calculator/package-lock.json
+      - name: Build the exact web app assets for this commit
+        working-directory: driversch-profit-calculator
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+          mkdir -p ../android/app/src/main/assets
+          cp -R dist/. ../android/app/src/main/assets/
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
       - uses: android-actions/setup-android@v3
       - name: Install Android build tools
         run: sdkmanager "build-tools;35.0.0"
@@ -42,12 +57,16 @@ jobs:
             adb shell am force-stop com.driverprofitcalculator.app || true
             adb shell monkey -p com.driverprofitcalculator.app 1
             sleep 12
+            adb shell dumpsys window > android-emulator-window.txt
+            adb shell uiautomator dump /sdcard/window.xml >/dev/null
+            adb pull /sdcard/window.xml android-emulator-hierarchy.xml
             adb logcat -d -v brief > android-emulator-logcat.txt
             if grep -E "FATAL EXCEPTION|Process: com\\.driverprofitcalculator\\.app" android-emulator-logcat.txt; then
               echo "Android app crash detected"
               exit 1
             fi
             adb exec-out screencap -p > android-emulator-startup.png
+            adb shell dumpsys package com.driverprofitcalculator.app | grep -E "versionCode=|versionName=" > android-emulator-package.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -55,6 +74,9 @@ jobs:
           path: |
             android-emulator-startup.png
             android-emulator-logcat.txt
+            android-emulator-window.txt
+            android-emulator-hierarchy.xml
+            android-emulator-package.txt
           if-no-files-found: warn
           retention-days: 14
 
@@ -76,6 +98,8 @@ jobs:
           umask 077
           printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/driver-release.jks"
           echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/driver-release.jks" >> "$GITHUB_ENV"
+      - name: Install Android build tools
+        run: sdkmanager "build-tools;35.0.0"
       - name: Build signed release APK
         if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_KEYSTORE_PASSWORD != '' && secrets.ANDROID_KEY_ALIAS != '' && secrets.ANDROID_KEY_PASSWORD != '' }}
         working-directory: android
