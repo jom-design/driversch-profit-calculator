@@ -36,8 +36,12 @@ jobs:
           distribution: temurin
           java-version: "17"
       - uses: android-actions/setup-android@v3
-      - name: Install Android build tools
-        run: sdkmanager "build-tools;35.0.0"
+        with:
+          cmdline-tools-version: 12266719
+          packages: |
+            platform-tools
+            platforms;android-35
+            build-tools;35.0.0
       - name: Build and test debug APK
         working-directory: android
         run: |
@@ -90,6 +94,12 @@ jobs:
           distribution: temurin
           java-version: "17"
       - uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: 12266719
+          packages: |
+            platform-tools
+            platforms;android-35
+            build-tools;35.0.0
       - name: Prepare owner-provided signing key
         if: env.ANDROID_RELEASE_CONFIGURED == 'true'
         env:
@@ -98,8 +108,6 @@ jobs:
           umask 077
           printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/driver-release.jks"
           echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/driver-release.jks" >> "$GITHUB_ENV"
-      - name: Install Android build tools
-        run: sdkmanager "build-tools;35.0.0"
       - name: Build signed release APK
         if: env.ANDROID_RELEASE_CONFIGURED == 'true'
         working-directory: android
