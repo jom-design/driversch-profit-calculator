@@ -15,6 +15,7 @@ on:
       - "driversch-profit-calculator/package.json"
       - "driversch-profit-calculator/package-lock.json"
       - ".github/workflows/assistant-foundation.yml"
+      - "android/**"
   pull_request:
     paths:
       - "driversch-profit-calculator/src/assistant/**"
@@ -54,3 +55,34 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Run combined unit and browser test suite
         run: npm test
+
+  android-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: driversch-profit-calculator/package-lock.json
+      - name: Build offline web assets
+        working-directory: driversch-profit-calculator
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+          mkdir -p ../android/app/src/main/assets
+          cp -R dist/. ../android/app/src/main/assets/
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+      - name: Test, lint, and assemble Android debug APK
+        run: gradle -p android :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: driver-profit-calculator-android-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error

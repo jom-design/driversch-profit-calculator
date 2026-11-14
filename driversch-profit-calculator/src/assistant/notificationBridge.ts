@@ -11,6 +11,12 @@ export interface NativeNotificationPayload {
   postedAt: string
 }
 
+const SUPPORTED_PACKAGES: Record<string, string> = {
+  'com.ubercab.driver': 'Uber',
+  'com.didiglobal.driver': 'DiDi',
+  'sinet.startup.inDriver': 'inDrive'
+}
+
 /**
  * Browser code cannot subscribe to notifications posted by other Android apps.
  * A future Android NotificationListenerService may deliver this normalized
@@ -23,23 +29,26 @@ export function acceptNativeNotification(
   now = new Date()
 ): InboxItem | null {
   if (!payload || typeof payload.notificationId !== 'string' || !payload.notificationId.trim() ||
-      typeof payload.packageName !== 'string' || !payload.packageName.trim() ||
-      typeof payload.title !== 'string' || typeof payload.text !== 'string' || !payload.text.trim() ||
+      payload.notificationId.length > 512 ||
+      typeof payload.packageName !== 'string' || !SUPPORTED_PACKAGES[payload.packageName] ||
+      typeof payload.title !== 'string' || payload.title.length > 300 ||
+      typeof payload.text !== 'string' || !payload.text.trim() || payload.text.length > 4000 ||
       typeof payload.postedAt !== 'string') return null
   if (seenNotificationIds.has(payload.notificationId)) return null
   const postedAt = new Date(payload.postedAt)
   if (!Number.isFinite(postedAt.getTime())) return null
   seenNotificationIds.add(payload.notificationId)
 
+  const canonicalLabel = SUPPORTED_PACKAGES[payload.packageName]
   const parsed = parseRideOffer({
-    text: [payload.appLabel, payload.title, payload.text].filter(Boolean).join('\n'),
+    text: [canonicalLabel, payload.title, payload.text].filter(Boolean).join('\n'),
     source: 'notification',
     now
   })
   const draft: RideOfferDraft = {
     ...parsed,
     sourceAppPackage: payload.packageName,
-    sourceAppLabel: payload.appLabel,
+    sourceAppLabel: canonicalLabel,
     sourceTimestamp: postedAt.toISOString()
   }
   const item = createInboxItem(draft, payload.notificationId, now)

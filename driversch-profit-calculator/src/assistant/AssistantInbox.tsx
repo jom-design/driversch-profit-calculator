@@ -4,11 +4,13 @@ import { createInboxItem, markInboxParsed, requestInboxReview, updateInboxDraft,
 import { parseRideOffer } from './parser'
 import type { InboxItem, RideOfferDraft, RideProvider } from './types'
 import { detectBrowserCapabilities, type BrowserRuntimeLike } from '../platform/browserCapabilities'
+import AndroidNotificationPanel from './AndroidNotificationPanel'
+import { acceptNativeNotification, type NativeNotificationPayload } from './notificationBridge'
 import './assistant-inbox.css'
 
 interface Props {
   items: InboxItem[]
-  onChange: (items: InboxItem[]) => void
+  onChange: (items: InboxItem[]) => void | Promise<boolean>
   onTransfer: (item: InboxItem) => void
 }
 
@@ -102,6 +104,17 @@ export default function AssistantInbox({ items, onChange, onTransfer }: Props) {
     onChange(deleteInboxItem(items, item.id))
     setSelectedId(null)
   }
+  const importNativeNotifications = async (payloads: NativeNotificationPayload[]): Promise<boolean> => {
+    const seen = new Set(items.map(item => item.id))
+    const next = [...items]
+    for (const payload of payloads) {
+      const item = acceptNativeNotification(payload, seen)
+      if (item) next.unshift(item)
+    }
+    if (next.length === items.length) return true
+    const saved = await onChange(next)
+    return saved !== false
+  }
   const transfer = (item: InboxItem) => {
     if (item.status !== 'confirmed') { setError('أكد العرض بعد مراجعته قبل نقله للحاسبة.'); return }
     onTransfer(item)
@@ -113,6 +126,8 @@ export default function AssistantInbox({ items, onChange, onTransfer }: Props) {
         <p>العروض هنا لا تُحفظ في سجل الرحلات ولا تُرسل للحاسبة إلا بعد تأكيدك.</p></div>
       <span className="inbox-count" aria-label={`عدد العروض ${active.length}`}>{active.length} عرض</span>
     </div>
+
+    <AndroidNotificationPanel onImport={importNativeNotifications} />
 
     <div className="inbox-capabilities" aria-label="قدرات المتصفح الحالية">
       <span>رفع الصور: متاح</span>
