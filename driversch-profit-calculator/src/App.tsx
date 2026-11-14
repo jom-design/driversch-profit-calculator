@@ -5,6 +5,7 @@ import AssistantInbox from './assistant/AssistantInbox'
 import type { InboxItem } from './assistant/types'
 import { toCalculatorTripInput } from './assistant/calculatorTransfer'
 import { ocrDraftToInboxItem } from './assistant/ocrAdapter'
+import { markInboxParseError } from './assistant/inbox'
 import { deleteTrip, getSettings, getTrips, replaceAllTrips, saveSettings, saveTrip } from './lib/db'
 import { readTripImage, type OcrDraft } from './lib/ocr'
 import { DEFAULT_SETTINGS, EMPTY_TRIP, type AppName, type FareMode, type SavedTrip, type Settings, type TripInput } from './types'
@@ -54,7 +55,7 @@ export default function App() {
     if(!file)return
     setBusy(true);setProgress(0);setDraft(null)
     try{setDraft(await readTripImage(file,setProgress));setToast('انتهت قراءة الصورة؛ راجع البيانات قبل اعتمادها')}
-    catch(e){setToast('تعذرت قراءة الصورة. جرّب Screenshot أوضح.')}
+    catch(e){const failed=markInboxParseError(crypto.randomUUID(),'screenshot','');setInbox(items=>[failed,...items]);setPage('inbox');setToast('تعذرت قراءة الصورة؛ أضف البيانات يدويًا في عنصر الخطأ داخل صندوق المراجعة.')}
     finally{setBusy(false)}
   }
   const useDraft=()=>{
