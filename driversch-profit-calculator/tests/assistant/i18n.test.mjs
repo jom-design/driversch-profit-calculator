@@ -137,7 +137,7 @@ test('every explicit React t() call references a real bilingual dictionary key',
   const missing = []
   for (const path of collect(root)) {
     const source = readFileSync(path, 'utf8')
-    for (const match of source.matchAll(/\bt\('([^']+)'/g)) {
+    for (const match of source.matchAll(/\b(?:t|tr)\('([^']+)'/g)) {
       if (!Object.hasOwn(AR_TO_EN, match[1])) missing.push({ path, key: match[1] })
     }
   }
