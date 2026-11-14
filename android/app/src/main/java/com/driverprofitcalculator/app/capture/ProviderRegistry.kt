@@ -2,6 +2,11 @@ package com.driverprofitcalculator.app.capture
 
 data class RideProvider(val id: String, val label: String, val packageName: String, val keywords: List<String>)
 
+/**
+ * Driver-app package candidates. None is confirmed on a device yet: they match only the driver apps'
+ * own package names and must be verified against installed apps before real-provider support is claimed.
+ * DiDi's "com.didiglobal.driver" is unresolved; the published DiDi Driver listing does not expose it.
+ */
 object ProviderRegistry {
     val providers = listOf(
         RideProvider("uber", "Uber", "com.ubercab.driver",

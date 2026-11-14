@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.provider.Settings
 import android.webkit.JavascriptInterface
+import com.driverprofitcalculator.app.capture.CaptureDiagnostics
 import com.driverprofitcalculator.app.capture.EncryptedNotificationStore
 import com.driverprofitcalculator.app.capture.NotificationCaptureService
 import com.driverprofitcalculator.app.capture.ProviderPreferences
@@ -28,7 +29,8 @@ class AndroidBridge(private val activity: MainActivity, private val voice: Nativ
             .put("enabledProviders", enabled)
             .put("serviceConnected", ProviderPreferences.serviceConnected(context))
             .put("lastReceivedAt", EncryptedNotificationStore(context).lastReceivedAt())
-            .put("queueHealthy", EncryptedNotificationStore(context).isHealthy()).toString()
+            .put("queueHealthy", EncryptedNotificationStore(context).isHealthy())
+            .put("captureCounters", CaptureDiagnostics(context).snapshotJson()).toString()
     }
     @JavascriptInterface fun getPendingNotificationsJson(): String = EncryptedNotificationStore(context).pendingJson()
     @JavascriptInterface fun acknowledgeNotification(id: String): Boolean = EncryptedNotificationStore(context).acknowledge(id)

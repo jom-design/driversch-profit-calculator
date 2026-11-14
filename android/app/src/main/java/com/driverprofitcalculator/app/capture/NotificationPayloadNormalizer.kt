@@ -25,19 +25,24 @@ data class NormalizedNotificationPayload(
 }
 
 object NotificationPayloadNormalizer {
+    /** Stable id for a notification key. The same key across updates yields the same id. */
+    fun idFor(packageName: String, key: String): String {
+        val hash = MessageDigest.getInstance("SHA-256")
+            .digest((packageName + "|" + key).toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it) }
+        return packageName + ":" + hash
+    }
+
     fun normalize(packageName: String, key: String, title: String, text: String, postedAt: Long): NormalizedNotificationPayload? {
         val provider = ProviderRegistry.forPackage(packageName) ?: return null
         val cleanTitle = title.trim().take(300)
         val cleanText = text.trim().take(4000)
         if (cleanText.isBlank() || !ProviderRegistry.relevant(provider, cleanTitle, cleanText)) return null
-        val hash = MessageDigest.getInstance("SHA-256")
-            .digest((packageName + "|" + key).toByteArray(Charsets.UTF_8))
-            .joinToString("") { "%02x".format(it) }
         val date = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
             timeZone = TimeZone.getTimeZone("UTC")
         }.format(Date(postedAt))
         return NormalizedNotificationPayload(
-            notificationId = packageName + ":" + hash,
+            notificationId = idFor(packageName, key),
             packageName = packageName,
             appLabel = provider.label,
             title = cleanTitle,
