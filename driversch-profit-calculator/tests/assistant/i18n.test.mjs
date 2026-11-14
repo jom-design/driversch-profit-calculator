@@ -67,6 +67,7 @@ test('financial decision and OCR interpolations translate without losing numbers
   assert.equal(translateText('القيمة fuelPrice في الإعدادات ليست رقمًا صحيحًا', 'en'), 'Setting value fuelPrice is not a valid number.')
   assert.equal(translateText('عمولة Uber في الإعدادات ليست نسبة صحيحة من 0 إلى 100', 'en'), 'Uber commission in settings must be between 0 and 100.')
   assert.equal(translateText('بيانات الرحلة رقم 2 تالفة أو نتائجها المالية لا تطابق مدخلاتها؛ لم يتم استيراد أي بيانات.', 'en'), 'Trip #2 is corrupted or its financial results do not match its inputs; no data was imported.')
+  assert.equal(translateText('الثقة: 100% · الدليل: تم الإدخال أو التصحيح يدويًا', 'en'), 'Confidence: 100% · Evidence: تم الإدخال أو التصحيح يدويًا')
 })
 
 test('unknown user content and mixed platform names remain unchanged', () => {
