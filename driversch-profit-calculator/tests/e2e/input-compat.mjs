@@ -128,7 +128,7 @@ try {
   check('broken backup is refused and the stored fuel price is kept', await page.getByLabel('سعر لتر البنزين').inputValue() === '21.75')
 
   // ---- Uber commission: its own field, applied only when Uber is selected ----
-  await page.getByRole('button', { name: 'الإعدادات' }).click()
+  await page.getByRole('button', { name: 'الإعدادات', exact: true }).click()
   await page.getByLabel('عمولة Uber').fill('١٠')
   await page.getByLabel('عمولة DiDi').fill('٢٠')
   await page.getByRole('button', { name: /حفظ الإعدادات/ }).click()

@@ -19,7 +19,7 @@ const viewports = [
 ]
 const screens = [
   { name: 'calculator', open: async () => {} },
-  { name: 'settings', open: async page => page.getByRole('button', { name: 'الإعدادات' }).click() },
+  { name: 'settings', open: async page => page.getByRole('button', { name: 'الإعدادات', exact: true }).click() },
   { name: 'assistant', open: async page => page.getByRole('button', { name: /المساعد الذكي/ }).click() },
   { name: 'inbox', open: async page => page.getByRole('button', { name: /الرحلات الملتقطة/ }).click() },
   { name: 'history', open: async page => page.getByRole('button', { name: /سجل الرحلات/ }).click() },
@@ -72,7 +72,7 @@ try {
     }
 
     // Settings: the Uber commission field exists, is labelled exactly, and is visible at this size.
-    await page.getByRole('button', { name: 'الإعدادات' }).click()
+    await page.getByRole('button', { name: 'الإعدادات', exact: true }).click()
     const uber = page.getByLabel('عمولة Uber')
     check(`${vp.name}: settings has the "عمولة Uber" field`, await uber.count() === 1)
     await uber.scrollIntoViewIfNeeded()
