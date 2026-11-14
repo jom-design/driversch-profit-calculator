@@ -190,7 +190,7 @@ export const AR_TO_EN: Readonly<Record<string, string>> = {
   "الإعدادات": "Settings",
   "المساعد الذكي": "Smart assistant",
   "الرحلات الملتقطة": "Captured trips",
-  "حاسبة المشوار": "Trip calculator",
+  "حاسبة المشوار": "Trip Calculator",
   "أدخل القيمة": "Enter a value",
   "أخرى": "Other",
   "التكلفة": "Cost",
