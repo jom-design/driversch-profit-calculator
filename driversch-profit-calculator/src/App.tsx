@@ -53,7 +53,7 @@ export default function App() {
   const [speaking,setSpeaking]=useState(false)
   const result=useMemo(()=>calculateTrip(trip,settings),[trip,settings])
   useEffect(()=>{applyLocale(document.getElementById('root')??document.body,locale);try{localStorage.setItem('driver.locale',locale)}catch{}},[locale])
-  useEffect(()=>{document.documentElement.dataset.theme=theme;try{localStorage.setItem('driver.theme',theme)}catch{}},[theme])
+  useEffect(()=>{document.documentElement.dataset.theme=theme;document.querySelector('meta[name="theme-color"]')?.setAttribute('content',theme==='light'?'#f3f7fc':'#080e20');try{localStorage.setItem('driver.theme',theme)}catch{}},[theme])
   useEffect(()=>{const bridge=(window as Window & {DriverAndroid?:{setVoiceLanguage?:(tag:string)=>boolean}}).DriverAndroid;bridge?.setVoiceLanguage?.(locale==='ar'?'ar-EG':'en-US')},[locale])
   useEffect(()=>{const root=document.getElementById('root');if(!root)return;const observer=new MutationObserver(()=>applyLocale(root,locale));observer.observe(root,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['placeholder','title','aria-label']});return()=>observer.disconnect()},[locale])
   useEffect(()=>{(async()=>{setSettings(await getSettings());setTrips(await getTrips())})()},[])
