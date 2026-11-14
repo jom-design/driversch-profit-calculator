@@ -123,20 +123,21 @@ jobs:
         run: |
           apk=android/app/build/outputs/apk/debug/app-debug.apk
           unzip -l "$apk" > apk-contents.txt
+          awk '{print $NF}' apk-contents.txt > apk-paths.txt
           for f in res/mipmap-anydpi-v26/ic_launcher.xml res/mipmap-anydpi-v26/ic_launcher_round.xml \
                    res/drawable/ic_launcher_foreground.xml res/drawable/ic_launcher_background.xml \
-                   res/drawable/ic_launcher_monochrome.xml res/mipmap-mdpi/ic_launcher.png \
-                   res/mipmap-hdpi/ic_launcher.png res/mipmap-xhdpi/ic_launcher.png \
-                   res/mipmap-xxhdpi/ic_launcher.png res/mipmap-xxxhdpi/ic_launcher.png \
-                   res/mipmap-xxxhdpi/ic_launcher_round.png; do
-            grep -q " $f\$" apk-contents.txt || { echo "Missing $f in APK"; exit 1; }
+                   res/drawable/ic_launcher_monochrome.xml; do
+            grep -qx "$f" apk-paths.txt || { echo "Missing $f in APK"; exit 1; }
           done
+          # AGP may add a density qualifier such as mipmap-mdpi-v4, so the density folder is matched by pattern.
           # Byte-for-byte check: the APK must ship the exact PNGs committed in this repository.
           for density in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
             for name in ic_launcher ic_launcher_round; do
-              src=android/app/src/main/res/mipmap-$density/$name.png
-              inapk=$(unzip -p "$apk" res/mipmap-$density/$name.png | sha256sum | cut -d' ' -f1)
-              [ "$inapk" = "$(sha256sum "$src" | cut -d' ' -f1)" ] || { echo "APK icon differs: $density/$name"; exit 1; }
+              path=$(grep -E "^res/mipmap-${density}(-v[0-9]+)?/${name}\.png$" apk-paths.txt | head -1)
+              [ -n "$path" ] || { echo "Missing $density/$name.png in APK"; grep mipmap apk-paths.txt; exit 1; }
+              inapk=$(unzip -p "$apk" "$path" | sha256sum | cut -d' ' -f1)
+              [ "$inapk" = "$(sha256sum android/app/src/main/res/mipmap-$density/$name.png | cut -d' ' -f1)" ] || { echo "APK icon differs: $density/$name"; exit 1; }
+              echo "verified $path"
             done
           done
           echo "Icon resources verified in $apk"

@@ -59,14 +59,18 @@ try {
       await delay(150)
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
       check(`${vp.name} ${screen.name}: no horizontal page scroll`, overflow <= 0)
+      // The navigation strip is a deliberate horizontal scroller, so its buttons are excluded.
       const offscreen = await page.evaluate(() => {
-        const visibleInputs = [...document.querySelectorAll('input.numeric-input, textarea, button')]
-        return visibleInputs.filter(el => {
-          const r = el.getBoundingClientRect()
-          return r.width > 0 && r.height > 0 && (r.right > window.innerWidth + 1 || r.left < -1)
-        }).length
+        const controls = [...document.querySelectorAll('input.numeric-input, textarea, button')]
+        return controls
+          .filter(el => !el.closest('.nav'))
+          .filter(el => {
+            const r = el.getBoundingClientRect()
+            return r.width > 0 && r.height > 0 && (r.right > window.innerWidth + 1 || r.left < -1)
+          })
+          .map(el => (el.className || el.tagName) + ' "' + (el.textContent || el.getAttribute('aria-label') || '').trim().slice(0, 30) + '"')
       })
-      check(`${vp.name} ${screen.name}: controls stay inside the viewport width`, offscreen === 0)
+      check(`${vp.name} ${screen.name}: controls stay inside the viewport width (offending: ${offscreen.join(' | ') || 'none'})`, offscreen.length === 0)
       await page.screenshot({ path: `${outDir}/${vp.name}-${screen.name}.png`, fullPage: true })
       if (screen.name !== 'calculator') await page.getByRole('button', { name: /حاسبة المشوار/ }).click()
     }
