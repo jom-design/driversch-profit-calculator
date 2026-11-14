@@ -40,3 +40,14 @@ test('preserves source and deterministic timestamp', () => {
   assert.equal(draft.source, 'notification')
   assert.equal(draft.createdAt, now.toISOString())
 })
+
+test('converts meters to kilometers and hours to minutes', () => {
+  const draft = parseRideOffer({ text: 'inDrive\nالقبول مقابل 90 جنيه\n750 متر\n1 ساعة' })
+  assert.equal(draft.fields.distanceKm.value, 0.75)
+  assert.equal(draft.fields.durationMinutes.value, 60)
+})
+
+test('does not treat an unlabeled Uber fee as the driver fare', () => {
+  const draft = parseRideOffer({ text: 'Uber\n165 جنيه رسوم توصيل\n22 كم\n40 دقيقة' })
+  assert.equal(draft.fields.fare.value, null)
+})
