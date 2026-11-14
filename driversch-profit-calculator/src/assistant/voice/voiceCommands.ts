@@ -43,7 +43,7 @@ const RULE_SOURCES: Array<{ intent: VoiceIntent; phrases: string[] }> = [
   { intent: 'unconfirmed-offers', phrases: ['غير المؤكده', 'غير مؤكده', 'الغير مؤكده', 'مش متاكد', 'مش مؤكده', 'مش مؤكد', 'unconfirmed', 'pending offers'] },
   { intent: 'start-review', phrases: ['ابدأ مراجعة', 'مراجعة رحلة', 'راجع رحلة', 'راجع العرض', 'مراجعة', 'start review', 'review trip', 'review offer'] },
   { intent: 'open-inbox', phrases: ['صندوق', 'افتح الصندوق', 'صندوق الرحلات', 'الرحلات الملتقطة', 'inbox', 'open inbox', 'trip inbox'] },
-  { intent: 'calculate', phrases: ['احسب', 'حساب', 'صافي الربح', 'calculate', 'calc', 'calculate trip'] }
+  { intent: 'calculate', phrases: ['احسب', 'حساب', 'صافي الربح', 'calculate', 'calc', 'calculate trip', 'run calculator', 'open calculator'] }
 ]
 
 // Phrases go through the same normalization as the transcript, so spelling variants match.
