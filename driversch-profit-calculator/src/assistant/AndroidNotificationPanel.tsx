@@ -9,7 +9,8 @@ interface NativeBridge {
   acknowledgeNotification: (id: string) => boolean
   setProviderEnabled: (id: string, enabled: boolean) => boolean
   openNotificationAccessSettings: () => boolean
-  startSpeechRecognition: () => boolean
+  startSpeechRecognition: (languageTag: string) => boolean
+  setVoiceLanguage: (languageTag: string) => boolean
   stopSpeechRecognition: () => boolean
   speakText: (text: string) => boolean
   stopSpeaking: () => boolean
