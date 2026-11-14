@@ -313,19 +313,6 @@ export const AR_TO_EN = {
   "التعرف الصوتي:": "Speech recognition:",
   "مشاركة الشاشة:": "Screen sharing:",
   "عرض": "offer",
-  "رفض": "Reject",
-  "حذف": "Delete",
-  "حذف نهائي": "Delete permanently",
-  "صندوق الوارد فارغ": "The inbox is empty",
-  "إضافة عرض يدويًا أو لصق نص إشعار": "Add an offer manually or paste a notification",
-  "تحليل وإضافة للإنبوكس": "Parse and add to inbox",
-  "قدرات المتصفح الحالية": "Current browser capabilities",
-  "رفع الصور: متاح": "Image upload: available",
-  "راجعت هذه القيمة وأؤكدها": "I reviewed and confirm this value",
-  "تأكيد العرض بعد المراجعة": "Confirm offer after review",
-  "نقل العرض المؤكد للحاسبة": "Transfer confirmed offer to calculator",
-  "تكامل Android لاحقًا:": "Future Android integration:",
-  "استقبال الإشعارات يتطلب تطبيقًا أصليًا يستخدم NotificationListenerService بعد موافقة المستخدم. صفحة الويب لا تقرأ إشعارات Uber أو DiDi أو inDrive بنفسها.": "Receiving notifications requires a native app using NotificationListenerService after user approval. A web page cannot read Uber, DiDi or inDrive notifications by itself."
 } as const
 export type TranslationKey = keyof typeof AR_TO_EN
 
