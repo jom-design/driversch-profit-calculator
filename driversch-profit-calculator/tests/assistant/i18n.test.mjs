@@ -42,7 +42,16 @@ test('assistant, voice, OCR, notification and backup messages have translations'
     'حفظ الرحلة في السجل',
     'خصوصيتك أولًا',
     'صافي للسائق',
-    'إجمالي قبل العمولة'
+    'إجمالي قبل العمولة',
+    'الصيانة والإهلاك',
+    'مسافة الرحلة',
+    'مسافة الوصول',
+    'ج.م',
+    'كم',
+    'دقيقة',
+    'جنيه',
+    'أخرى',
+    'صافي'
   ]) assert.ok(AR_TO_EN[key], `Missing English translation for: ${key}`)
 })
 
