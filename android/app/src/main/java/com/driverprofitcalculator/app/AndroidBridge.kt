@@ -12,7 +12,13 @@ import com.driverprofitcalculator.app.capture.ProviderRegistry
 import org.json.JSONArray
 import org.json.JSONObject
 
-class AndroidBridge(private val context: Context) {
+class AndroidBridge(private val activity: MainActivity, private val voice: NativeVoiceController) {
+    private val context: Context get() = activity
+    @JavascriptInterface fun startSpeechRecognition(): Boolean { voice.startListening(); return true }
+    @JavascriptInterface fun stopSpeechRecognition(): Boolean { voice.stopListening(); return true }
+    @JavascriptInterface fun speakText(text: String): Boolean { voice.speak(text); return true }
+    @JavascriptInterface fun stopSpeaking(): Boolean { voice.stopSpeaking(); return true }
+
     @JavascriptInterface fun getStatusJson(): String {
         val enabled = JSONArray()
         ProviderPreferences.enabledIds(context).forEach { enabled.put(it) }
