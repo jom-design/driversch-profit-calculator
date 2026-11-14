@@ -71,7 +71,7 @@ try {
     runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] }
   }))
   const accessibilityViolations = axeResults.violations.map(violation => ({
-    id: violation.id, impact: violation.impact, nodes: violation.nodes.length
+    id: violation.id, impact: violation.impact, nodes: violation.nodes.map(node => ({ target: node.target, html: node.html.slice(0, 180), summary: node.failureSummary?.slice(0, 240) }))
   }))
   if (accessibilityViolations.some(violation => ['critical', 'serious'].includes(violation.impact))) {
     throw new Error('Serious/critical accessibility violations: ' + JSON.stringify(accessibilityViolations))
