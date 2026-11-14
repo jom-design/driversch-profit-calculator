@@ -1,7 +1,12 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { AR_TO_EN, translateText } from '../../src/lib/i18n.ts'
+import { AR_TO_EN, t, translateText } from '../../src/lib/i18n.ts'
+
+test('typed translation keys resolve in both locales', () => {
+  assert.equal(t('اقبل الرحلة', 'ar'), 'اقبل الرحلة')
+  assert.equal(t('اقبل الرحلة', 'en'), 'Accept trip')
+})
 
 test('navigation and key product areas translate in both directions', () => {
   assert.equal(translateText('حاسبة المشوار', 'en'), 'Trip Calculator')
