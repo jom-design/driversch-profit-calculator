@@ -251,3 +251,21 @@ html[data-theme="light"] .status-confirmed{background:#dcf7eb;color:#176b4c}
 html[data-theme="light"] .status-rejected,html[data-theme="light"] .status-dismissed{background:#ffe6e9;color:#9b3143}
 html[data-theme="light"] .status-parsed{background:#e0f1ff;color:#175d91}
 html[data-theme="light"] .inbox-warning{background:#fff6df;color:#79510e;border-color:#ecd49c}
+
+
+/* Light-mode contrast corrections for inbox review controls and muted labels. */
+html[data-theme="light"] .eyebrow{color:#155b8e}
+html[data-theme="light"] .inbox-row>span:nth-child(2){color:#203752}
+html[data-theme="light"] .inbox-row>small{color:#526780}
+html[data-theme="light"] .inbox-input input{color:#172a43}
+html[data-theme="light"] .inbox-reviewed{color:#425a74}
+html[data-theme="light"] .inbox-confidence{color:#526780}
+html[data-theme="light"] .inbox-input small{color:#526780}
+html[data-theme="light"] .inbox-source{color:#425a74}
+html[data-theme="light"] .inbox-delete{color:#9b3143;border-color:#d9a6b0;background:#fff7f8}
+html[data-theme="light"] .inbox-review-head h3{color:#172a43}
+html[data-theme="light"] .inbox-field>span{color:#425a74}
+html[data-theme="light"] .inbox-capture-actions small{color:#526780}
+html[data-theme="light"] .inbox-error{color:#9b3143}
+html[data-theme="light"] .android-capture-message{color:#155b8e}
+html[data-theme="light"] .voice-status{color:#425a74;opacity:1}
