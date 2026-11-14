@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { AlertCircle, Archive, Check, ChevronDown, CircleHelp, ClipboardPaste, RotateCcw, ShieldAlert, Trash2, X } from 'lucide-react'
+import { AlertCircle, Archive, Check, ChevronDown, CircleHelp, ClipboardPaste, ShieldAlert, Trash2, X } from 'lucide-react'
 import { createInboxItem, markInboxParsed, requestInboxReview, updateInboxDraft, confirmInboxItem, rejectInboxItem, hasRequiredReviewData, deleteInboxItem } from './inbox'
 import { parseRideOffer } from './parser'
 import type { InboxItem, RideOfferDraft, RideProvider } from './types'
@@ -154,15 +154,15 @@ export default function AssistantInbox({ items, onChange, onTransfer }: Props) {
               {(['fare', 'pickupDistanceKm', 'distanceKm', 'durationMinutes'] as const).map(field => {
                 const candidate = selected.draft.fields[field]
                 const needsReview = candidate.value === null || candidate.confidence < 0.85 || candidate.status !== 'candidate'
-                return <label className={`inbox-field ${needsReview ? 'needs-review' : ''}`} key={field}>
-                  <span>{fieldLabels[field]} {needsReview && <b>مطلوب مراجعة</b>}</span>
-                  <div className="inbox-input"><input type="number" min="0" step="any" inputMode="decimal" value={candidate.value ?? ''}
+                return <div className={`inbox-field ${needsReview ? 'needs-review' : ''}`} key={field}>
+                  <span id={`inbox-field-label-${selected.id}-${field}`}>{fieldLabels[field]} {needsReview && <b>مطلوب مراجعة</b>}</span>
+                  <div className="inbox-input"><input type="number" min="0" step="any" inputMode="decimal" aria-labelledby={`inbox-field-label-${selected.id}-${field}`} value={candidate.value ?? ''}
                     disabled={selected.status === 'confirmed' || selected.status === 'rejected'}
                     onChange={event => setManualField(selected, field, event.target.value)} placeholder="أدخل القيمة"/>
                     <small>{field === 'fare' ? 'جنيه' : field === 'durationMinutes' ? 'دقيقة' : 'كم'}</small></div>
                   <label className="inbox-reviewed"><input type="checkbox" checked={(reviewed[selected.id] ?? []).includes(field)} disabled={selected.status === 'confirmed' || selected.status === 'rejected'} onChange={event => setReviewed(current => ({ ...current, [selected.id]: event.target.checked ? [...(current[selected.id] ?? []), field] : (current[selected.id] ?? []).filter(value => value !== field) }))}/> راجعت هذه القيمة وأؤكدها</label>
                   <small className="inbox-confidence">الثقة: {Math.round(candidate.confidence * 100)}% · {candidate.evidence.length ? 'الدليل: ' + candidate.evidence.map(e => e.text).join('، ') : 'لا يوجد دليل مستخرج'}</small>
-                </label>
+                </div>
               })}
             </div>
             <div className="inbox-source"><strong>مصدر البيانات</strong><span>{selected.draft.source === 'notification' ? 'إشعار مستلم من جسر Android' : selected.draft.source === 'screenshot' ? 'صورة شاشة' : 'إدخال أو لصق يدوي'}</span>
