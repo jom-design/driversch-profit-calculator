@@ -8,6 +8,7 @@ import {
 } from '../../src/assistant/inbox.ts'
 import { acceptNativeNotification } from '../../src/assistant/notificationBridge.ts'
 import { toCalculatorTripInput } from '../../src/assistant/calculatorTransfer.ts'
+import { ocrDraftToInboxItem } from '../../src/assistant/ocrAdapter.ts'
 
 const required = ['fare', 'pickupDistanceKm', 'distanceKm', 'durationMinutes']
 
@@ -114,4 +115,17 @@ test('deletion removes only the selected inbox item and does not save a trip', (
   const items = [reviewableItem('keep'), reviewableItem('delete')]
   const afterDelete = items.filter(item => item.id !== 'delete')
   assert.deepEqual(afterDelete.map(item => item.id), ['keep'])
+})
+
+test('screenshot OCR enters review inbox and is never sent directly to calculator', () => {
+  const ocr = {
+    app: 'Uber', fare: 165, fareMode: 'net', pickupKm: 4, passengerKm: 22,
+    totalMinutes: 40, rawText: 'Uber\n165 EGP\n4 km\n22 km\n40 min', confidence: 92, warnings: []
+  }
+  const item = ocrDraftToInboxItem(ocr, 'ocr-1', new Date('2026-11-14T08:00:00.000Z'))
+  assert.equal(item.status, 'needs-review')
+  assert.equal(item.draft.source, 'screenshot')
+  assert.equal(item.draft.fields.fare.value, 165)
+  assert.equal(item.draft.fields.pickupDistanceKm.value, 4)
+  assert.equal(toCalculatorTripInput(item), null)
 })
