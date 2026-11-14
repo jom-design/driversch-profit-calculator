@@ -5,3 +5,5 @@
 @media(max-width:760px){.inbox-layout{grid-template-columns:1fr}.inbox-list{max-height:250px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.inbox-row{min-height:105px}.inbox-capture-actions{align-items:stretch;flex-direction:column}.inbox-capture-actions button{width:100%;min-height:46px}}
 @media(max-width:440px){.assistant-inbox{padding:13px}.assistant-inbox .panel-head{flex-direction:column;align-items:stretch}.inbox-list{grid-template-columns:1fr;max-height:220px}.inbox-fields{grid-template-columns:1fr}.inbox-detail{padding:12px}.inbox-actions{display:grid;grid-template-columns:1fr}.inbox-actions button{width:100%;justify-content:center}.inbox-review-head{align-items:flex-start}}
 @media(orientation:landscape) and (max-height:600px){.inbox-layout{grid-template-columns:minmax(210px,.65fr) minmax(0,1.5fr)}.inbox-list{max-height:55vh}.inbox-detail{padding:12px}}
+
+.inbox-reviewed{display:flex;align-items:center;gap:7px;color:#b8c8dc;font-size:11px;cursor:pointer;min-height:28px}.inbox-reviewed input{width:17px;height:17px;accent-color:#12a982;flex:none}
