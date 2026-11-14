@@ -286,6 +286,9 @@ export const AR_TO_EN = {
   "وقت الإشعار:": "Notification time:",
   "معرّف التطبيق:": "App package:",
   "ثقة OCR:": "OCR confidence:",
+  "أكد أولًا هل الأجرة صافية أم إجمالية قبل اعتماد قرار الربحية.": "First confirm whether the fare is net or gross before relying on the profitability decision.",
+  "أدخل وقتًا صحيحًا للرحلة قبل اتخاذ القرار.": "Enter a valid trip duration before making a decision.",
+  "الرحلة تحقق الحد الأدنى لصافي الربح وهدف الربح بالساعة.": "The trip meets your minimum net profit and hourly profit target.",
 } as const
 export type TranslationKey = keyof typeof AR_TO_EN
 const EN_TO_AR: Readonly<Record<string,string>> = Object.fromEntries(
@@ -303,6 +306,8 @@ const INTERPOLATED: Array<[RegExp,(match:RegExpMatchArray)=>string]> = [
   [/^(.+) دقيقة$/, m => `${m[1]} min`],
   [/^(.+) جنيه$/, m => `EGP ${m[1]}`],
   [/^صافي الربح (.+)$/, m => `Net profit ${m[1]}`],
+  [/^صافي الربح أقل من الحد الأدنى (.+) ج\\.م\\.$/, m => `Net profit is below the minimum target of EGP ${m[1]}.`],
+  [/^الربح إيجابي، لكن العائد بالساعة أقل من هدفك (.+) ج\\.م\\.$/, m => `Profit is positive, but hourly return is below your target of EGP ${m[1]}.`],
   [/^ثقة OCR: (\\d+)%$/, m => `OCR confidence: ${m[1]}%`],
   [/^جاري قراءة الصورة (\\d+)%$/, m => `Reading image ${m[1]}%`],
   [/^معرّف التطبيق: (.+)$/, m => `App package: ${m[1]}`],
