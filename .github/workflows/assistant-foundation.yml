@@ -12,7 +12,6 @@ on:
       - "driversch-profit-calculator/tests/assistant/**"
       - "driversch-profit-calculator/tests/platform/**"
       - "driversch-profit-calculator/package.json"
-      - "driversch-profit-calculator/package-lock.json"
       - ".github/workflows/assistant-foundation.yml"
   pull_request:
     paths:
@@ -23,7 +22,6 @@ on:
       - "driversch-profit-calculator/tests/assistant/**"
       - "driversch-profit-calculator/tests/platform/**"
       - "driversch-profit-calculator/package.json"
-      - "driversch-profit-calculator/package-lock.json"
       - ".github/workflows/assistant-foundation.yml"
 
 permissions:
@@ -41,5 +39,8 @@ jobs:
         with:
           node-version: 22
       - name: Install dependencies
-        run: npm ci --no-audit --no-fund
-      - name: Run assistant¶»§q«^
+        run: npm install --no-package-lock --no-audit --no-fund
+      - name: Run assistant parser tests
+        run: npm run test:assistant
+      - name: Type-check and build the existing app
+        run: npm run build
