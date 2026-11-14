@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react'
 import { AlertCircle, Archive, Check, ChevronDown, CircleHelp, ClipboardPaste, RotateCcw, ShieldAlert, Trash2, X } from 'lucide-react'
 import { createInboxItem, markInboxParsed, requestInboxReview, updateInboxDraft, confirmInboxItem, rejectInboxItem, hasRequiredReviewData, deleteInboxItem } from './inbox'
 import { parseRideOffer } from './parser'
-import type { InboxItem, RideFieldName, RideOfferDraft, RideProvider } from './types'
+import type { InboxItem, RideOfferDraft, RideProvider } from './types'
+import { detectBrowserCapabilities, type BrowserRuntimeLike } from '../platform/browserCapabilities'
 import './assistant-inbox.css'
 
 interface Props {
