@@ -124,18 +124,18 @@ export default function AssistantInbox({ items, onChange, onTransfer, locale }: 
 
   return <section className="panel assistant-inbox" dir={locale === 'ar' ? 'rtl' : 'ltr'} aria-labelledby="inbox-title">
     <div className="panel-head">
-      <div><span className="eyebrow">{t('مراجعة قبل الحساب', locale)}</span><h2 id="inbox-title"><Archive/> صندوق الرحلات الملتقطة</h2>
+      <div><span className="eyebrow">{t('مراجعة قبل الحساب', locale)}</span><h2 id="inbox-title"><Archive/> {t('صندوق الرحلات الملتقطة', locale)}</h2>
         <p>{t('العروض هنا لا تُحفظ في سجل الرحلات ولا تُرسل للحاسبة إلا بعد تأكيدك.', locale)}</p></div>
       <span className="inbox-count" aria-label={`${t('عدد العروض', locale)} ${active.length}`}>{active.length} {t('عرض', locale)}</span>
     </div>
 
     <AndroidNotificationPanel onImport={importNativeNotifications} locale={locale} />
 
-    <div className="inbox-capabilities" aria-label="قدرات المتصفح الحالية">
+    <div className="inbox-capabilities" aria-label={t('قدرات المتصفح الحالية', locale)}>
       <span>{t('رفع الصور: متاح', locale)}</span>
-      <span>الميكروفون: {capabilities.microphone ? 'واجهة API متاحة بعد الإذن' : 'غير مدعوم'}</span>
-      <span>التعرف الصوتي: {capabilities.speechRecognition ? 'مدعوم' : 'غير مدعوم'}</span>
-      <span>مشاركة الشاشة: {capabilities.screenCapture ? 'واجهة API متاحة بعد الإذن' : 'غير مدعوم'}</span>
+      <span>{t('الميكروفون:', locale)} {capabilities.microphone ? t('واجهة API متاحة بعد الإذن', locale) : t('غير مدعوم', locale)}</span>
+      <span>{t('التعرف الصوتي:', locale)} {capabilities.speechRecognition ? t('مدعوم', locale) : t('غير مدعوم', locale)}</span>
+      <span>{t('مشاركة الشاشة:', locale)} {capabilities.screenCapture ? t('واجهة API متاحة بعد الإذن', locale) : t('غير مدعوم', locale)}</span>
     </div>
 
     <div className="inbox-capture">
@@ -143,12 +143,12 @@ export default function AssistantInbox({ items, onChange, onTransfer, locale }: 
       <textarea id="ride-offer-text" dir="auto" rows={3} value={sourceText} onChange={event => setSourceText(event.target.value)}
         placeholder={t('الصق نص العرض هنا… مثال: inDrive — القبول مقابل 165 جنيه — 22 كم — 40 دقيقة', locale)} />
       <div className="inbox-capture-actions"><small>{t('المتصفح لا يستطيع قراءة إشعارات تطبيقات Android الأخرى تلقائيًا.', locale)}</small>
-        <button className="primary-btn" type="button" onClick={addOffer}><ClipboardPaste size={16}/> تحليل وإضافة للإنبوكس</button></div>
+        <button className="primary-btn" type="button" onClick={addOffer}><ClipboardPaste size={16}/> {t('تحليل وإضافة للإنبوكس', locale)}</button></div>
       {error && <p className="inbox-error" role="alert"><AlertCircle size={15}/>{error}</p>}
     </div>
 
     <div className="inbox-layout">
-      <div className="inbox-list" aria-label="قائمة العروض">
+      <div className="inbox-list" aria-label={t('قائمة العروض', locale)}>
         {items.length === 0 ? <div className="empty-state"><Archive size={34}/><strong>{t('صندوق الوارد فارغ', locale)}</strong>
           <p>{t('الصق نص عرض رحلة في الأعلى لبدء المراجعة. لا توجد بيانات تجريبية محفوظة.', locale)}</p></div> :
           items.map(item => <button type="button" key={item.id} className={`inbox-row ${selectedId === item.id ? 'is-selected' : ''}`}
@@ -176,32 +176,32 @@ export default function AssistantInbox({ items, onChange, onTransfer, locale }: 
                   <span id={`inbox-field-label-${selected.id}-${field}`}>{t(fieldLabels[field] as TranslationKey, locale)} {needsReview && <b>{t('مطلوب مراجعة', locale)}</b>}</span>
                   <div className="inbox-input"><NumericInput allowEmpty aria-labelledby={`inbox-field-label-${selected.id}-${field}`} value={candidate.value}
                     disabled={selected.status === 'confirmed' || selected.status === 'rejected' || selected.status === 'transferred'}
-                    onValueChange={value => setManualField(selected, field, value)} placeholder="أدخل القيمة"/>
-                    <small>{field === 'fare' ? 'جنيه' : field === 'durationMinutes' ? 'دقيقة' : 'كم'}</small></div>
-                  <label className="inbox-reviewed"><input type="checkbox" checked={(selected.reviewedFields ?? []).includes(field)} disabled={selected.status === 'confirmed' || selected.status === 'rejected' || selected.status === 'transferred'} onChange={event => setFieldReviewed(selected, field, event.target.checked)}/> راجعت هذه القيمة وأؤكدها</label>
-                  <small className="inbox-confidence">الثقة: {Math.round(candidate.confidence * 100)}% · {candidate.evidence.length ? 'الدليل: ' + candidate.evidence.map(e => e.text).join('، ') : 'لا يوجد دليل مستخرج'}</small>
+                    onValueChange={value => setManualField(selected, field, value)} placeholder={t('أدخل القيمة', locale)}/>
+                    <small>{field === 'fare' ? t('جنيه', locale) : field === 'durationMinutes' ? t('دقيقة', locale) : t('كم', locale)}</small></div>
+                  <label className="inbox-reviewed"><input type="checkbox" checked={(selected.reviewedFields ?? []).includes(field)} disabled={selected.status === 'confirmed' || selected.status === 'rejected' || selected.status === 'transferred'} onChange={event => setFieldReviewed(selected, field, event.target.checked)}/> {t('راجعت هذه القيمة وأؤكدها', locale)}</label>
+                  <small className="inbox-confidence">{t('الثقة:', locale)} {Math.round(candidate.confidence * 100)}% · {candidate.evidence.length ? t('الدليل:', locale) + ' ' + candidate.evidence.map(e => e.text).join('، ') : t('لا يوجد دليل مستخرج', locale)}</small>
                 </div>
               })}
             </div>
-            <div className="inbox-source"><strong>{t('مصدر البيانات', locale)}</strong><span>{selected.draft.source === 'notification' ? 'إشعار مستلم من جسر Android' : selected.draft.source === 'screenshot' ? 'صورة شاشة' : 'إدخال أو لصق يدوي'}</span>
-              {selected.draft.sourceAppPackage && <span>معرّف التطبيق: {selected.draft.sourceAppPackage}</span>}
-              {selected.draft.sourceTimestamp && <span>وقت الإشعار: {new Date(selected.draft.sourceTimestamp).toLocaleString(locale==='ar'?'ar-EG':'en-EG')}</span>}
+            <div className="inbox-source"><strong>{t('مصدر البيانات', locale)}</strong><span>{selected.draft.source === 'notification' ? t('إشعار مستلم من جسر Android', locale) : selected.draft.source === 'screenshot' ? t('صورة شاشة', locale) : t('إدخال أو لصق يدوي', locale)}</span>
+              {selected.draft.sourceAppPackage && <span>{t('معرّف التطبيق:', locale)} {selected.draft.sourceAppPackage}</span>}
+              {selected.draft.sourceTimestamp && <span>{t('وقت الإشعار:', locale)} {new Date(selected.draft.sourceTimestamp).toLocaleString(locale==='ar'?'ar-EG':'en-EG')}</span>}
               <details><summary>{t('عرض النص الأصلي للمراجعة', locale)}</summary><pre>{selected.draft.rawText}</pre></details>
             </div>
             {selected.draft.warnings.map((warning, index) => <p className="inbox-warning" key={index}><ShieldAlert size={15}/>{warning}</p>)}
             {selected.status !== 'confirmed' && selected.status !== 'rejected' && selected.status !== 'transferred' && <div className="inbox-actions">
-              <button className="primary-btn" type="button" onClick={() => confirm(selected)} disabled={!hasRequiredReviewData(selected) || (selected.reviewedFields ?? []).length < 4}><Check size={16}/> تأكيد العرض بعد المراجعة</button>
-              <button className="subtle-btn" type="button" onClick={() => reject(selected)}><X size={16}/> رفض</button>
-              <button className="inbox-delete" type="button" onClick={() => remove(selected)}><Trash2 size={16}/> حذف</button>
+              <button className="primary-btn" type="button" onClick={() => confirm(selected)} disabled={!hasRequiredReviewData(selected) || (selected.reviewedFields ?? []).length < 4}><Check size={16}/> {t('تأكيد العرض بعد المراجعة', locale)}</button>
+              <button className="subtle-btn" type="button" onClick={() => reject(selected)}><X size={16}/> {t('رفض', locale)}</button>
+              <button className="inbox-delete" type="button" onClick={() => remove(selected)}><Trash2 size={16}/> {t('حذف', locale)}</button>
             </div>}
-            {selected.status === 'confirmed' && <div className="inbox-actions"><button className="primary-btn" type="button" onClick={() => transfer(selected)}><ChevronDown size={16}/> نقل العرض المؤكد للحاسبة</button>
+            {selected.status === 'confirmed' && <div className="inbox-actions"><button className="primary-btn" type="button" onClick={() => transfer(selected)}><ChevronDown size={16}/> {t('نقل العرض المؤكد للحاسبة', locale)}</button>
               <button className="inbox-delete" type="button" onClick={() => remove(selected)}><Trash2 size={16}/> حذف</button></div>}
-            {selected.status === 'rejected' && <div className="inbox-actions"><button className="inbox-delete" type="button" onClick={() => remove(selected)}><Trash2 size={16}/> حذف نهائي</button></div>}
+            {selected.status === 'rejected' && <div className="inbox-actions"><button className="inbox-delete" type="button" onClick={() => remove(selected)}><Trash2 size={16}/> {t('حذف نهائي', locale)}</button></div>}
             {selected.status === 'transferred' && <p className="inbox-success" role="status">{t('تم نقل هذا العرض للحاسبة بالفعل. لن يظهر زر النقل مرة أخرى.', locale)}</p>}
           </div>}
       </div>
     </div>
-    <div className="inbox-native-note"><ShieldAlert size={17}/><p><strong>{t('تكامل Android لاحقًا:', locale)}</strong> استقبال الإشعارات يتطلب تطبيقًا أصليًا يستخدم NotificationListenerService بعد موافقة المستخدم. صفحة الويب لا تقرأ إشعارات Uber أو DiDi أو inDrive بنفسها.</p></div>
+    <div className="inbox-native-note"><ShieldAlert size={17}/><p><strong>{t('تكامل Android لاحقًا:', locale)}</strong> {t('استقبال الإشعارات يتطلب تطبيقًا أصليًا يستخدم NotificationListenerService بعد موافقة المستخدم. صفحة الويب لا تقرأ إشعارات Uber أو DiDi أو inDrive بنفسها.', locale)}</p></div>
   </section>
 }
 
