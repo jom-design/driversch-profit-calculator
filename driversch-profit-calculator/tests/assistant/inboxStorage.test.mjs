@@ -127,7 +127,7 @@ test('duplicate notification IDs cannot create a second stored record after relo
   const factory = new IDBFactory()
   const storage = createInboxStorage(factory)
   const payload = {
-    notificationId: 'notification-stable-id', packageName: 'com.example.ride',
+    notificationId: 'notification-stable-id', packageName: 'sinet.startup.inDriver',
     appLabel: 'inDrive', title: 'عرض', text: 'القبول مقابل 100 جنيه 8 كم 15 دقيقة',
     postedAt: '2026-11-14T08:00:00.000Z'
   }

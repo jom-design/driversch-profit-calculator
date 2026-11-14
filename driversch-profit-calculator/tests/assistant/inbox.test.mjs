@@ -88,12 +88,12 @@ test('parse errors are represented as reviewable inbox items without invented va
 
 test('native bridge deduplicates notifications and rejects malformed payloads', () => {
   const seen = new Set()
-  const payload = { notificationId: 'notif-1', packageName: 'com.example.ride', appLabel: 'inDrive',
+  const payload = { notificationId: 'notif-1', packageName: 'sinet.startup.inDriver', appLabel: 'inDrive',
     title: 'عرض جديد', text: 'القبول مقابل 100 جنيه 8 كم 15 دقيقة', postedAt: '2026-11-14T08:00:00.000Z' }
   const first = acceptNativeNotification(payload, seen)
   assert.equal(first?.status, 'needs-review')
   assert.equal(first?.draft.source, 'notification')
-  assert.equal(first?.draft.sourceAppPackage, 'com.example.ride')
+  assert.equal(first?.draft.sourceAppPackage, 'sinet.startup.inDriver')
   assert.equal(first?.draft.sourceTimestamp, '2026-11-14T08:00:00.000Z')
   assert.equal(acceptNativeNotification(payload, seen), null)
   assert.equal(acceptNativeNotification({ ...payload, notificationId: '', text: 'x' }, seen), null)
