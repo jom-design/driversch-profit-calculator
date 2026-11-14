@@ -7,3 +7,5 @@
 @media(orientation:landscape) and (max-height:600px){.inbox-layout{grid-template-columns:minmax(210px,.65fr) minmax(0,1.5fr)}.inbox-list{max-height:55vh}.inbox-detail{padding:12px}}
 
 .inbox-reviewed{display:flex;align-items:center;gap:7px;color:#b8c8dc;font-size:11px;cursor:pointer;min-height:28px}.inbox-reviewed input{width:17px;height:17px;accent-color:#12a982;flex:none}
+
+.inbox-capabilities{display:flex;flex-wrap:wrap;gap:7px;margin:-3px 0 14px}.inbox-capabilities span{border:1px solid #2c405b;background:#101f35;color:#b9c9de;border-radius:20px;padding:5px 9px;font-size:10px;line-height:1.5}
