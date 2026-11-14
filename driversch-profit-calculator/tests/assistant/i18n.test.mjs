@@ -50,6 +50,12 @@ test('dynamic status messages translate without losing variable values', () => {
   assert.equal(translateText('آخر إشعار مؤهل: 10:30', 'en'), 'Last eligible notification: 10:30')
 })
 
+test('financial decision and OCR interpolations translate without losing numbers', () => {
+  assert.equal(translateText('صافي الربح أقل من الحد الأدنى 50.00 ج.م.', 'en'), 'Net profit is below the minimum target of EGP 50.00.')
+  assert.equal(translateText('ثقة OCR: 87%', 'en'), 'OCR confidence: 87%')
+  assert.equal(translateText('جاري قراءة الصورة 42%', 'en'), 'Reading image 42%')
+})
+
 test('unknown user content and mixed platform names remain unchanged', () => {
   assert.equal(translateText('Uber commission ١٥٪', 'en'), 'Uber commission ١٥٪')
   assert.equal(translateText('ملاحظة كتبها المستخدم', 'en'), 'ملاحظة كتبها المستخدم')
@@ -60,7 +66,7 @@ test('translation preserves surrounding whitespace and reversible exact keys', (
   assert.equal(translateText('  Settings  ', 'ar'), '  الإعدادات  ')
 })
 
-test('all dictionary entries have non-empty unique English values', () => {
+test('all dictionary entries have non-empty English values', () => {
   const values = Object.values(AR_TO_EN)
   assert.ok(Object.keys(AR_TO_EN).length >= 150)
   assert.ok(values.every(value => value.trim().length > 0))
