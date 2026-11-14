@@ -12,6 +12,7 @@ let browser
 
 const viewports = [
   { name: 'small-android-360x640', width: 360, height: 640 },
+  { name: 'small-android-360x800', width: 360, height: 800 },
   { name: 'phone-390x844', width: 390, height: 844 },
   { name: 'large-phone-412x915', width: 412, height: 915 },
   { name: 'tablet-768x1024', width: 768, height: 1024 },

@@ -1,4 +1,5 @@
 import { parseNumericDraft } from './numericInput.ts'
+import { calculateTrip } from './calculator.ts'
 import type { AppName, Decision, FareMode, SavedTrip, Settings } from '../types.ts'
 
 /**
@@ -46,6 +47,7 @@ export function normalizeSettings(raw: unknown, defaults: Settings): ImportResul
     if (value === null) return { ok: false, reason: `القيمة ${key} في الإعدادات ليست رقمًا صحيحًا` }
     next[key] = value
   }
+  if (raw.commission !== undefined && !isRecord(raw.commission)) return { ok: false, reason: 'خريطة عمولات التطبيقات في النسخة غير صالحة' }
   if (isRecord(raw.commission)) {
     for (const app of COMMISSION_KEYS) {
       if (raw.commission[app] === undefined) continue
@@ -58,7 +60,7 @@ export function normalizeSettings(raw: unknown, defaults: Settings): ImportResul
 }
 
 /** Returns a cleaned trip, or null when the record is too broken to keep. */
-export function normalizeTrip(raw: unknown): SavedTrip | null {
+export function normalizeTrip(raw: unknown, settings: Settings = DEFAULT_SETTINGS): SavedTrip | null {
   if (!isRecord(raw)) return null
   if (typeof raw.id !== 'string' || raw.id.length === 0) return null
   if (typeof raw.createdAt !== 'string' || Number.isNaN(Date.parse(raw.createdAt))) return null
@@ -76,7 +78,15 @@ export function normalizeTrip(raw: unknown): SavedTrip | null {
     if (value === null) return null
     trip[key] = value
   }
-  return trip as unknown as SavedTrip
+  const normalized = trip as unknown as SavedTrip
+  const calculated = calculateTrip(normalized, settings)
+  for (const key of TRIP_RESULT_KEYS) {
+    const actual = normalized[key] as number
+    const expected = calculated[key]
+    if (Math.abs(actual - expected) > 0.011) return null
+  }
+  if (normalized.decision !== calculated.decision) return null
+  return normalized
 }
 
 export interface NormalizedBackup {
@@ -93,10 +103,10 @@ export function normalizeBackup(data: unknown, defaults: Settings): ImportResult
   if (!settings.ok) return settings
   const trips: SavedTrip[] = []
   let skippedTrips = 0
-  for (const entry of data.trips) {
-    const trip = normalizeTrip(entry)
-    if (trip) trips.push(trip)
-    else skippedTrips += 1
+  for (let index = 0; index < data.trips.length; index += 1) {
+    const trip = normalizeTrip(data.trips[index], settings.value)
+    if (!trip) return { ok: false, reason: `بيانات الرحلة رقم ${index + 1} تالفة أو نتائجها المالية لا تطابق مدخلاتها؛ لم يتم استيراد أي بيانات.` }
+    trips.push(trip)
   }
-  return { ok: true, value: { settings: settings.value, trips, skippedTrips } }
+  return { ok: true, value: { settings: settings.value, trips, skippedTrips: 0 } }
 }

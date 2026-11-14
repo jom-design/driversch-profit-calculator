@@ -11,7 +11,7 @@ import VoiceCommandBar from './assistant/voice/VoiceCommandBar'
 import type { VoiceIntent } from './assistant/voice/voiceCommands'
 import { markInboxParseError, markInboxTransferred } from './assistant/inbox'
 import { getInboxStorageErrorMessage, loadInboxItems, saveInboxChanges } from './assistant/inboxStorage'
-import { deleteTrip, getSettings, getTrips, replaceAllTrips, saveSettings, saveTrip } from './lib/db'
+import { deleteTrip, getSettings, getTrips, replaceAllData, saveSettings, saveTrip } from './lib/db'
 import { readTripImage, type OcrDraft } from './lib/ocr'
 import { DEFAULT_SETTINGS, EMPTY_TRIP, type AppName, type FareMode, type SavedTrip, type Settings, type TripInput } from './types'
 
@@ -156,7 +156,7 @@ export default function App() {
     const {settings:nextSettings,trips:nextTrips,skippedTrips}=checked.value
     if(!confirm(`سيتم استيراد ${nextTrips.length} رحلة واستبدال السجل الحالي. هل تريد المتابعة؟`))return
     try{
-      await replaceAllTrips(nextTrips);await saveSettings(nextSettings);setTrips(await getTrips());setSettings(await getSettings())
+      await replaceAllData(nextTrips,nextSettings);setTrips(await getTrips());setSettings(await getSettings())
       setToast(skippedTrips?`تم استيراد النسخة. تم تجاهل ${skippedTrips} رحلة تالفة`:'تم استيراد النسخة الاحتياطية')
     }catch{setToast('تعذر حفظ النسخة الاحتياطية على هذا الجهاز')}
   }

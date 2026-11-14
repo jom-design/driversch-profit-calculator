@@ -40,3 +40,24 @@ export async function replaceAllTrips(trips: SavedTrip[]) {
   for (const trip of trips) await tx.store.put(trip)
   await tx.done
 }
+
+
+/**
+ * Replaces trips and settings as one IndexedDB transaction.
+ * If any write fails, IndexedDB aborts the transaction and keeps the previous data intact.
+ */
+export async function replaceAllData(trips: SavedTrip[], settings: Settings) {
+  const db = await dbPromise
+  const tx = db.transaction(['trips', 'settings'], 'readwrite')
+  try {
+    const tripStore = tx.objectStore('trips')
+    const settingsStore = tx.objectStore('settings')
+    await tripStore.clear()
+    for (const trip of trips) await tripStore.put(trip)
+    await settingsStore.put(settings, 'main')
+    await tx.done
+  } catch (error) {
+    try { tx.abort() } catch { /* The transaction may already have aborted. */ }
+    throw error
+  }
+}

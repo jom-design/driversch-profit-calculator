@@ -44,11 +44,22 @@ test('a broken setting is reported and the whole import is refused', () => {
   assert.match(result.reason, /fuelPrice/)
 })
 
-test('a broken trip is skipped and counted, valid trips are kept', () => {
-  const result = normalizeBackup(backup(DEFAULT_SETTINGS, [trip(), trip({ id: 't2', fare: 'بدون رقم' }), trip({ id: '' })]), DEFAULT_SETTINGS)
-  assert.equal(result.ok, true)
-  assert.equal(result.value.trips.length, 1)
-  assert.equal(result.value.skippedTrips, 2)
+test('a backup containing any corrupt trip is rejected as a whole', () => {
+  const result = normalizeBackup(backup(DEFAULT_SETTINGS, [trip(), trip({ id: 't2', fare: 'بدون رقم' })]), DEFAULT_SETTINGS)
+  assert.equal(result.ok, false)
+  assert.match(result.reason, /الرحلة رقم 2/)
+})
+
+test('a forged financial result is rejected when it does not match trip inputs', () => {
+  const result = normalizeBackup(backup(DEFAULT_SETTINGS, [trip({ netProfit: 9999 })]), DEFAULT_SETTINGS)
+  assert.equal(result.ok, false)
+  assert.match(result.reason, /الرحلة رقم 1/)
+})
+
+test('a malformed commission map is rejected before import', () => {
+  const result = normalizeBackup(backup({ ...DEFAULT_SETTINGS, commission: null }, []), DEFAULT_SETTINGS)
+  assert.equal(result.ok, false)
+  assert.match(result.reason, /عمولات/)
 })
 
 test('trip numbers with Arabic digits are normalized and notes keep both languages', () => {
@@ -65,11 +76,13 @@ test('a negative trip result is allowed, a negative input is not', () => {
 
 test('export then import returns the same settings and trips', () => {
   const settings = { ...DEFAULT_SETTINGS, fuelPrice: 23.5, commission: { ...DEFAULT_SETTINGS.commission, DiDi: 12.5 } }
-  const exported = JSON.parse(JSON.stringify(backup(settings, [trip()])))
+  const sourceTrip = trip()
+  const exportedTrip = { ...sourceTrip, ...calculateTrip(sourceTrip, settings) }
+  const exported = JSON.parse(JSON.stringify(backup(settings, [exportedTrip])))
   const restored = normalizeBackup(exported, DEFAULT_SETTINGS)
   assert.equal(restored.ok, true)
   assert.deepEqual(restored.value.settings, settings)
-  assert.deepEqual(restored.value.trips, [trip()])
+  assert.deepEqual(restored.value.trips, [exportedTrip])
 })
 
 test('wrong format or version is refused', () => {
