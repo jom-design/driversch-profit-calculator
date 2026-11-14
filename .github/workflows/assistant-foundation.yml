@@ -16,8 +16,11 @@ on:
   pull_request:
     paths:
       - "driversch-profit-calculator/src/assistant/**"
+      - "driversch-profit-calculator/src/App.tsx"
+      - "driversch-profit-calculator/src/styles.css"
       - "driversch-profit-calculator/src/platform/**"
       - "driversch-profit-calculator/tests/assistant/**"
+      - "driversch-profit-calculator/tests/platform/**"
       - "driversch-profit-calculator/package.json"
       - ".github/workflows/assistant-foundation.yml"
 
