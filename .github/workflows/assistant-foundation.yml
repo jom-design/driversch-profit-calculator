@@ -132,7 +132,7 @@ jobs:
               attr() { grep -o " $1=\"[^\"]*\"" <<< "$tag" | head -n 1 | cut -d'"' -f2; }
               echo "| $(attr name) | $(attr tests) | $(attr failures) | $(attr errors) | $(attr skipped) |"
             done
-          } >> "$GITHUB_STEP_SUMMARY"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Upload JUnit XML results
         if: always()
         uses: actions/upload-artifact@v4
