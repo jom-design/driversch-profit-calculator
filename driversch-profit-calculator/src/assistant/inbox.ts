@@ -27,11 +27,11 @@ export function requestInboxReview(item: InboxItem, now = new Date()): InboxItem
  */
 export function confirmInboxItem(
   item: InboxItem,
-  reviewedFields: Array<'fare' | 'distanceKm' | 'durationMinutes'>,
+  reviewedFields: Array<'fare' | 'pickupDistanceKm' | 'distanceKm' | 'durationMinutes'>,
   now = new Date()
 ): InboxItem {
   if (item.status !== 'needs-review') return item
-  const required = ['fare', 'distanceKm', 'durationMinutes'] as const
+  const required = ['fare', 'pickupDistanceKm', 'distanceKm', 'durationMinutes'] as const
   const hasAllReviewed = required.every(field => reviewedFields.includes(field))
   const hasAllValues = required.every(field => item.draft.fields[field].value !== null)
   if (!hasAllReviewed || !hasAllValues) return item
@@ -79,7 +79,7 @@ export function markInboxParseError(
 }
 
 export function hasRequiredReviewData(item: InboxItem): boolean {
-  return (['fare', 'distanceKm', 'durationMinutes'] as const).every(
+  return (['fare', 'pickupDistanceKm', 'distanceKm', 'durationMinutes'] as const).every(
     field => item.draft.fields[field].value !== null
   )
 }
