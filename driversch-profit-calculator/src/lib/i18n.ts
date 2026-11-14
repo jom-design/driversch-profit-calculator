@@ -4,7 +4,7 @@ export type AppLocale = 'ar' | 'en'
  * UI-only translations. Notification bodies, OCR source text, transcripts and user-entered
  * notes are intentionally not translated: they are user/source content, not interface copy.
  */
-export const AR_TO_EN: Readonly<Record<string, string>> = {
+export const AR_TO_EN = {
   "العربية": "Arabic",
   "التبديل إلى العربية": "Switch to Arabic",
   "التبديل للوضع الداكن": "Switch to dark mode",
@@ -286,7 +286,8 @@ export const AR_TO_EN: Readonly<Record<string, string>> = {
   "وقت الإشعار:": "Notification time:",
   "معرّف التطبيق:": "App package:",
   "ثقة OCR:": "OCR confidence:",
-}
+} as const
+export type TranslationKey = keyof typeof AR_TO_EN
 const EN_TO_AR: Readonly<Record<string,string>> = Object.fromEntries(
   Object.entries(AR_TO_EN).map(([ar,en]) => [en,ar])
 )
