@@ -60,6 +60,11 @@ try {
   await page.keyboard.press('Enter')
   await page.locator('.inbox-row').first().waitFor()
 
+  const sourceTextPreserved = await page.locator('.inbox-source pre').textContent()
+  if (!sourceTextPreserved?.includes('القبول مقابل 165 جنيه') || !sourceTextPreserved.includes('40 دقيقة')) {
+    throw new Error('User-provided offer text was changed by localization')
+  }
+
   const numberInputs = page.locator('.inbox-field input.numeric-input')
   await numberInputs.nth(0).fill('175')
   const reviewChecks = page.locator('.inbox-reviewed input[type="checkbox"]')

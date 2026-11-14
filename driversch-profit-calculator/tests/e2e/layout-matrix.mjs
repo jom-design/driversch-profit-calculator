@@ -78,6 +78,20 @@ try {
           await page.evaluate(() => ({ lang: document.documentElement.lang, dir: document.documentElement.dir, theme: document.documentElement.dataset.theme }))
             .then(state => state.lang === locale && state.dir === expectedDir && state.theme === theme))
 
+        await page.getByRole('button', { name: /Captured trips|الرحلات الملتقطة/ }).click()
+        const panelHeading = page.locator('.android-capture-heading strong')
+        check(`${vp.name}/${locale}/${theme}: Android panel uses the selected locale`,
+          (await panelHeading.innerText()).includes(locale === 'ar' ? 'التقاط إشعارات Android' : 'Capture Android notifications'))
+        // Switch language while a nested React component is mounted; it must rerender immediately.
+        await page.locator('.utility-btn').first().click()
+        const alternateLocale = locale === 'ar' ? 'en' : 'ar'
+        await page.waitForFunction(expected => document.documentElement.lang === expected, alternateLocale)
+        check(`${vp.name}/${locale}/${theme}: nested component updates on live language switch`,
+          (await panelHeading.innerText()).includes(alternateLocale === 'ar' ? 'التقاط إشعارات Android' : 'Capture Android notifications'))
+        await page.locator('.utility-btn').first().click()
+        await page.waitForFunction(expected => document.documentElement.lang === expected, locale)
+        await page.getByRole('button', { name: /Trip Calculator|حاسبة المشاوير/ }).click()
+
         // Reload proves both preferences survive a fresh document lifecycle.
         await page.reload({ waitUntil: 'networkidle' })
         await page.addScriptTag({ path: axePath })

@@ -1,6 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { AR_TO_EN, t, translateMessage } from '../../src/lib/i18n.ts'
 
 test('typed translation keys resolve in both locales', () => {
@@ -97,38 +99,37 @@ test('all dictionary entries have non-empty values in both locales', () => {
 })
 
 
-test('visible Arabic JSX copy in primary screens and assistant components has dictionary coverage', () => {
-  const sources = [
-    new URL('../../src/App.tsx', import.meta.url),
-    new URL('../../src/assistant/AssistantInbox.tsx', import.meta.url),
-    new URL('../../src/assistant/AndroidNotificationPanel.tsx', import.meta.url),
-    new URL('../../src/assistant/voice/VoiceCommandBar.tsx', import.meta.url)
-  ]
+test('visible Arabic JSX copy across the source tree has dictionary coverage', () => {
+  const root = fileURLToPath(new URL('../../src/', import.meta.url))
+  const collect = directory => readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
+    const path = join(directory, entry.name)
+    if (entry.isDirectory()) return collect(path)
+    return /\\.(tsx|jsx)$/.test(entry.name) ? [path] : []
+  })
   const missing = []
-  for (const url of sources) {
-    const source = readFileSync(url, 'utf8')
-    for (const match of source.matchAll(/>([^<>]*[\u0600-\u06FF][^<>]*)</g)) {
+  for (const path of collect(root)) {
+    const source = readFileSync(path, 'utf8')
+    for (const match of source.matchAll(/>([^<>]*[\\u0600-\\u06FF][^<>]*)</g)) {
       const copy = match[1].trim()
       if (!copy || copy.length > 220 || copy.startsWith('=') || copy.includes('{') || copy.includes('=>') || copy.includes(').join(')) continue
       if (/^(Uber|DiDi|inDrive|Android|Chrome|API|OCR|PNG|JPG)$/.test(copy)) continue
-      if (!AR_TO_EN[copy]) missing.push(copy)
+      if (!AR_TO_EN[copy]) missing.push({ path, copy })
     }
   }
-  assert.deepEqual([...new Set(missing)], [])
+  assert.deepEqual(missing, [])
 })
 
-test('production source cannot reintroduce DOM-based translation', () => {
-  const sources = [
-    new URL('../../src/App.tsx', import.meta.url),
-    new URL('../../src/lib/i18n.ts', import.meta.url),
-    new URL('../../src/assistant/AssistantInbox.tsx', import.meta.url),
-    new URL('../../src/assistant/AndroidNotificationPanel.tsx', import.meta.url),
-    new URL('../../src/assistant/voice/VoiceCommandBar.tsx', import.meta.url)
-  ]
-  for (const url of sources) {
-    const source = readFileSync(url, 'utf8')
-    assert.doesNotMatch(source, /\bMutationObserver\b/)
-    assert.doesNotMatch(source, /\bapplyLocale\b/)
-    assert.doesNotMatch(source, /\btranslateText\b/)
+test('no production source can reintroduce DOM-based translation', () => {
+  const root = fileURLToPath(new URL('../../src/', import.meta.url))
+  const collect = directory => readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
+    const path = join(directory, entry.name)
+    if (entry.isDirectory()) return collect(path)
+    return /\\.(tsx?|jsx?)$/.test(entry.name) ? [path] : []
+  })
+  for (const path of collect(root)) {
+    const source = readFileSync(path, 'utf8')
+    assert.doesNotMatch(source, /\\bMutationObserver\\b/, path)
+    assert.doesNotMatch(source, /\\bapplyLocale\\b/, path)
+    assert.doesNotMatch(source, /\\btranslateText\\b/, path)
   }
 })

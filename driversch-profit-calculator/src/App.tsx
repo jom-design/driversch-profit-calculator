@@ -17,7 +17,7 @@ import { readTripImage, type OcrDraft } from './lib/ocr'
 import { DEFAULT_SETTINGS, EMPTY_TRIP, type AppName, type FareMode, type SavedTrip, type Settings, type TripInput } from './types'
 
 type Page = 'calculator' | 'assistant' | 'inbox' | 'history' | 'reports' | 'settings'
-const money = (n: number, locale: AppLocale = 'ar') => `${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${locale === 'ar' ? 'ج.م' : 'EGP'}`
+const money = (n: number, locale: AppLocale = 'ar') => `${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${t('ج.م', locale)}`
 const templates: {name:string; desc:string; trip:TripInput}[] = [
   { name:'المثال المرجعي', desc:'22 كم — 165 جنيه — 40 دقيقة', trip:{...EMPTY_TRIP} },
   { name:'مشوار قصير وسط البلد', desc:'5 كم — 70 جنيه', trip:{...EMPTY_TRIP, fare:70, passengerKm:5, totalMinutes:20} },
@@ -228,7 +228,7 @@ export default function App() {
         <section className="templates"><div className="section-head"><h2>{tr('نماذج جاهزة للاختبار السريع')}</h2><span>{tr('اضغط لملء الحقول')}</span></div><div className="template-grid">{templates.map(t=><button className="template" key={t.name} onClick={()=>loadTemplate(t.trip)}><strong>{tr(t.name)}</strong><small>{tr(t.desc)}</small></button>)}</div></section>
         <div className="work-grid"><section className="panel form-panel"><div className="panel-head"><div><span className="eyebrow">{tr('بيانات العرض')}</span><h2><CarFront/> {tr('بيانات المشوار المقترح')}</h2></div><button className="subtle-btn" onClick={()=>setTrip(EMPTY_TRIP)}><RotateCcw size={15}/> {tr('تفريغ الحقول')}</button></div>
           <div className="app-select">{(['Uber','DiDi','inDrive','أخرى'] as AppName[]).map(a=><button key={a} className={trip.app===a?'selected':''} aria-pressed={trip.app===a} onClick={()=>{patch('app',a);patch('commissionRate',settings.commission[a]??0);patch('fareMode',a==='Uber'?'net':'unknown')}}>{a==='أخرى'?tr('أخرى'):a}</button>)}</div>
-          <Field label={tr('الأجرة المعروضة')} value={trip.fare} onChange={v=>patch('fare',v??0)} unit="ج.م"/>
+          <Field label={tr('الأجرة المعروضة')} value={trip.fare} onChange={v=>patch('fare',v??0)} unit={tr('ج.م')}/>
           <div className="field"><span>{tr('نوع الأجرة')}</span><div className="choice-row">
             <button className={trip.fareMode==='net'?'chosen':''} aria-pressed={trip.fareMode==='net'} onClick={()=>patch('fareMode','net')}>{tr('صافي للسائق')}</button>
             <button className={trip.fareMode==='gross'?'chosen':''} aria-pressed={trip.fareMode==='gross'} onClick={()=>patch('fareMode','gross')}>{tr('إجمالي قبل العمولة')}</button>
@@ -236,10 +236,10 @@ export default function App() {
           </div></div>
           {trip.fareMode==='gross'&&<Field label={tr('نسبة عمولة التطبيق')} value={trip.commissionRate} onChange={v=>patch('commissionRate',v??0)} unit="%"/>}
           <div className="field-grid">
-            <Field label={tr('مسافة الوصول للراكب')} value={trip.pickupKm} onChange={v=>patch('pickupKm',v??0)} unit="كم"/>
+            <Field label={tr('مسافة الوصول للراكب')} value={trip.pickupKm} onChange={v=>patch('pickupKm',v??0)} unit={tr('كم')}/>
             <Field label={tr('مسافة الرحلة بالراكب')} value={trip.passengerKm} onChange={v=>patch('passengerKm',v??0)} unit="كم"/>
             <Field label={tr('العودة الفارغة')} value={trip.returnKm} onChange={v=>patch('returnKm',v??0)} unit="كم"/>
-            <Field label={tr('الوقت الإجمالي')} value={trip.totalMinutes} onChange={v=>patch('totalMinutes',v??0)} unit="دقيقة"/>
+            <Field label={tr('الوقت الإجمالي')} value={trip.totalMinutes} onChange={v=>patch('totalMinutes',v??0)} unit={tr('دقيقة')}/>
             <Field label={tr('مصروفات إضافية')} value={trip.extraExpenses} onChange={v=>patch('extraExpenses',v??0)} unit="ج.م"/>
           </div>
           <label className="field"><span>{tr('ملاحظات اختيارية')}</span><textarea rows={2} dir="auto" value={trip.notes} onChange={e=>patch('notes',e.target.value)} placeholder={tr('أي تفاصيل تساعدك في مراجعة الرحلة...')}/></label>
@@ -250,7 +250,7 @@ export default function App() {
           <div className={`decision ${decisionClass[result.decision]}`}><div className="decision-mark">{result.decision==='accept'?'✓':result.decision==='review'?'!':'×'}</div><div><strong>{decisionLabel[result.decision]}</strong><p>{translateMessage(result.decisionReason,locale)}</p></div></div>
           <div className="profit-highlight"><small>{trip.fareMode==='unknown'?tr('ربح تقديري — أكد نوع الأجرة أولًا'):tr('صافي ربحك المتوقع')}</small><strong className={result.netProfit>=0?'positive':'negative'}>{moneyText(result.netProfit)}</strong><span>{tr('بعد الوقود والصيانة والمصروفات')}</span></div>
           <div className="metric-grid">
-            <Metric label={tr('إجمالي المسافة')} value={`${result.totalKm.toFixed(2)} كم`}/>
+            <Metric label={tr('إجمالي المسافة')} value={`${result.totalKm.toFixed(2)} ${tr('كم')}`}/>
             <Metric label={tr('تكلفة الوقود')} value={moneyText(result.fuelCost)}/>
             <Metric label={tr('الصيانة والإهلاك')} value={moneyText(result.maintenanceCost)}/>
             <Metric label={tr('إجمالي تكلفة التشغيل')} value={moneyText(result.totalCost)}/>
@@ -264,7 +264,7 @@ export default function App() {
       {page==='assistant'&&<section className="panel assistant-panel"><div className="panel-head"><div><span className="eyebrow">{tr('قراءة بموافقتك')}</span><h2><FileImage/> {tr('المساعد الذكي لالتقاط الرحلات')}</h2><p>{tr('ارفع Screenshot واضحة من شاشة العرض. راجع القيم قبل إرسالها للحاسبة.')}</p></div></div>
         <div className="capture-info"><ShieldCheck/><div><strong>{tr('خصوصيتك أولًا')}</strong><p>{tr('المعالجة تتم داخل المتصفح. لا يتم حفظ صورة الرحلة أو نصها الخام في سجل الرحلات.')}</p></div></div>
         <label className="upload-zone"><Upload size={32}/><strong>{tr('اختر Screenshot من جهازك')}</strong><span>{tr('PNG أو JPG — يفضل لقطة شاشة أصلية وليست صورة بالكاميرا')}</span><input type="file" accept="image/*" onChange={e=>uploadImage(e.target.files?.[0])}/></label>
-        {busy&&<div className="progress-wrap"><span>جاري قراءة الصورة {progress}%</span><div><i style={{width:`${progress}%`}}/></div></div>}
+        {busy&&<div className="progress-wrap"><span>{translateMessage(`جاري قراءة الصورة ${progress}%`,locale)}</span><div><i style={{width:`${progress}%`}}/></div></div>}
         <div className="capture-warning"><strong>{tr('تنبيه بخصوص Android')}</strong><p>{tr('التقاط شاشة التطبيقات الأخرى مباشرة غير متاح بشكل موثوق من صفحة ويب عادية. لذلك نوفر رفع الصورة كحل يعمل على المتصفح. الالتقاط المباشر يحتاج تطبيق Android أصلي وصلاحية MediaProjection بموافقة النظام.')}</p></div>
         {draft&&<div className="ocr-review"><div className="section-head"><h3>{tr('راجع البيانات المستخرجة')}</h3><span>{tr('ثقة OCR:')} {Math.round(draft.confidence)}%</span></div>
           <div className="field-grid">
@@ -284,16 +284,16 @@ export default function App() {
       {page==='inbox'&&!inboxReady&&<section className="panel" role="status">{tr('جارٍ استعادة صندوق الرحلات المحفوظ على هذا الجهاز…')}</section>}
       {page==='inbox'&&inboxReady&&<AssistantInbox items={inbox} onChange={commitInbox} onTransfer={transferConfirmedOffer} locale={locale}/>}
       {page==='history'&&<section className="panel"><div className="panel-head"><div><span className="eyebrow">{tr('بيانات محفوظة على جهازك')}</span><h2><History/> {tr('سجل الرحلات')}</h2></div><button className="subtle-btn" onClick={exportCsv}><Download size={16}/> {tr('تصدير CSV')}</button></div>
-        {trips.length===0?<Empty title={tr('لسه مفيش رحلات محفوظة')} text={tr('احسب أول مشوار واحفظه علشان يظهر هنا.')}/>:<div className="table-wrap"><table><thead><tr><th>{tr('التاريخ')}</th><th>{tr('التطبيق')}</th><th>{tr('الأجرة')}</th><th>{tr('المسافة')}</th><th>{tr('صافي الربح')}</th><th>{tr('القرار')}</th><th></th></tr></thead><tbody>{trips.map(t=><tr key={t.id}><td>{new Date(t.createdAt).toLocaleString(locale==='ar'?'ar-EG':'en-EG')}</td><td>{t.app}</td><td>{moneyText(t.fare)}</td><td>{t.totalKm.toFixed(1)} كم</td><td className={t.netProfit>=0?'positive':'negative'}>{moneyText(t.netProfit)}</td><td><span className={`pill ${decisionClass[t.decision]}`}>{decisionLabel[t.decision]}</span></td><td><button className="danger-icon" onClick={()=>removeTrip(t.id)} title={tr('حذف')}><Trash2 size={16}/></button></td></tr>)}</tbody></table></div>}
+        {trips.length===0?<Empty title={tr('لسه مفيش رحلات محفوظة')} text={tr('احسب أول مشوار واحفظه علشان يظهر هنا.')}/>:<div className="table-wrap"><table><thead><tr><th>{tr('التاريخ')}</th><th>{tr('التطبيق')}</th><th>{tr('الأجرة')}</th><th>{tr('المسافة')}</th><th>{tr('صافي الربح')}</th><th>{tr('القرار')}</th><th></th></tr></thead><tbody>{trips.map(t=><tr key={t.id}><td>{new Date(t.createdAt).toLocaleString(locale==='ar'?'ar-EG':'en-EG')}</td><td>{t.app}</td><td>{moneyText(t.fare)}</td><td>{t.totalKm.toFixed(1)} {tr('كم')}</td><td className={t.netProfit>=0?'positive':'negative'}>{moneyText(t.netProfit)}</td><td><span className={`pill ${decisionClass[t.decision]}`}>{decisionLabel[t.decision]}</span></td><td><button className="danger-icon" onClick={()=>removeTrip(t.id)} title={tr('حذف')}><Trash2 size={16}/></button></td></tr>)}</tbody></table></div>}
       </section>}
       {page==='reports'&&<section className="panel"><div className="panel-head"><div><span className="eyebrow">{tr('ملخص السجل المحفوظ')}</span><h2><LayoutDashboard/> {tr('التقارير والإحصائيات')}</h2></div></div>
-        <div className="report-grid"><Metric label={tr('عدد الرحلات')} value={String(trips.length)}/><Metric label={tr('إجمالي الأجرة الصافية')} value={moneyText(trips.reduce((s,t)=>s+t.netFare,0))}/><Metric label={tr('إجمالي التشغيل')} value={moneyText(trips.reduce((s,t)=>s+t.totalCost,0))}/><Metric label={tr('صافي الربح')} value={moneyText(savedProfit)}/><Metric label={tr('إجمالي المسافات')} value={`${trips.reduce((s,t)=>s+t.totalKm,0).toFixed(1)} كم`}/><Metric label={tr('إجمالي الوقت')} value={`${trips.reduce((s,t)=>s+t.totalMinutes,0)} دقيقة`}/></div>
+        <div className="report-grid"><Metric label={tr('عدد الرحلات')} value={String(trips.length)}/><Metric label={tr('إجمالي الأجرة الصافية')} value={moneyText(trips.reduce((s,t)=>s+t.netFare,0))}/><Metric label={tr('إجمالي التشغيل')} value={moneyText(trips.reduce((s,t)=>s+t.totalCost,0))}/><Metric label={tr('صافي الربح')} value={moneyText(savedProfit)}/><Metric label={tr('إجمالي المسافات')} value={`${trips.reduce((s,t)=>s+t.totalKm,0).toFixed(1)} ${tr('كم')}`}/><Metric label={tr('إجمالي الوقت')} value={`${trips.reduce((s,t)=>s+t.totalMinutes,0)} ${tr('دقيقة')}`}/></div>
         <div className="section-head"><h3>{tr('مقارنة حسب التطبيق')}</h3></div><div className="table-wrap"><table><thead><tr><th>{tr('التطبيق')}</th><th>{tr('عدد الرحلات')}</th><th>{tr('صافي الربح')}</th><th>{tr('متوسط الربح')}</th></tr></thead><tbody>{(['Uber','DiDi','inDrive','أخرى'] as AppName[]).map(a=>{const list=trips.filter(t=>t.app===a);const sum=list.reduce((s,t)=>s+t.netProfit,0);return <tr key={a}><td>{a==='أخرى'?tr('أخرى'):a}</td><td>{list.length}</td><td>{moneyText(sum)}</td><td>{moneyText(list.length?sum/list.length:0)}</td></tr>})}</tbody></table></div>
       </section>}
       {page==='settings'&&<section className="panel"><div className="panel-head"><div><span className="eyebrow">{tr('تحكم في افتراضات الحساب')}</span><h2><SettingsIcon/> {tr('الإعدادات')}</h2></div><button className="primary-btn" onClick={persistSettings}><Save size={16}/> {tr('حفظ الإعدادات')}</button></div>
         <div className="field-grid settings-grid">
           <Field label={tr('سعر لتر البنزين')} value={settings.fuelPrice} onChange={v=>updateSettings('fuelPrice',v??0)} unit="ج.م"/>
-          <Field label={tr('استهلاك السيارة لكل 100 كم')} value={settings.consumptionPer100} onChange={v=>updateSettings('consumptionPer100',v??0)} unit="لتر"/>
+          <Field label={tr('استهلاك السيارة لكل 100 كم')} value={settings.consumptionPer100} onChange={v=>updateSettings('consumptionPer100',v??0)} unit={tr('لتر')}/>
           <Field label={tr('الصيانة والإهلاك لكل كم')} value={settings.maintenancePerKm} onChange={v=>updateSettings('maintenancePerKm',v??0)} unit="ج.م"/>
           <Field label={tr('الحد الأدنى لصافي الرحلة')} value={settings.minNetProfit} onChange={v=>updateSettings('minNetProfit',v??0)} unit="ج.م"/>
           <Field label={tr('هدف الربح في الساعة')} value={settings.hourlyTarget} onChange={v=>updateSettings('hourlyTarget',v??0)} unit="ج.م"/>
