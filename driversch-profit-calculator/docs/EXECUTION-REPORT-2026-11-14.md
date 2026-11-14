@@ -18,7 +18,7 @@
 - Offer details display provider, fare, pickup distance, passenger distance, duration, per-field confidence, evidence text, source, and fields requiring confirmation.
 - Manual field correction is supported. Manually entered values are marked as manually supplied evidence and confidence 100%; OCR image-level confidence is not misrepresented as per-field confidence.
 - Every required field (fare, pickup distance, passenger distance, duration) has an explicit review acknowledgement. Confirmation is blocked until all values exist and all four review acknowledgements are checked.
-- Screenshot OCR now enters the inbox in `needs-review`; it no longer bypasses review to transfer directly to the calculator.
+- Screenshot OCR now enters the inbox in `needs-review`; it no longer bypasses review to transfer directly to the calculator. OCR failures also create a repairable parse-error inbox item.
 - Calculator transfer is guarded by `toCalculatorTripInput`: only confirmed offers with complete required values can transfer. Fare mode remains `unknown` to avoid guessing net/gross fare. Transfer does not call `calculateTrip`, `saveTrip`, or history persistence.
 - Reject and delete actions require browser confirmation.
 - Runtime browser capability display is added without requesting permissions.
@@ -49,7 +49,7 @@ Not modified: `src/lib/calculator.ts`, `src/lib/db.ts`, `src/types.ts`, PR #1, r
 
 ## Tests authored
 
-The assistant test command discovers 23 tests across parser, browser capability, inbox lifecycle, manual correction, low-confidence handling, rejection/deletion, duplicate native notification payloads, OCR review gating, and calculator hand-off gating.
+The assistant test command discovers 25 tests across parser, distance ambiguity, browser capability, inbox lifecycle, manual correction, low-confidence handling, rejection/deletion, duplicate native notification payloads, OCR review gating, and calculator hand-off gating.
 
 Command configured in the repository:
 `npm run test:assistant`
