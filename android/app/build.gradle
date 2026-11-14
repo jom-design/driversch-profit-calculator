@@ -1,4 +1,13 @@
 plugins { id "com.android.application"; id "org.jetbrains.kotlin.android" }
+
+def releaseStoreFile = System.getenv("ANDROID_KEYSTORE_PATH")
+def releaseStorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+def releaseKeyAlias = System.getenv("ANDROID_KEY_ALIAS")
+def releaseKeyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+def hasReleaseSigning = [releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword].every { value ->
+    value != null && !value.trim().isEmpty()
+}
+
 android {
     namespace "com.driverprofitcalculator.app"
     compileSdk 35
@@ -9,10 +18,52 @@ android {
         versionCode 1
         versionName "1.0.0"
     }
+    signingConfigs {
+        release {
+            if (hasReleaseSigning) {
+                storeFile file(releaseStoreFile)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
+    buildTypes {
+        debug {
+            // Debug signing remains the Android Gradle Plugin's separate debug key.
+        }
+        release {
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
+            minifyEnabled false
+        }
+    }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
     testOptions { unitTests.returnDefaultValues = true }
 }
+
+tasks.register("verifyReleaseSigning") {
+    group = "verification"
+    description = "Fails closed when release signing credentials are not supplied."
+    doLast {
+        if (!hasReleaseSigning) {
+            throw new GradleException("Release signing is not configured. Supply ANDROID_KEYSTORE_PATH, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS and ANDROID_KEY_PASSWORD through the CI secret environment.")
+        }
+        if (!file(releaseStoreFile).isFile()) {
+            throw new GradleException("Configured Android release keystore file does not exist.")
+        }
+    }
+}
+
+tasks.configureEach { task ->
+    if ((task.name.startsWith("assemble") || task.name.startsWith("bundle")) &&
+        task.name.toLowerCase().contains("release")) {
+        task.dependsOn("verifyReleaseSigning")
+    }
+}
+
 dependencies {
     implementation "androidx.webkit:webkit:1.12.1"
     implementation "androidx.core:core:1.13.1"
