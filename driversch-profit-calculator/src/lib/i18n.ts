@@ -313,6 +313,10 @@ export const AR_TO_EN = {
   "التعرف الصوتي:": "Speech recognition:",
   "مشاركة الشاشة:": "Screen sharing:",
   "عرض": "offer",
+  "تم استيراد إشعارات": "Imported notifications",
+  "استيراد الإشعارات": "Import notifications",
+  "إشعار إلى صندوق المراجعة": "notification(s) to the review inbox",
+  "تعذر فك تشفير قائمة الإشعارات المحلية. تم إيقاف الاستيراد لحماية البيانات؛ لا تحذف بيانات التطبيق قبل تصدير ما يلزم.": "Could not decrypt the local notification queue. Import was stopped to protect your data; export anything needed before clearing app data.",
 } as const
 export type TranslationKey = keyof typeof AR_TO_EN
 
