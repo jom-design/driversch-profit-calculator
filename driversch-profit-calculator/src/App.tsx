@@ -61,6 +61,14 @@ export default function App() {
     return ()=>{active=false}
   },[])
   useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(''),3200);return()=>clearTimeout(t)},[toast])
+  useEffect(()=>{
+    const handleVoiceEvent=(event:Event)=>{
+      const detail=(event as CustomEvent<{type:string}>).detail
+      if(detail?.type==='speak-ended'||detail?.type==='speak-stopped'||detail?.type==='speak-error')setSpeaking(false)
+    }
+    window.addEventListener('driverandroidvoice',handleVoiceEvent)
+    return()=>window.removeEventListener('driverandroidvoice',handleVoiceEvent)
+  },[])
   const commitInbox=(next:InboxItem[]):Promise<boolean>=>{
     setInbox(next)
     const operation=inboxWriteQueueRef.current.then(async()=>{
@@ -119,10 +127,17 @@ export default function App() {
     setToast('تم نقل العرض المؤكد للحاسبة. لم يتم حفظه في سجل الرحلات.')
   }
   const speak=()=>{
-    if(!('speechSynthesis'in window)){setToast('ميزة الصوت غير مدعومة في هذا المتصفح');return}
-    if(speaking){speechSynthesis.cancel();setSpeaking(false);return}
-    const text=result.decision==='accept'?`اقبل الرحلة. صافي الربح ${result.netProfit.toFixed(2)} جنيه`:
-      result.decision==='review'?`راجع الرحلة. ${result.decisionReason}`:`ارفض الرحلة. صافي الربح ${result.netProfit.toFixed(2)} جنيه`
+    const nativeVoice=(window as Window & {DriverAndroid?:{speakText:(text:string)=>boolean;stopSpeaking:()=>boolean}}).DriverAndroid
+    if(speaking){
+      if(nativeVoice)nativeVoice.stopSpeaking()
+      else if('speechSynthesis'in window)speechSynthesis.cancel()
+      setSpeaking(false)
+      return
+    }
+    const text=result.decision==='accept'? `اقبل الرحلة. صافي الربح ${result.netProfit.toFixed(2)} جنيه`:
+      result.decision==='review'? `راجع الرحلة. ${result.decisionReason}`:`ارفض الرحلة. صافي الربح ${result.netProfit.toFixed(2)} جنيه`
+    if(nativeVoice){nativeVoice.speakText(text);setSpeaking(true);return}
+    if(!('speechSynthesis'in window)){setToast('ميزة الصوت غير مدعومة في هذا الجهاز');return}
     const utter=new SpeechSynthesisUtterance(text);utter.lang='ar-EG';utter.onend=()=>setSpeaking(false);speechSynthesis.speak(utter);setSpeaking(true)
   }
   const exportBackup=async()=>{
