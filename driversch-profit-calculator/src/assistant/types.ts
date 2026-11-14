@@ -21,6 +21,9 @@ export interface RideOfferDraft {
   providerConfidence: number
   source: CaptureSource
   rawText: string
+  sourceAppPackage?: string
+  sourceAppLabel?: string
+  sourceTimestamp?: string
   fields: {
     fare: FieldCandidate<number>
     distanceKm: FieldCandidate<number>
