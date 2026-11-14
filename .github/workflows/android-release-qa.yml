@@ -38,10 +38,11 @@ jobs:
       - uses: android-actions/setup-android@v3
         with:
           cmdline-tools-version: 12266719
-          packages: |
-            platform-tools
-            platforms;android-35
-            build-tools;35.0.0
+          packages: ""
+      - name: Install required Android SDK packages
+        run: |
+          yes | sdkmanager --licenses >/dev/null
+          sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.0"
       - name: Build and test debug APK
         working-directory: android
         run: |
@@ -100,6 +101,10 @@ jobs:
             platform-tools
             platforms;android-35
             build-tools;35.0.0
+      - name: Install required Android SDK packages
+        run: |
+          yes | sdkmanager --licenses >/dev/null
+          sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.0"
       - name: Prepare owner-provided signing key
         if: env.ANDROID_RELEASE_CONFIGURED == 'true'
         env:
