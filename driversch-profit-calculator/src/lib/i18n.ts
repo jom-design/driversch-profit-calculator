@@ -164,7 +164,7 @@ export const AR_TO_EN: Readonly<Record<string, string>> = {
   "راجع الرحلة": "Review trip",
   "ارفض الرحلة": "Reject trip",
   "ربح تقديري — أكد نوع الأجرة أولًا": "Estimated profit — confirm fare type first",
-  "صافي ربحك المتوقع": "Estimated net profit",
+  "صافي ربحك المتوقع": "Your estimated net profit",
   "بعد الوقود والصيانة والمصروفات": "After fuel, maintenance and expenses",
   "بيانات محفوظة على جهازك": "Data saved on your device",
   "التاريخ": "Date",
@@ -278,18 +278,10 @@ export const AR_TO_EN: Readonly<Record<string, string>> = {
   "صافي للسائق": "Net to driver",
   "مجاني 100%": "100% Free",
   "حاسبة عدالة المشاوير": "Driver Profit Calculator",
-  "التحليل المالي": "Financial analysis",
-  "صافي ربحك المتوقع": "Your estimated net profit",
   "حدد نوع الأجرة قبل حفظ الرحلة. لن نفترض أن المبلغ صافي أو نخصم عمولة تلقائيًا.": "Choose the fare type before saving. We will not assume the amount is net or deduct commission automatically.",
-  "الصق نص إشعار أو تفاصيل العرض أولًا.": "Paste a notification or offer details first.",
-  "مراجعة": "Review",
-  "إلغاء": "Cancel",
-  "المثال المرجعي": "Reference example",
   "التعرف الصوتي": "Speech recognition",
   "الميكروفون": "Microphone",
   "مشاركة الشاشة": "Screen sharing",
-  "غير مدعوم": "Not supported",
-  "مدعوم": "Supported",
 }
 const EN_TO_AR: Readonly<Record<string,string>> = Object.fromEntries(
   Object.entries(AR_TO_EN).map(([ar,en]) => [en,ar])
