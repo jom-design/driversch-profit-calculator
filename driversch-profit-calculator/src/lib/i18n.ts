@@ -321,7 +321,6 @@ const INTERPOLATED: Array<[RegExp,(match:RegExpMatchArray)=>string]> = [
   [/^آخر إشعار مؤهل: (.+)$/, m => `Last eligible notification: ${m[1]}`],
   [/^عدد العروض (\d+)$/, m => `Offers (${m[1]})`],
   [/^عندك (\d+) عرض غير مؤكد$/, m => `You have ${m[1]} unconfirmed offers`],
-  [/^عمولة (.+)$/, m => `${m[1]} commission`],
   [/^(.+) كم$/, m => `${m[1]} km`],
   [/^(.+) دقيقة$/, m => `${m[1]} min`],
   [/^(.+) جنيه$/, m => `EGP ${m[1]}`],
@@ -337,6 +336,7 @@ const INTERPOLATED: Array<[RegExp,(match:RegExpMatchArray)=>string]> = [
   [/^(.+) عرض$/, m => `${m[1]} offers`],
   [/^القيمة (.+) في الإعدادات ليست رقمًا صحيحًا$/, m => `Setting value ${m[1]} is not a valid number.`],
   [/^عمولة (.+) في الإعدادات ليست نسبة صحيحة من 0 إلى 100$/, m => `${m[1]} commission in settings must be between 0 and 100.`],
+  [/^عمولة (.+)$/, m => `${m[1]} commission`],
   [/^بيانات الرحلة رقم (\d+) تالفة أو نتائجها المالية لا تطابق مدخلاتها؛ لم يتم استيراد أي بيانات\.$/, m => `Trip #${m[1]} is corrupted or its financial results do not match its inputs; no data was imported.`],
 ]
 export function translateText(value:string, locale:AppLocale):string {
