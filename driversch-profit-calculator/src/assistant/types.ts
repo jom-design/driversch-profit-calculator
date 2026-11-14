@@ -32,7 +32,7 @@ export interface RideOfferDraft {
   createdAt: string
 }
 
-export type InboxStatus = 'received' | 'parsed' | 'needs-review' | 'confirmed' | 'dismissed'
+export type InboxStatus = 'received' | 'parsed' | 'needs-review' | 'confirmed' | 'rejected' | 'dismissed' | 'parse-error'
 
 export interface InboxItem {
   id: string
