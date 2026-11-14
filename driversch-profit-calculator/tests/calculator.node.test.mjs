@@ -58,6 +58,28 @@ test('rejects negative, non-finite and zero-duration inputs without NaN output',
   }
 })
 
+test('rejects sub-minute durations and keeps all calculated values finite', () => {
+  for (const duration of [0, 0.5, Number.MIN_VALUE]) {
+    const r = calc({ totalMinutes: duration })
+    assert.equal(r.isValid, false)
+    assert.equal(r.decision, 'review')
+    assert.ok(r.validationErrors.length > 0)
+    for (const key of ['totalKm','fuelCost','maintenanceCost','totalCost','netFare','netProfit','hourlyProfit','requiredFare','fareGap']) {
+      assert.equal(Number.isFinite(r[key]), true, `${key} must be finite for duration ${duration}`)
+    }
+  }
+})
+
+test('minimum-profit and hourly-target boundaries are inclusive', () => {
+  const settings = { ...DEFAULT_SETTINGS, minNetProfit: 50, hourlyTarget: 50 }
+  const exactBoundary = calc({ fare: 153.95, totalMinutes: 60 }, settings)
+  assert.equal(exactBoundary.netProfit, 50)
+  assert.equal(exactBoundary.hourlyProfit, 50)
+  assert.equal(exactBoundary.decision, 'accept')
+  assert.equal(calc({ fare: 153.94, totalMinutes: 60 }, settings).decision, 'reject')
+  assert.equal(calc({ fare: 153.95, totalMinutes: 60.01 }, settings).decision, 'review')
+})
+
 test('gross fare is converted consistently and required gross fare is returned', () => {
   const r = calc({ fare: 200, fareMode: 'gross', commissionRate: 20 })
   assert.equal(r.netFare, 160)

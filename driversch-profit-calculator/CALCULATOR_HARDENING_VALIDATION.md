@@ -26,7 +26,7 @@ A reproduction with the three incorrect calls failed with 3 `ReferenceError` tes
 node --experimental-strip-types --test driversch-profit-calculator/tests/calculator.node.test.mjs
 ```
 
-Result: **11 passed, 0 failed, 0 skipped**. Node emitted its expected experimental TypeScript type-stripping warning. The unflagged `node --test ...` command was also tried and fails on this Node 22.16 runtime with `ERR_UNKNOWN_FILE_EXTENSION` for `.ts`; therefore the explicit `--experimental-strip-types` flag is required in this environment.
+Initial repair result: **11 passed, 0 failed, 0 skipped**. After the follow-up duration/boundary hardening below, the current local rerun is **13 passed, 0 failed, 0 skipped**. Node emitted its expected experimental TypeScript type-stripping warning. The unflagged `node --test ...` command was also tried and fails on this Node 22.16 runtime with `ERR_UNKNOWN_FILE_EXTENSION` for `.ts`; therefore the explicit `--experimental-strip-types` flag is required in this environment.
 
 ## Reference calculation
 
@@ -45,6 +45,20 @@ Input: fare 165 EGP; passenger distance 22 km; pickup and return distance 0 km; 
 
 Floating-point monetary assertions use a 0.01 EGP tolerance in the Node harness.
 
+## Follow-up hardening — sub-minute duration overflow
+
+A fresh adversarial execution found a defect not covered by the original suite: a positive but sub-minute duration such as `Number.MIN_VALUE` passed validation, made `hourlyProfit` become `Infinity`, and could still produce `accept`. This is a confirmed defect, not a hypothetical edge case.
+
+The calculator now rejects durations below one minute and uses a safe zero-minute fallback for invalid sub-minute values during arithmetic. This prevents the invalid duration from creating an infinite hourly-profit result. Regression coverage was added to both the Node and Vitest suites for zero, 0.5, and `Number.MIN_VALUE` durations. Boundary tests also verify that exact minimum-profit/hourly-target thresholds are inclusive, one cent below minimum is rejected, and a just-below hourly target is reviewed.
+
+Fresh Node command:
+
+```bash
+node --experimental-strip-types --test tests/calculator.node.test.mjs
+```
+
+Result: **13 passed, 0 failed, 0 skipped** (exit code 0).
+
 ## Other executed checks
 
 - TypeScript strict check:
@@ -58,12 +72,14 @@ Floating-point monetary assertions use a 0.01 EGP tolerance in the Node harness.
 
 ## Vitest and application build
 
+- The repository defines `npm test` as `vitest run` and declares Vitest `^2.1.8` in `devDependencies`.
+- No `package-lock.json`, `npm-shrinkwrap.json`, `pnpm-lock.yaml`, or `yarn.lock` exists on the review branch, so there is no lockfile-based reproducible install command to use.
 - `npm test` was attempted and exited 127: `vitest: not found`.
-- `npm install --no-save --package-lock=false --ignore-scripts vitest@2.1.8 vite@6.0.5 @vitejs/plugin-react@4.3.4 typescript@5.7.2` was attempted but timed out; no dependencies or lockfile were committed.
-- Vitest suite: **NOT RUN** because dependencies could not be installed in this environment.
-- `npm run build` was attempted but could not complete: the isolated recovery checkout does not contain `tsconfig.json` or the rest of the application source tree (`src/main.tsx`, Vite entry/config dependencies). The repository's `tsconfig.json` was independently confirmed to exist on the review branch; this is a local checkout completeness limitation, not a passing build.
-- Full application build: **NOT VERIFIED**.
+- A non-mutating registry availability check, `npm view vitest@2.1.8 version --fetch-retries=0 --fetch-timeout=10000`, failed with `EAI_AGAIN` resolving `registry.npmjs.org`. A dependency install retry also failed with the same DNS error. No dependencies or lockfile were changed.
+- Vitest suite: **NOT RUN**; dependency acquisition is blocked by DNS/network failure.
+- `npm run build` was attempted in the available local recovery snapshot and exited 1 with `TS5083` because that snapshot omits `tsconfig.json`. GitHub's review-branch tree confirms `tsconfig.json`, `src/App.tsx`, `src/main.tsx`, and `vite.config.ts` exist remotely, so this local failure is a checkout-completeness limitation and not a verified application build failure.
+- The full production build remains **NOT VERIFIED** because the local checkout is incomplete and dependencies cannot be downloaded.
 
 ## Remaining limitations
 
-Vitest and the full Vite application build still require a complete repository checkout and installable npm dependencies. The Node.js harness and strict TypeScript check for the calculator/types modules passed. GitHub Actions and the deployment provider must be checked against the new pushed commit after publication.
+Vitest and the full Vite production build remain unverified. The available local snapshot is not a complete checkout of the remote review branch; the GitHub API was used to independently inspect the actual branch tree and confirm the app entry points/configuration exist. Direct Git transport also fails in this environment because `github.com` DNS resolution fails. The Node.js harness and strict TypeScript check for calculator/types passed locally. GitHub Actions and the deployment provider must be checked against the final pushed commit after publication.

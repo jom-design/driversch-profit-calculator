@@ -48,6 +48,21 @@ describe('calculateTrip', () => {
       expect(Object.values(result).filter(value => typeof value === 'number').every(Number.isFinite)).toBe(true)
     }
   })
+  it('rejects sub-minute durations without non-finite calculated values', () => {
+    for (const duration of [0, 0.5, Number.MIN_VALUE]) {
+      const result = calculate({ totalMinutes: duration })
+      expect(result.isValid).toBe(false)
+      expect(result.decision).toBe('review')
+      expect(result.validationErrors.length).toBeGreaterThan(0)
+      expect(Object.values(result).filter(value => typeof value === 'number').every(Number.isFinite)).toBe(true)
+    }
+  })
+  it('treats exact minimum-profit and hourly-target boundaries as inclusive', () => {
+    const settings = { ...DEFAULT_SETTINGS, minNetProfit: 50, hourlyTarget: 50 }
+    expect(calculateTrip({ ...EMPTY_TRIP, fare: 153.95, totalMinutes: 60 }, settings).decision).toBe('accept')
+    expect(calculateTrip({ ...EMPTY_TRIP, fare: 153.94, totalMinutes: 60 }, settings).decision).toBe('reject')
+    expect(calculateTrip({ ...EMPTY_TRIP, fare: 153.95, totalMinutes: 60.01 }, settings).decision).toBe('review')
+  })
   it('converts gross fare and calculates required gross fare', () => {
     const result = calculate({ fare: 200, fareMode: 'gross', commissionRate: 20 })
     expect(result.netFare).toBe(160)

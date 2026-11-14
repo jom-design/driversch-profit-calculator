@@ -33,7 +33,7 @@ function validate(input: TripInput, settings: Settings): string[] {
     if (!finite(value)) errors.push(`${label}: أدخل رقمًا صالحًا.`)
     else if (value < 0) errors.push(`${label}: لا يمكن أن تكون القيمة سالبة.`)
   }
-  if (finite(input.totalMinutes) && input.totalMinutes <= 0) errors.push('أدخل وقتًا أكبر من صفر قبل إصدار قرار موثوق.')
+  if (finite(input.totalMinutes) && input.totalMinutes < 1) errors.push('مدة الرحلة يجب ألا تقل عن دقيقة واحدة.')
   if (finite(input.totalMinutes) && input.totalMinutes > 24 * 60) errors.push('مدة الرحلة تتجاوز 24 ساعة؛ راجع الإدخال.')
   if (finite(input.fare) && input.fare > 1_000_000) errors.push('الأجرة تتجاوز الحد المعقول للتحقق؛ راجع الإدخال.')
   if (finite(input.extraExpenses) && input.extraExpenses > 1_000_000) errors.push('المصروفات الإضافية تتجاوز الحد المعقول للتحقق؛ راجع الإدخال.')
@@ -60,7 +60,9 @@ export function calculateTrip(input: TripInput, settings: Settings): Calculation
   const pickupKm = validNumber(trip.pickupKm, 1000)
   const passengerKm = validNumber(trip.passengerKm, 1000)
   const returnKm = validNumber(trip.returnKm, 1000)
-  const totalMinutes = validNumber(trip.totalMinutes, 24 * 60)
+  const suppliedMinutes = validNumber(trip.totalMinutes, 24 * 60)
+  // Sub-minute values can inflate hourly profit to Infinity; use a safe fallback after validation.
+  const totalMinutes = suppliedMinutes >= 1 ? suppliedMinutes : 0
   const fare = validNumber(trip.fare)
   const extraExpenses = validNumber(trip.extraExpenses)
   const fuelPrice = validNumber(config.fuelPrice, 1000)
