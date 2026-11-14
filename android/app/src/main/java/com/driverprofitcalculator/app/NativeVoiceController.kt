@@ -26,8 +26,16 @@ class NativeVoiceController(
     private var tts: TextToSpeech? = TextToSpeech(activity.applicationContext, this)
     private var ttsReady = false
     private var pendingSpeech: String? = null
+    @Volatile private var languageTag: String = "ar-EG"
 
-    fun startListening() {
+    fun setLanguage(tag: String) {
+        val normalized = if (tag.startsWith("en", true)) "en-US" else "ar-EG"
+        languageTag = normalized
+        main.post { tts?.setLanguage(Locale.forLanguageTag(normalized)) }
+    }
+
+    fun startListening(tag: String = languageTag) {
+        setLanguage(tag)
         main.post {
             if (!SpeechRecognizer.isRecognitionAvailable(activity)) {
                 emit("error", "recognition-unavailable")
@@ -72,7 +80,7 @@ class NativeVoiceController(
             })
             val request = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE, NativeVoiceTextPolicy.LANGUAGE_TAG)
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, languageTag)
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, NativeVoiceTextPolicy.LANGUAGE_TAG)
                 putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
                 putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
@@ -127,7 +135,7 @@ class NativeVoiceController(
     override fun onInit(status: Int) {
         main.post {
             if (status != TextToSpeech.SUCCESS) { emit("speak-error", "tts-unavailable"); return@post }
-            val languageResult = tts?.setLanguage(Locale("ar", "EG")) ?: TextToSpeech.ERROR
+            val languageResult = tts?.setLanguage(Locale.forLanguageTag(languageTag)) ?: TextToSpeech.ERROR
             ttsReady = languageResult != TextToSpeech.LANG_MISSING_DATA &&
                 languageResult != TextToSpeech.LANG_NOT_SUPPORTED && languageResult != TextToSpeech.ERROR
             if (!ttsReady) { emit("speak-error", "arabic-tts-unavailable"); return@post }
