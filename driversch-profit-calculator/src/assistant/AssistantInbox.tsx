@@ -10,6 +10,7 @@ import { acceptNativeNotification, type NativeNotificationPayload } from './noti
 import './assistant-inbox.css'
 
 interface Props {
+  locale: 'ar' | 'en'
   items: InboxItem[]
   onChange: (items: InboxItem[]) => void | Promise<boolean>
   onTransfer: (item: InboxItem) => void
@@ -28,13 +29,13 @@ const fieldLabels: Record<'fare' | 'distanceKm' | 'pickupDistanceKm' | 'duration
 }
 const formatValue = (field: keyof typeof fieldLabels, value: number | null) => {
   if (value === null) return 'غير متوفر'
-  if (field === 'fare') return `${value.toLocaleString('ar-EG')} جنيه`
-  if (field === 'durationMinutes') return `${value.toLocaleString('ar-EG')} دقيقة`
-  return `${value.toLocaleString('ar-EG')} كم`
+  if (field === 'fare') return `${value.toLocaleString(locale==='ar'?'ar-EG':'en-EG')} جنيه`
+  if (field === 'durationMinutes') return `${value.toLocaleString(locale==='ar'?'ar-EG':'en-EG')} دقيقة`
+  return `${value.toLocaleString(locale==='ar'?'ar-EG':'en-EG')} كم`
 }
 const newId = () => globalThis.crypto?.randomUUID?.() ?? `offer-${Date.now()}-${Math.random().toString(36).slice(2)}`
 
-export default function AssistantInbox({ items, onChange, onTransfer }: Props) {
+export default function AssistantInbox({ items, onChange, onTransfer, locale }: Props) {
   const [sourceText, setSourceText] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [error, setError] = useState('')
@@ -153,7 +154,7 @@ export default function AssistantInbox({ items, onChange, onTransfer }: Props) {
             onClick={() => { setSelectedId(item.id); setError('') }}>
             <span className="inbox-row-top"><strong>{providerLabels[item.draft.provider]}</strong><span className={`inbox-status status-${item.status}`}>{statusLabels[item.status]}</span></span>
             <span>{formatValue('fare', item.draft.fields.fare.value)} · {formatValue('distanceKm', item.draft.fields.distanceKm.value)}</span>
-            <small>{new Date(item.createdAt).toLocaleString('ar-EG')}</small>
+            <small>{new Date(item.createdAt).toLocaleString(locale==='ar'?'ar-EG':'en-EG')}</small>
           </button>)}
       </div>
 
@@ -183,7 +184,7 @@ export default function AssistantInbox({ items, onChange, onTransfer }: Props) {
             </div>
             <div className="inbox-source"><strong>مصدر البيانات</strong><span>{selected.draft.source === 'notification' ? 'إشعار مستلم من جسر Android' : selected.draft.source === 'screenshot' ? 'صورة شاشة' : 'إدخال أو لصق يدوي'}</span>
               {selected.draft.sourceAppPackage && <span>معرّف التطبيق: {selected.draft.sourceAppPackage}</span>}
-              {selected.draft.sourceTimestamp && <span>وقت الإشعار: {new Date(selected.draft.sourceTimestamp).toLocaleString('ar-EG')}</span>}
+              {selected.draft.sourceTimestamp && <span>وقت الإشعار: {new Date(selected.draft.sourceTimestamp).toLocaleString(locale==='ar'?'ar-EG':'en-EG')}</span>}
               <details><summary>عرض النص الأصلي للمراجعة</summary><pre>{selected.draft.rawText}</pre></details>
             </div>
             {selected.draft.warnings.map((warning, index) => <p className="inbox-warning" key={index}><ShieldAlert size={15}/>{warning}</p>)}
