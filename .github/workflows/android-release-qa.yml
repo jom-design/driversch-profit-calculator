@@ -89,6 +89,18 @@ jobs:
       ANDROID_RELEASE_CONFIGURED: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_KEYSTORE_PASSWORD != '' && secrets.ANDROID_KEY_ALIAS != '' && secrets.ANDROID_KEY_PASSWORD != '' }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: driversch-profit-calculator/package-lock.json
+      - name: Build the exact web app assets for this commit
+        working-directory: driversch-profit-calculator
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+          mkdir -p ../android/app/src/main/assets
+          cp -R dist/. ../android/app/src/main/assets/
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -96,10 +108,7 @@ jobs:
       - uses: android-actions/setup-android@v3
         with:
           cmdline-tools-version: 12266719
-          packages: |
-            platform-tools
-            platforms;android-35
-            build-tools;35.0.0
+          packages: "platform-tools"
       - name: Install required Android SDK packages
         run: |
           yes | sdkmanager --licenses >/dev/null
