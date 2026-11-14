@@ -318,3 +318,10 @@ html[data-theme="light"] .negative{color:#b4233a!important}
 html[data-theme="light"] .required-fare{background:#f0f5fb;border-color:#d1deec;color:#203752}
 html[data-theme="light"] .required-fare span{color:#526780}
 html[data-theme="light"] .formula-note{color:#526780}
+
+html[data-theme="light"] .upload-zone{background:#f4f8fd;border-color:#b9cee3;color:#175b91}
+html[data-theme="light"] .upload-zone strong{color:#174e7a}
+html[data-theme="light"] .upload-zone span{color:#526780}
+html[data-theme="light"] .upload-zone svg{color:#1675b8}
+html[data-theme="light"] .progress-wrap{background:#edf4fb;border-color:#d2dfec;color:#24415f}
+html[data-theme="light"] .progress-wrap>span{color:#425a74}
