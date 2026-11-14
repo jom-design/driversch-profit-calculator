@@ -4,6 +4,14 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class NativeVoiceTextPolicyTest {
+    @Test fun appLocaleSelectsArabicOrEnglishSpeechRecognition() {
+        assertEquals("ar-EG", NativeVoiceLocalePolicy.normalize("ar"))
+        assertEquals("ar-EG", NativeVoiceLocalePolicy.normalize("ar-EG"))
+        assertEquals("en-US", NativeVoiceLocalePolicy.normalize("en"))
+        assertEquals("en-US", NativeVoiceLocalePolicy.normalize("en-GB"))
+        assertEquals("ar-EG", NativeVoiceLocalePolicy.normalize("unsupported"))
+    }
+
     @Test fun recognitionUsesEgyptianArabicLocale() {
         assertEquals("ar-EG", NativeVoiceTextPolicy.LANGUAGE_TAG)
     }
