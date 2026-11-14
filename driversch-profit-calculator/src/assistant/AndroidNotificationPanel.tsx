@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { BellRing, ExternalLink, RefreshCw, ShieldCheck } from 'lucide-react'
 import type { NativeNotificationPayload } from './notificationBridge'
 import './android-notification-panel.css'
+import { t, type TranslationKey } from '../lib/i18n'
 
 interface NativeBridge {
   getStatusJson: () => string
@@ -54,7 +55,8 @@ export default function AndroidNotificationPanel({ onImport, locale }: Props) {
   const bridge = typeof window === 'undefined' ? undefined : window.DriverAndroid
   const [status, setStatus] = useState<Status | null>(null)
   const [pendingCount, setPendingCount] = useState(0)
-  const [message, setMessage] = useState('')
+  const [message, setMessage] = useState<TranslationKey | ''>('')
+  const [importedCount, setImportedCount] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
 
   const refresh = useCallback(() => {
@@ -66,7 +68,7 @@ export default function AndroidNotificationPanel({ onImport, locale }: Props) {
       setPendingCount(Array.isArray(pending) ? pending.filter(isPayload).length : 0)
       setMessage('')
     } catch {
-      setMessage('تعذر قراءة حالة خدمة Android. أغلق التطبيق وافتحه مرة أخرى.')
+      setMessage('تعذر قراءة حالة خدمة Android. أغلق التطبيق وافتحه مرة أخرى.' as TranslationKey)
     }
   }, [bridge])
 
@@ -74,7 +76,7 @@ export default function AndroidNotificationPanel({ onImport, locale }: Props) {
 
   const toggleProvider = (id: string, enabled: boolean) => {
     if (!bridge?.setProviderEnabled(id, enabled)) {
-      setMessage('تعذر حفظ إعداد التطبيق على هذا الجهاز.')
+      setMessage('تعذر حفظ إعداد التطبيق على هذا الجهاز.' as TranslationKey)
       return
     }
     refresh()
@@ -88,39 +90,40 @@ export default function AndroidNotificationPanel({ onImport, locale }: Props) {
       const raw = JSON.parse(bridge.getPendingNotificationsJson()) as unknown
       const payloads = Array.isArray(raw) ? raw.filter(isPayload) : []
       if (payloads.length === 0) {
-        setMessage('لا توجد إشعارات رحلات جديدة في انتظار الاستيراد.')
+        setMessage('لا توجد إشعارات رحلات جديدة في انتظار الاستيراد.' as TranslationKey)
         return
       }
       const saved = await onImport(payloads)
       if (!saved) {
-        setMessage('لم يتم تأكيد الحفظ المحلي؛ ستظل الإشعارات في قائمة الانتظار لإعادة المحاولة.')
+        setMessage('لم يتم تأكيد الحفظ المحلي؛ ستظل الإشعارات في قائمة الانتظار لإعادة المحاولة.' as TranslationKey)
         return
       }
       let acknowledged = 0
       for (const payload of payloads) {
         if (bridge.acknowledgeNotification(payload.notificationId)) acknowledged += 1
       }
-      setMessage('تم استيراد ' + acknowledged.toLocaleString(locale==='ar'?'ar-EG':'en-EG') + ' إشعار إلى صندوق المراجعة.')
+      setImportedCount(acknowledged)
+      setMessage('تم استيراد إشعارات' as TranslationKey)
       refresh()
     } catch {
-      setMessage('تعذر استيراد الإشعارات. لم يتم حذف قائمة الانتظار الأصلية.')
+      setMessage('تعذر استيراد الإشعارات. لم يتم حذف قائمة الانتظار الأصلية.' as TranslationKey)
     } finally {
       setBusy(false)
     }
   }
 
   if (!bridge) return <section className="android-capture-panel">
-    <div className="android-capture-heading"><BellRing/><div><strong>التقاط إشعارات Android</strong><p>الميزة متاحة داخل تطبيق Android الأصلي فقط. نسخة المتصفح لا تستطيع قراءة إشعارات التطبيقات الأخرى.</p></div></div>
-    <p className="android-capture-note">يمكنك الاستمرار في لصق نص العرض أو رفع Screenshot من هنا.</p>
+    <div className="android-capture-heading"><BellRing/><div><strong>{t('التقاط إشعارات Android', locale)}</strong><p>{t('الميزة متاحة داخل تطبيق Android الأصلي فقط. نسخة المتصفح لا تستطيع قراءة إشعارات التطبيقات الأخرى.', locale)}</p></div></div>
+    <p className="android-capture-note">{t('يمكنك الاستمرار في لصق نص العرض أو رفع Screenshot من هنا.', locale)}</p>
   </section>
 
   return <section className="android-capture-panel" aria-labelledby="android-capture-title">
-    <div className="android-capture-heading"><ShieldCheck/><div><strong id="android-capture-title">ربط إشعارات الرحلات</strong><p>لا تتم قراءة أي تطبيق إلا بعد تفعيله ومنح إذن Android صراحةً.</p></div></div>
+    <div className="android-capture-heading"><ShieldCheck/><div><strong id="android-capture-title">{t('ربط إشعارات الرحلات', locale)}</strong><p>{t('لا تتم قراءة أي تطبيق إلا بعد تفعيله ومنح إذن Android صراحةً.', locale)}</p></div></div>
     <div className="android-capture-status">
       <span className={status?.hasNotificationAccess && status.serviceConnected ? 'is-connected' : 'is-disconnected'}>
-        {status?.hasNotificationAccess ? (status.serviceConnected ? 'خدمة قراءة الإشعارات متصلة' : 'الإذن مفعّل والخدمة غير متصلة بعد') : 'إذن قراءة الإشعارات غير مفعّل'}
+        {status?.hasNotificationAccess ? (status.serviceConnected ? t('خدمة قراءة الإشعارات متصلة', locale) : t('الإذن مفعّل والخدمة غير متصلة بعد', locale)) : t('إذن قراءة الإشعارات غير مفعّل', locale)}
       </span>
-      <button type="button" className="subtle-btn" onClick={refresh}><RefreshCw size={15}/> تحديث الحالة</button>
+      <button type="button" className="subtle-btn" onClick={refresh}><RefreshCw size={15}/> {t('تحديث الحالة', locale)}</button>
     </div>
     <div className="android-provider-list">
       {providers.map(provider => <label key={provider.id} className="android-provider">
@@ -131,14 +134,14 @@ export default function AndroidNotificationPanel({ onImport, locale }: Props) {
     </div>
     <div className="android-capture-actions">
       <button type="button" className="subtle-btn" onClick={() => bridge.openNotificationAccessSettings()}>
-        <ExternalLink size={15}/> فتح إعدادات إذن الإشعارات
+        <ExternalLink size={15}/> {t('فتح إعدادات إذن الإشعارات', locale)}
       </button>
       <button type="button" className="primary-btn" disabled={busy || !status?.hasNotificationAccess || !status?.queueHealthy}
-        onClick={importPending}><BellRing size={15}/> {busy ? 'جارٍ الاستيراد…' : 'استيراد الإشعارات (' + pendingCount + ')'}</button>
+        onClick={importPending}><BellRing size={15}/> {busy ? t('جارٍ الاستيراد…', locale) : `${t('استيراد الإشعارات', locale)} (${pendingCount})`}</button>
     </div>
-    {!status?.queueHealthy && <p className="android-capture-message" role="alert">تعذر فك تشفير قائمة الإشعارات المحلية. تم إيقاف الاستيراد لحماية البيانات؛ لا تحذف بيانات التطبيق قبل تصدير ما يلزم.</p>}
-    {status?.lastReceivedAt && <small>آخر إشعار مؤهل: {new Date(status.lastReceivedAt).toLocaleString(locale==='ar'?'ar-EG':'en-EG')}</small>}
-    <p className="android-capture-note">الإشعارات المؤهلة تُحفظ مؤقتًا مشفّرة على الجهاز، ثم تُحذف من قائمة الانتظار بعد نجاح حفظها في IndexedDB. لا يوجد إرسال إلى خادم.</p>
-    {message && <p className="android-capture-message" role="status">{message}</p>}
+    {!status?.queueHealthy && <p className="android-capture-message" role="alert">{t('تعذر فك تشفير قائمة الإشعارات المحلية. تم إيقاف الاستيراد لحماية البيانات؛ لا تحذف بيانات التطبيق قبل تصدير ما يلزم.', locale)}</p>}
+    {status?.lastReceivedAt && <small>{t('آخر إشعار مؤهل:', locale)} {new Date(status.lastReceivedAt).toLocaleString(locale==='ar'?'ar-EG':'en-EG')}</small>}
+    <p className="android-capture-note">{t('الإشعارات المؤهلة تُحفظ مؤقتًا مشفّرة على الجهاز، ثم تُحذف من قائمة الانتظار بعد نجاح حفظها في IndexedDB. لا يوجد إرسال إلى خادم.', locale)}</p>
+    {message && <p className="android-capture-message" role="status">{message === 'تم استيراد إشعارات' ? `${t(message, locale)} ${importedCount?.toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-EG') ?? 0} ${t('إشعار إلى صندوق المراجعة', locale)}` : t(message, locale)}</p>}
   </section>
 }
