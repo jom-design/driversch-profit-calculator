@@ -22,7 +22,10 @@ export function acceptNativeNotification(
   seenNotificationIds: Set<string>,
   now = new Date()
 ): InboxItem | null {
-  if (!payload.notificationId || !payload.packageName || !payload.text.trim()) return null
+  if (!payload || typeof payload.notificationId !== 'string' || !payload.notificationId.trim() ||
+      typeof payload.packageName !== 'string' || !payload.packageName.trim() ||
+      typeof payload.text !== 'string' || !payload.text.trim() ||
+      typeof payload.postedAt !== 'string') return null
   if (seenNotificationIds.has(payload.notificationId)) return null
   const postedAt = new Date(payload.postedAt)
   if (!Number.isFinite(postedAt.getTime())) return null
