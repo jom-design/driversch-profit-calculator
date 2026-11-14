@@ -69,16 +69,14 @@ const NUMBER = '([0-9]+(?:[.,][0-9]{1,3})?)'
 
 function farePatterns(provider: RideProvider): Pattern[] {
   if (provider === 'indrive') return [
-    { regex: new RegExp('(?:القبول\\s*مقابل|قبول\\s*مقابل)\\s*' + MONEY + '\\s*(?:EGP|جنيه|ج\\.م)?', 'i'), group: 1, confidence: 0.96 },
-    { regex: new RegExp('(?:offer|your offer|المبلغ المقترح)\\s*[:：]?\\s*' + MONEY, 'i'), group: 1, confidence: 0.72 }
+    { regex: new RegExp('(?:القبول\\\\s*مقابل|قبول\\\\s*مقابل)\\\\s*' + MONEY + '\\\\s*(?:EGP|جنيه|ج\\\\.م)?', 'i'), group: 1, confidence: 0.96 },
+    { regex: new RegExp('(?:offer|your offer|المبلغ المقترح)\\\\s*[:：]?\\\\s*' + MONEY, 'i'), group: 1, confidence: 0.72 }
   ]
   if (provider === 'uber') return [
-    { regex: new RegExp('(?:صافي\\s*رسوم\\s*الخدمة|المبلغ المستحق|fare)\\s*[:：]?\\s*(?:EGP\\s*)?' + MONEY, 'i'), group: 1, confidence: 0.94 },
-    { regex: new RegExp(MONEY + '\\s*(?:EGP|جنيه|ج\\.م)', 'i'), group: 1, confidence: 0.68 }
+    { regex: new RegExp('(?:صافي\\\\s*رسوم\\\\s*الخدمة|المبلغ المستحق|fare)\\\\s*[:：]?\\\\s*(?:EGP\\\\s*)?' + MONEY, 'i'), group: 1, confidence: 0.94 }
   ]
   return [
-    { regex: new RegExp('(?:الأجرة|السعر|المبلغ|fare|trip price)\\s*[:：]?\\s*(?:EGP\\s*)?' + MONEY, 'i'), group: 1, confidence: provider === 'didi' ? 0.78 : 0.55 },
-    { regex: new RegExp(MONEY + '\\s*(?:EGP|جنيه|ج\\.م)', 'i'), group: 1, confidence: 0.58 }
+    { regex: new RegExp('(?:الأجرة|السعر|المبلغ|fare|trip price)\\\\s*[:：]?\\\\s*(?:EGP\\\\s*)?' + MONEY, 'i'), group: 1, confidence: provider === 'didi' ? 0.78 : 0.55 }
   ]
 }
 
