@@ -64,6 +64,9 @@ test('financial decision and OCR interpolations translate without losing numbers
   assert.equal(translateText('صافي الربح أقل من الحد الأدنى 50.00 ج.م.', 'en'), 'Net profit is below the minimum target of EGP 50.00.')
   assert.equal(translateText('ثقة OCR: 87%', 'en'), 'OCR confidence: 87%')
   assert.equal(translateText('جاري قراءة الصورة 42%', 'en'), 'Reading image 42%')
+  assert.equal(translateText('القيمة fuelPrice في الإعدادات ليست رقمًا صحيحًا', 'en'), 'Setting value fuelPrice is not a valid number.')
+  assert.equal(translateText('عمولة Uber في الإعدادات ليست نسبة صحيحة من 0 إلى 100', 'en'), 'Uber commission in settings must be between 0 and 100.')
+  assert.equal(translateText('بيانات الرحلة رقم 2 تالفة أو نتائجها المالية لا تطابق مدخلاتها؛ لم يتم استيراد أي بيانات.', 'en'), 'Trip #2 is corrupted or its financial results do not match its inputs; no data was imported.')
 })
 
 test('unknown user content and mixed platform names remain unchanged', () => {
