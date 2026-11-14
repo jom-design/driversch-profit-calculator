@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Driver Profit Calculator</string>
+    <string name="notification_listener_label">Read ride offer notifications with driver permission</string>
+</resources>
