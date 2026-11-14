@@ -42,3 +42,44 @@ export function dismissInboxItem(item: InboxItem, now = new Date()): InboxItem {
   if (item.status === 'confirmed' || item.status === 'dismissed') return item
   return { ...item, status: 'dismissed', updatedAt: now.toISOString() }
 }
+
+export function updateInboxDraft(
+  item: InboxItem,
+  draft: RideOfferDraft,
+  now = new Date()
+): InboxItem {
+  if (item.status === 'confirmed' || item.status === 'rejected' || item.status === 'dismissed') return item
+  return { ...item, draft, status: 'needs-review', updatedAt: now.toISOString() }
+}
+
+export function rejectInboxItem(item: InboxItem, now = new Date()): InboxItem {
+  if (item.status === 'confirmed' || item.status === 'rejected' || item.status === 'dismissed') return item
+  return { ...item, status: 'rejected', updatedAt: now.toISOString() }
+}
+
+export function markInboxParseError(
+  id: string,
+  source: RideOfferDraft['source'],
+  rawText: string,
+  now = new Date()
+): InboxItem {
+  const empty = (value: number | null) => ({
+    value, confidence: 0, evidence: [], status: value === null ? 'missing' as const : 'needs-review' as const
+  })
+  const draft: RideOfferDraft = {
+    provider: 'unknown', providerConfidence: 0, source, rawText,
+    fields: {
+      fare: empty(null), distanceKm: empty(null), durationMinutes: empty(null),
+      pickupDistanceKm: empty(null), currency: { value: null, confidence: 0, evidence: [], status: 'missing' }
+    },
+    warnings: ['تعذر تحليل العرض؛ أدخل البيانات يدويًا أو احذف العنصر.'],
+    createdAt: now.toISOString()
+  }
+  return { id, status: 'parse-error', draft, createdAt: now.toISOString(), updatedAt: now.toISOString() }
+}
+
+export function hasRequiredReviewData(item: InboxItem): boolean {
+  return (['fare', 'distanceKm', 'durationMinutes'] as const).every(
+    field => item.draft.fields[field].value !== null
+  )
+}
