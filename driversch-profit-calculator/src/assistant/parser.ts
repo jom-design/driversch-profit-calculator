@@ -4,6 +4,7 @@ interface Pattern {
   regex: RegExp
   group: number
   confidence: number
+  scale?: number
 }
 
 const PROVIDERS: Array<{ provider: RideProvider; regex: RegExp }> = [
@@ -50,7 +51,8 @@ function extract<T>(text: string, patterns: Pattern[], convert: (raw: string) =>
     const match = pattern.regex.exec(text)
     const raw = match?.[pattern.group]
     if (match && raw !== undefined) {
-      const value = convert(raw)
+      const converted = convert(raw)
+      const value = converted === null ? null : (typeof converted === 'number' && pattern.scale ? converted * pattern.scale : converted)
       if (value !== null) {
         const start = match.index
         const end = start + match[0].length
