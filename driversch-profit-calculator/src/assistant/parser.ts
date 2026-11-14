@@ -96,22 +96,13 @@ export function parseRideOffer(input: {
   const rawText = normalizeRideText(input.text)
   const detected = providerFrom(rawText)
   const distance = extract(rawText, [
-    { regex: new RegExp(NUMBER + '\\s*(?:كم|كيلومتر|km)\\b?', 'i'), group: 1, confidence: 0.82 },
-    { regex: new RegExp(NUMBER + '\\s*(?:متر|m)\\b?', 'i'), group: 1, confidence: 0.72 }
-  ], raw => {
-    const value = parseNumber(raw)
-    if (value === null) return null
-    return /متر|\bm\b/i.test(rawText.slice(0, rawText.indexOf(raw) + raw.length)) ? value / 1000 : value
-  })
+    { regex: new RegExp(NUMBER + '\\s*(?:كم|كيلومتر|km)(?=\\s|$|[،,])', 'i'), group: 1, confidence: 0.82 },
+    { regex: new RegExp(NUMBER + '\\s*(?:متر|m)(?=\\s|$|[،,])', 'i'), group: 1, confidence: 0.72, scale: 0.001 }
+  ], parseNumber)
   const duration = extract(rawText, [
-    { regex: new RegExp(NUMBER + '\\s*(?:دقيقة|دقائق|min|mins)\\b?', 'i'), group: 1, confidence: 0.86 },
-    { regex: new RegExp(NUMBER + '\\s*(?:ساعة|ساعات|hr|hours)\\b?', 'i'), group: 1, confidence: 0.84 }
-  ], raw => {
-    const value = parseNumber(raw)
-    if (value === null) return null
-    const match = rawText.match(new RegExp(NUMBER + '\\s*(?:ساعة|ساعات|hr|hours)\\b?', 'i'))
-    return match ? Math.round(value * 60) : Math.round(value)
-  })
+    { regex: new RegExp(NUMBER + '\\s*(?:دقيقة|دقائق|min|mins)(?=\\s|$|[،,])', 'i'), group: 1, confidence: 0.86 },
+    { regex: new RegExp(NUMBER + '\\s*(?:ساعة|ساعات|hr|hours)(?=\\s|$|[،,])', 'i'), group: 1, confidence: 0.84, scale: 60 }
+  ], raw => { const value = parseNumber(raw); return value === null ? null : Math.round(value) })
   const fare = extract(rawText, farePatterns(detected.provider), parseNumber)
   const warnings: string[] = []
   if (detected.provider === 'unknown') warnings.push('لم يتم تحديد تطبيق النقل بشكل مؤكد؛ راجع المصدر يدويًا.')
