@@ -51,3 +51,18 @@ test('does not treat an unlabeled Uber fee as the driver fare', () => {
   const draft = parseRideOffer({ text: 'Uber\n165 جنيه رسوم توصيل\n22 كم\n40 دقيقة' })
   assert.equal(draft.fields.fare.value, null)
 })
+
+test('does not confuse two unlabeled distances with pickup and passenger distance', () => {
+  const draft = parseRideOffer({ text: 'inDrive\nالقبول مقابل 150 جنيه\n4 كم\n22 كم\n40 دقيقة' })
+  assert.equal(draft.fields.distanceKm.value, null)
+  assert.equal(draft.fields.pickupDistanceKm.value, null)
+  assert.ok(draft.warnings.some(message => message.includes('لم يتم تخمين')))
+})
+
+test('extracts explicitly labeled pickup and passenger distances separately', () => {
+  const draft = parseRideOffer({ text: 'inDrive\nالقبول مقابل 150 جنيه\nمسافة الوصول: 4 كم\nمسافة الرحلة: 22 كم\n40 دقيقة' })
+  assert.equal(draft.fields.pickupDistanceKm.value, 4)
+  assert.equal(draft.fields.distanceKm.value, 22)
+  assert.equal(draft.fields.pickupDistanceKm.confidence, 0.96)
+  assert.equal(draft.fields.distanceKm.confidence, 0.96)
+})
