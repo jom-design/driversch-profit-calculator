@@ -64,7 +64,6 @@ try {
         page.on('pageerror', error => pageErrors.push(vp.name + '/' + locale + '/' + theme + ': ' + error.message))
         page.on('dialog', dialog => { void dialog.accept() })
         await page.goto(baseUrl, { waitUntil: 'networkidle' })
-        await page.addScriptTag({ path: axePath })
 
         if (locale === 'en') {
           await page.locator('.utility-btn').first().click()
@@ -81,6 +80,7 @@ try {
 
         // Reload proves both preferences survive a fresh document lifecycle.
         await page.reload({ waitUntil: 'networkidle' })
+        await page.addScriptTag({ path: axePath })
         check(`${vp.name}/${locale}/${theme}: locale and theme persist after reload`,
           await page.evaluate(() => ({ lang: document.documentElement.lang, dir: document.documentElement.dir, theme: document.documentElement.dataset.theme }))
             .then(state => state.lang === locale && state.dir === expectedDir && state.theme === theme))
