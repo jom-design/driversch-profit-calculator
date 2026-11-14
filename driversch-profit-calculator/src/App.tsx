@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { applyLocale, translateText, type AppLocale } from './lib/i18n'
+import { applyLocale, t, translateText, type AppLocale } from './lib/i18n'
 import { Activity, Archive, Calculator, CarFront, Check, ChevronDown, Download, FileImage, Gauge, History, LayoutDashboard, Mic, MicOff, RotateCcw, Save, Settings as SettingsIcon, ShieldCheck, Trash2, Upload, Wallet, X } from 'lucide-react'
 import { calculateTrip } from './lib/calculator'
 import NumericInput from './components/NumericInput'
@@ -177,7 +177,7 @@ export default function App() {
     const csv=[headers,...rows].map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n')
     downloadFile('\ufeff'+csv,'driver-trips.csv','text/csv;charset=utf-8')
   }
-  const decisionLabel={accept:'اقبل الرحلة',review:'راجع الرحلة',reject:'ارفض الرحلة'}
+  const decisionLabel={accept:t('اقبل الرحلة',locale),review:t('راجع الرحلة',locale),reject:t('ارفض الرحلة',locale)}
   const decisionClass={accept:'good',review:'warn',reject:'bad'}
   const savedProfit=trips.reduce((s,t)=>s+t.netProfit,0)
   // Voice commands only navigate or report. They never accept, reject, move or delete a trip.
