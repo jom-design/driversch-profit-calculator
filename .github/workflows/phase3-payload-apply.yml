@@ -1,0 +1,36 @@
+name: Apply Phase 3 source payload
+
+on:
+  push:
+    branches:
+      - feat/full-driver-assistant-20261114
+    paths:
+      - ".phase3-payload/**"
+      - ".github/workflows/phase3-payload-apply.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  apply-source-payload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+      - name: Reconstruct and apply source files
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(find .phase3-payload -maxdepth 1 -type f -name 'part-*' | wc -l)" -eq 35
+          cat .phase3-payload/part-* > "$RUNNER_TEMP/phase3-payload.tar.gz"
+          tar -tzf "$RUNNER_TEMP/phase3-payload.tar.gz" >/dev/null
+          tar -xzf "$RUNNER_TEMP/phase3-payload.tar.gz" -C .
+          rm -rf .phase3-payload
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat(android): apply verified notification offer analysis"
+          git push origin "HEAD:$GITHUB_REF_NAME"
