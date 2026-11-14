@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { applyLocale, type AppLocale } from './lib/i18n'
+import { applyLocale, translateText, type AppLocale } from './lib/i18n'
 import { Activity, Archive, Calculator, CarFront, Check, ChevronDown, Download, FileImage, Gauge, History, LayoutDashboard, Mic, MicOff, RotateCcw, Save, Settings as SettingsIcon, ShieldCheck, Trash2, Upload, Wallet, X } from 'lucide-react'
 import { calculateTrip } from './lib/calculator'
 import NumericInput from './components/NumericInput'
@@ -17,7 +17,7 @@ import { readTripImage, type OcrDraft } from './lib/ocr'
 import { DEFAULT_SETTINGS, EMPTY_TRIP, type AppName, type FareMode, type SavedTrip, type Settings, type TripInput } from './types'
 
 type Page = 'calculator' | 'assistant' | 'inbox' | 'history' | 'reports' | 'settings'
-const money = (n: number) => `${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ج.م`
+const money = (n: number, locale: AppLocale = 'ar') => `${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${locale === 'ar' ? 'ج.م' : 'EGP'}`
 const templates: {name:string; desc:string; trip:TripInput}[] = [
   { name:'المثال المرجعي', desc:'22 كم — 165 جنيه — 40 دقيقة', trip:{...EMPTY_TRIP} },
   { name:'مشوار قصير وسط البلد', desc:'5 كم — 70 جنيه', trip:{...EMPTY_TRIP, fare:70, passengerKm:5, totalMinutes:20} },
@@ -52,6 +52,7 @@ export default function App() {
   const [toast,setToast]=useState('')
   const [speaking,setSpeaking]=useState(false)
   const result=useMemo(()=>calculateTrip(trip,settings),[trip,settings])
+  const moneyText=(value:number)=>money(value,locale)
   useEffect(()=>{applyLocale(document.getElementById('root')??document.body,locale);try{localStorage.setItem('driver.locale',locale)}catch{}},[locale])
   useEffect(()=>{document.documentElement.dataset.theme=theme;document.querySelector('meta[name="theme-color"]')?.setAttribute('content',theme==='light'?'#f3f7fc':'#080e20');try{localStorage.setItem('driver.theme',theme)}catch{}},[theme])
   useEffect(()=>{const bridge=(window as Window & {DriverAndroid?:{setVoiceLanguage?:(tag:string)=>boolean}}).DriverAndroid;bridge?.setVoiceLanguage?.(locale==='ar'?'ar-EG':'en-US')},[locale])
@@ -143,11 +144,14 @@ export default function App() {
       setSpeaking(false)
       return
     }
-    const text=result.decision==='accept'? `اقبل الرحلة. صافي الربح ${result.netProfit.toFixed(2)} جنيه`:
-      result.decision==='review'? `راجع الرحلة. ${result.decisionReason}`:`ارفض الرحلة. صافي الربح ${result.netProfit.toFixed(2)} جنيه`
+    const decision=locale==='ar'?decisionLabel[result.decision]:translateText(decisionLabel[result.decision], 'en')
+    const reason=locale==='ar'?result.decisionReason:translateText(result.decisionReason,'en')
+    const text=locale==='ar'?
+      (result.decision==='accept'?`اقبل الرحلة. صافي الربح ${moneyText(result.netProfit)}`:result.decision==='review'?`راجع الرحلة. ${reason}`:`ارفض الرحلة. صافي الربح ${moneyText(result.netProfit)}`):
+      (result.decision==='accept'?`Accept the trip. Net profit ${moneyText(result.netProfit)}`:result.decision==='review'?`Review the trip. ${reason}`:`Reject the trip. Net profit ${moneyText(result.netProfit)}`)
     if(nativeVoice){nativeVoice.speakText(text);setSpeaking(true);return}
     if(!('speechSynthesis'in window)){setToast('ميزة الصوت غير مدعومة في هذا الجهاز');return}
-    const utter=new SpeechSynthesisUtterance(text);utter.lang='ar-EG';utter.onend=()=>setSpeaking(false);speechSynthesis.speak(utter);setSpeaking(true)
+    const utter=new SpeechSynthesisUtterance(text);utter.lang=locale==='ar'?'ar-EG':'en-US';utter.onend=()=>setSpeaking(false);speechSynthesis.speak(utter);setSpeaking(true)
   }
   const exportBackup=async()=>{
     const payload={schemaVersion:1,exportedAt:new Date().toISOString(),settings,trips}
@@ -161,14 +165,14 @@ export default function App() {
     const checked=normalizeBackup(data,DEFAULT_SETTINGS)
     if(!checked.ok){setToast(checked.reason);return}
     const {settings:nextSettings,trips:nextTrips,skippedTrips}=checked.value
-    if(!confirm(`سيتم استيراد ${nextTrips.length} رحلة واستبدال السجل الحالي. هل تريد المتابعة؟`))return
+    if(!confirm(locale==='ar'?`سيتم استيراد ${nextTrips.length} رحلة واستبدال السجل الحالي. هل تريد المتابعة؟`:`${nextTrips.length} trips will be imported and the current history replaced. Continue?`))return
     try{
       await replaceAllData(nextTrips,nextSettings);setTrips(await getTrips());setSettings(await getSettings())
       setToast(skippedTrips?`تم استيراد النسخة. تم تجاهل ${skippedTrips} رحلة تالفة`:'تم استيراد النسخة الاحتياطية')
     }catch{setToast('تعذر حفظ النسخة الاحتياطية على هذا الجهاز')}
   }
   const exportCsv=()=>{
-    const headers=['التاريخ','التطبيق','الأجرة المدخلة','صافي الأجرة','المسافة كم','الوقت دقيقة','التكلفة','صافي الربح','ربح الساعة','القرار']
+    const headers=locale==='ar'?['التاريخ','التطبيق','الأجرة المدخلة','صافي الأجرة','المسافة كم','الوقت دقيقة','التكلفة','صافي الربح','ربح الساعة','القرار']:['Date','Platform','Entered fare','Net fare','Distance km','Time minutes','Cost','Net profit','Hourly profit','Decision']
     const rows=trips.map(t=>[t.createdAt,t.app,t.fare,t.netFare,t.totalKm,t.totalMinutes,t.totalCost,t.netProfit,t.hourlyProfit,t.decision])
     const csv=[headers,...rows].map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n')
     downloadFile('\ufeff'+csv,'driver-trips.csv','text/csv;charset=utf-8')
@@ -181,13 +185,13 @@ export default function App() {
     switch(intent){
       case 'calculate':
         setPage('calculator')
-        setToast(`${decisionLabel[result.decision]} · صافي الربح ${money(result.netProfit)}`)
+        setToast(`${decisionLabel[result.decision]} · صافي الربح ${moneyText(result.netProfit)}`)
         break
       case 'last-trip': {
         if(trips.length===0){setToast('لا توجد رحلات محفوظة بعد');break}
         const last=[...trips].sort((a,b)=>b.createdAt.localeCompare(a.createdAt))[0]
         setPage('history')
-        setToast(`آخر رحلة: ${decisionLabel[last.decision]} · صافي الربح ${money(last.netProfit)}`)
+        setToast(`آخر رحلة: ${decisionLabel[last.decision]} · صافي الربح ${moneyText(last.netProfit)}`)
         break
       }
       case 'open-inbox':
@@ -245,16 +249,16 @@ export default function App() {
         </section>
         <section className="panel result-panel"><div className="panel-head"><div><span className="eyebrow">التحليل المالي</span><h2><Activity/> قرار الرحلة النهائي</h2></div><button className="icon-btn" onClick={speak} title="نطق القرار">{speaking?<MicOff/>:<Mic/>}</button></div>
           <div className={`decision ${decisionClass[result.decision]}`}><div className="decision-mark">{result.decision==='accept'?'✓':result.decision==='review'?'!':'×'}</div><div><strong>{decisionLabel[result.decision]}</strong><p>{result.decisionReason}</p></div></div>
-          <div className="profit-highlight"><small>{trip.fareMode==='unknown'?'ربح تقديري — أكد نوع الأجرة أولًا':'صافي ربحك المتوقع'}</small><strong className={result.netProfit>=0?'positive':'negative'}>{money(result.netProfit)}</strong><span>بعد الوقود والصيانة والمصروفات</span></div>
+          <div className="profit-highlight"><small>{trip.fareMode==='unknown'?'ربح تقديري — أكد نوع الأجرة أولًا':'صافي ربحك المتوقع'}</small><strong className={result.netProfit>=0?'positive':'negative'}>{moneyText(result.netProfit)}</strong><span>بعد الوقود والصيانة والمصروفات</span></div>
           <div className="metric-grid">
             <Metric label="إجمالي المسافة" value={`${result.totalKm.toFixed(2)} كم`}/>
-            <Metric label="تكلفة الوقود" value={money(result.fuelCost)}/>
-            <Metric label="الصيانة والإهلاك" value={money(result.maintenanceCost)}/>
-            <Metric label="إجمالي تكلفة التشغيل" value={money(result.totalCost)}/>
-            <Metric label="صافي الأجرة" value={money(result.netFare)}/>
-            <Metric label="الربح في الساعة" value={money(result.hourlyProfit)}/>
+            <Metric label="تكلفة الوقود" value={moneyText(result.fuelCost)}/>
+            <Metric label="الصيانة والإهلاك" value={moneyText(result.maintenanceCost)}/>
+            <Metric label="إجمالي تكلفة التشغيل" value={moneyText(result.totalCost)}/>
+            <Metric label="صافي الأجرة" value={moneyText(result.netFare)}/>
+            <Metric label="الربح في الساعة" value={moneyText(result.hourlyProfit)}/>
           </div>
-          <div className="required-fare"><div><span>الحد الأدنى للأجرة المطلوبة</span><strong>{money(result.requiredFare)}</strong></div><div><span>الفرق عن الأجرة الحالية</span><strong className={result.fareGap<=0?'positive':'negative'}>{result.fareGap<=0?'+'+money(Math.abs(result.fareGap)):'-'+money(result.fareGap)}</strong></div></div>
+          <div className="required-fare"><div><span>الحد الأدنى للأجرة المطلوبة</span><strong>{moneyText(result.requiredFare)}</strong></div><div><span>الفرق عن الأجرة الحالية</span><strong className={result.fareGap<=0?'positive':'negative'}>{result.fareGap<=0?'+'+moneyText(Math.abs(result.fareGap)):'-'+moneyText(result.fareGap)}</strong></div></div>
           <p className="formula-note">{trip.fareMode==='unknown'?'الأرقام المعروضة تقديرية مؤقتًا بافتراض أن الأجرة صافية؛ لا تعتمد القرار ولا تحفظ الرحلة قبل تحديد نوع الأجرة.':'الحساب يفترض أن كل المسافات المدخلة فعلية، وأن الأجرة الصافية لا تُخصم منها عمولة مرة ثانية.'}</p>
         </section></div>
       </>}
@@ -281,11 +285,11 @@ export default function App() {
       {page==='inbox'&&!inboxReady&&<section className="panel" role="status">جارٍ استعادة صندوق الرحلات المحفوظ على هذا الجهاز…</section>}
       {page==='inbox'&&inboxReady&&<AssistantInbox items={inbox} onChange={commitInbox} onTransfer={transferConfirmedOffer} locale={locale}/>}
       {page==='history'&&<section className="panel"><div className="panel-head"><div><span className="eyebrow">بيانات محفوظة على جهازك</span><h2><History/> سجل الرحلات</h2></div><button className="subtle-btn" onClick={exportCsv}><Download size={16}/> تصدير CSV</button></div>
-        {trips.length===0?<Empty title="لسه مفيش رحلات محفوظة" text="احسب أول مشوار واحفظه علشان يظهر هنا."/>:<div className="table-wrap"><table><thead><tr><th>التاريخ</th><th>التطبيق</th><th>الأجرة</th><th>المسافة</th><th>صافي الربح</th><th>القرار</th><th></th></tr></thead><tbody>{trips.map(t=><tr key={t.id}><td>{new Date(t.createdAt).toLocaleString(locale==='ar'?'ar-EG':'en-EG')}</td><td>{t.app}</td><td>{money(t.fare)}</td><td>{t.totalKm.toFixed(1)} كم</td><td className={t.netProfit>=0?'positive':'negative'}>{money(t.netProfit)}</td><td><span className={`pill ${decisionClass[t.decision]}`}>{decisionLabel[t.decision]}</span></td><td><button className="danger-icon" onClick={()=>removeTrip(t.id)} title="حذف"><Trash2 size={16}/></button></td></tr>)}</tbody></table></div>}
+        {trips.length===0?<Empty title="لسه مفيش رحلات محفوظة" text="احسب أول مشوار واحفظه علشان يظهر هنا."/>:<div className="table-wrap"><table><thead><tr><th>التاريخ</th><th>التطبيق</th><th>الأجرة</th><th>المسافة</th><th>صافي الربح</th><th>القرار</th><th></th></tr></thead><tbody>{trips.map(t=><tr key={t.id}><td>{new Date(t.createdAt).toLocaleString(locale==='ar'?'ar-EG':'en-EG')}</td><td>{t.app}</td><td>{moneyText(t.fare)}</td><td>{t.totalKm.toFixed(1)} كم</td><td className={t.netProfit>=0?'positive':'negative'}>{moneyText(t.netProfit)}</td><td><span className={`pill ${decisionClass[t.decision]}`}>{decisionLabel[t.decision]}</span></td><td><button className="danger-icon" onClick={()=>removeTrip(t.id)} title="حذف"><Trash2 size={16}/></button></td></tr>)}</tbody></table></div>}
       </section>}
       {page==='reports'&&<section className="panel"><div className="panel-head"><div><span className="eyebrow">ملخص السجل المحفوظ</span><h2><LayoutDashboard/> التقارير والإحصائيات</h2></div></div>
-        <div className="report-grid"><Metric label="عدد الرحلات" value={String(trips.length)}/><Metric label="إجمالي الأجرة الصافية" value={money(trips.reduce((s,t)=>s+t.netFare,0))}/><Metric label="إجمالي التشغيل" value={money(trips.reduce((s,t)=>s+t.totalCost,0))}/><Metric label="صافي الربح" value={money(savedProfit)}/><Metric label="إجمالي المسافات" value={`${trips.reduce((s,t)=>s+t.totalKm,0).toFixed(1)} كم`}/><Metric label="إجمالي الوقت" value={`${trips.reduce((s,t)=>s+t.totalMinutes,0)} دقيقة`}/></div>
-        <div className="section-head"><h3>مقارنة حسب التطبيق</h3></div><div className="table-wrap"><table><thead><tr><th>التطبيق</th><th>عدد الرحلات</th><th>صافي الربح</th><th>متوسط الربح</th></tr></thead><tbody>{(['Uber','DiDi','inDrive','أخرى'] as AppName[]).map(a=>{const list=trips.filter(t=>t.app===a);const sum=list.reduce((s,t)=>s+t.netProfit,0);return <tr key={a}><td>{a}</td><td>{list.length}</td><td>{money(sum)}</td><td>{money(list.length?sum/list.length:0)}</td></tr>})}</tbody></table></div>
+        <div className="report-grid"><Metric label="عدد الرحلات" value={String(trips.length)}/><Metric label="إجمالي الأجرة الصافية" value={moneyText(trips.reduce((s,t)=>s+t.netFare,0))}/><Metric label="إجمالي التشغيل" value={moneyText(trips.reduce((s,t)=>s+t.totalCost,0))}/><Metric label="صافي الربح" value={moneyText(savedProfit)}/><Metric label="إجمالي المسافات" value={`${trips.reduce((s,t)=>s+t.totalKm,0).toFixed(1)} كم`}/><Metric label="إجمالي الوقت" value={`${trips.reduce((s,t)=>s+t.totalMinutes,0)} دقيقة`}/></div>
+        <div className="section-head"><h3>مقارنة حسب التطبيق</h3></div><div className="table-wrap"><table><thead><tr><th>التطبيق</th><th>عدد الرحلات</th><th>صافي الربح</th><th>متوسط الربح</th></tr></thead><tbody>{(['Uber','DiDi','inDrive','أخرى'] as AppName[]).map(a=>{const list=trips.filter(t=>t.app===a);const sum=list.reduce((s,t)=>s+t.netProfit,0);return <tr key={a}><td>{a}</td><td>{list.length}</td><td>{moneyText(sum)}</td><td>{moneyText(list.length?sum/list.length:0)}</td></tr>})}</tbody></table></div>
       </section>}
       {page==='settings'&&<section className="panel"><div className="panel-head"><div><span className="eyebrow">تحكم في افتراضات الحساب</span><h2><SettingsIcon/> الإعدادات</h2></div><button className="primary-btn" onClick={persistSettings}><Save size={16}/> حفظ الإعدادات</button></div>
         <div className="field-grid settings-grid">
