@@ -320,14 +320,13 @@ export const AR_TO_EN = {
 } as const
 export type TranslationKey = keyof typeof AR_TO_EN
 
-/** Typed translation lookup for application code; raw user/source text uses translateText instead. */
+/** Typed translation lookup for React-owned UI copy. Raw user/source text must never be passed here. */
 export function t(key: TranslationKey, locale: AppLocale): string {
   return locale === 'ar' ? key : AR_TO_EN[key]
 }
 const EN_TO_AR: Readonly<Record<string,string>> = Object.fromEntries(
   Object.entries(AR_TO_EN).map(([ar,en]) => [en,ar])
 )
-const ATTRIBUTES = ['placeholder','title','aria-label'] as const
 const INTERPOLATED: Array<[RegExp,(match:RegExpMatchArray)=>string]> = [
   [/^تم استيراد (\d+) إشعار إلى صندوق المراجعة\.$/, m => `Imported ${m[1]} notifications into the review inbox.`],
   [/^استيراد الإشعارات \((\d+)\)$/, m => `Import notifications (${m[1]})`],
@@ -353,7 +352,7 @@ const INTERPOLATED: Array<[RegExp,(match:RegExpMatchArray)=>string]> = [
   [/^عمولة (.+)$/, m => `${m[1]} commission`],
   [/^بيانات الرحلة رقم (\d+) تالفة أو نتائجها المالية لا تطابق مدخلاتها؛ لم يتم استيراد أي بيانات\.$/, m => `Trip #${m[1]} is corrupted or its financial results do not match its inputs; no data was imported.`],
 ]
-export function translateText(value:string, locale:AppLocale):string {
+export function translateMessage(value:string, locale:AppLocale):string {
   const trimmed=value.trim()
   const table: Readonly<Record<string,string>>=locale==='en'?AR_TO_EN:EN_TO_AR
   const direct=table[trimmed]
@@ -365,32 +364,4 @@ export function translateText(value:string, locale:AppLocale):string {
     }
   }
   return value
-}
-export function applyLocale(root:ParentNode,locale:AppLocale):void {
-  const html=document.documentElement
-  html.lang=locale
-  html.dir=locale==='ar'?'rtl':'ltr'
-  html.dataset.locale=locale
-  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT)
-  const nodes:Text[]=[]
-  while(walker.nextNode()) nodes.push(walker.currentNode as Text)
-  for(const node of nodes) {
-    const parent=node.parentElement
-    if(!parent||parent.closest('script,style,textarea,input,pre,code,[contenteditable="true"],[data-user-content="true"]')) continue
-    const next=translateText(node.nodeValue??'',locale)
-    if(next!==node.nodeValue) node.nodeValue=next
-  }
-  if(root instanceof Element) {
-    for(const element of [root,...Array.from(root.querySelectorAll('*'))]) {
-      for(const name of ATTRIBUTES) {
-        const current=element.getAttribute(name)
-        if(current) {
-          const next=translateText(current,locale)
-          if(next!==current) element.setAttribute(name,next)
-        }
-      }
-    }
-  }
-  document.title=locale==='ar'?'حاسبة عدالة المشاوير':'Driver Profit Calculator'
-  document.querySelector('meta[name="description"]')?.setAttribute('content',locale==='ar'?'حاسبة مجانية لمساعدة سائقي تطبيقات النقل على حساب صافي ربح الرحلات.':'A free calculator that helps ride-hailing drivers estimate trip costs and net profit.')
 }
