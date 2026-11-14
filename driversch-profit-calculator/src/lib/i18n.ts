@@ -1,52 +1,241 @@
 export type AppLocale = 'ar' | 'en'
 
-const arToEn: Record<string,string> = {
-'حاسبة عدالة المشاوير':'Driver Profit Calculator','مجاني 100%':'100% Free','حفظ محلي':'Saved locally',
-'حاسبة المشوار':'Trip Calculator','المساعد الذكي':'Smart Assistant','الرحلات الملتقطة':'Captured Trips','سجل الرحلات':'Trip History','التقارير':'Reports','الإعدادات':'Settings',
-'قرار أذكى • ربح أوضح':'Smarter decisions • Clearer profit','احسبها قبل ما تقبل المشوار':'Calculate before accepting a trip','اعرف تكلفة الرحلة وصافي ربحك الحقيقي في ثوانٍ.':'Know your trip cost and actual net profit in seconds.','القرار بيتحسب تلقائيًا':'Decision calculated automatically',
-'نماذج جاهزة للاختبار السريع':'Quick test examples','اضغط لملء الحقول':'Select to fill the fields','بيانات العرض':'Offer details','بيانات المشوار المقترح':'Proposed trip details','تفريغ الحقول':'Clear fields',
-'الأجرة المعروضة':'Displayed fare','نوع الأجرة':'Fare type','صافي للسائق':'Net to driver','إجمالي قبل العمولة':'Gross before commission','غير متأكد':'Not sure','نسبة عمولة التطبيق':'Platform commission rate',
-'مسافة الوصول للراكب':'Pickup distance','مسافة الرحلة بالراكب':'Passenger trip distance','العودة الفارغة':'Empty return distance','الوقت الإجمالي':'Total time','مصروفات إضافية':'Extra expenses','ملاحظات اختيارية':'Optional notes',
-'أي تفاصيل تساعدك في مراجعة الرحلة...':'Add details to help review this trip...','حدد نوع الأجرة قبل حفظ الرحلة. لن نفترض أن المبلغ صافي أو نخصم عمولة تلقائيًا.':'Choose the fare type before saving. We will not assume it is net or deduct commission automatically.','حفظ الرحلة في السجل':'Save trip to history',
-'التحليل المالي':'Financial analysis','قرار الرحلة النهائي':'Trip decision','نطق القرار':'Speak decision','اقبل الرحلة':'Accept trip','راجع الرحلة':'Review trip','ارفض الرحلة':'Reject trip',
-'ربح تقديري — أكد نوع الأجرة أولًا':'Estimated profit — confirm fare type first','صافي ربحك المتوقع':'Your estimated net profit','بعد الوقود والصيانة والمصروفات':'After fuel, maintenance and expenses',
-'بيانات محفوظة على جهازك':'Data saved on your device','تصدير CSV':'Export CSV','لسه مفيش رحلات محفوظة':'No saved trips yet','احسب أول مشوار واحفظه علشان يظهر هنا.':'Calculate and save your first trip to see it here.',
-'التاريخ':'Date','التطبيق':'Platform','الأجرة':'Fare','المسافة':'Distance','صافي الربح':'Net profit','القرار':'Decision','حذف':'Delete',
-'ملخص السجل المحفوظ':'Saved history summary','التقارير والإحصائيات':'Reports & statistics','عدد الرحلات':'Trip count','إجمالي الأجرة الصافية':'Total net fare','إجمالي التشغيل':'Total operating cost','إجمالي المسافات':'Total distance','إجمالي الوقت':'Total time','مقارنة حسب التطبيق':'Platform comparison','متوسط الربح':'Average profit',
-'تحكم في افتراضات الحساب':'Calculation assumptions','حفظ الإعدادات':'Save settings','سعر لتر البنزين':'Fuel price per liter','استهلاك السيارة لكل 100 كم':'Vehicle consumption per 100 km','الصيانة والإهلاك لكل كم':'Maintenance and depreciation per km','الحد الأدنى لصافي الرحلة':'Minimum net profit per trip','هدف الربح في الساعة':'Hourly profit target',
-'عمولة التطبيقات (اختيارية)':'Platform commissions (optional)','كل تطبيق له نسبته المستقلة. القيمة 0% افتراضية حتى تُدخل نسبتك، وتُستخدم عند اختيار أجرة إجمالية':'Each platform has its own rate. Default is 0% until entered; used when gross fare is selected.',
-'تصدير نسخة احتياطية':'Export backup','استيراد نسخة احتياطية':'Import backup','استعادة الافتراضي':'Restore defaults','البيانات محفوظة محليًا في هذا المتصفح باستخدام IndexedDB. مسح بيانات المتصفح قد يؤدي إلى حذفها؛ صدّر نسخة احتياطية بانتظام.':'Data is stored locally in this browser using IndexedDB. Clearing browser data may delete it; export backups regularly.',
-'جارٍ استعادة صندوق الرحلات المحفوظ على هذا الجهاز…':'Restoring the trip inbox saved on this device…','إعادة محاولة الحفظ':'Retry saving',
-'أمر صوتي':'Voice command','إيقاف الاستماع':'Stop listening','جارٍ الاستماع… تكلم الآن':'Listening… speak now','نفّذ الأمر':'Run command','تجاهل':'Dismiss','سمعت:':'Heard:','الأمر:':'Command:',
-'التقاط إشعارات Android':'Capture Android notifications','ربط إشعارات الرحلات':'Connect trip notifications','تحديث الحالة':'Refresh status','فتح إعدادات إذن الإشعارات':'Open notification access settings',
-'تأكيد العرض بعد المراجعة':'Confirm offer after review','نقل العرض المؤكد للحاسبة':'Transfer confirmed offer to calculator','المثال المرجعي':'Reference example','مشوار قصير وسط البلد':'Short city trip','مشوار أطراف القاهرة':'Outer-district trip','مشوار خاسر':'Unprofitable trip',
-'ج.م':'EGP','كم':'km','دقيقة':'min'
+/**
+ * UI-only translations. Notification bodies, OCR source text, transcripts and user-entered
+ * notes are intentionally not translated: they are user/source content, not interface copy.
+ */
+export const AR_TO_EN: Readonly<Record<string, string>> = {
+  "العربية": "Arabic",
+  "التبديل إلى العربية": "Switch to Arabic",
+  "التبديل للوضع الداكن": "Switch to dark mode",
+  "الوضع الداكن": "Dark mode",
+  "الوضع الفاتح": "Light mode",
+  "إدخال أو لصق يدوي": "Enter or paste manually",
+  "صورة شاشة": "Screenshot",
+  "اختر Screenshot من جهازك": "Choose a screenshot from your device",
+  "PNG أو JPG — يفضل لقطة شاشة أصلية وليست صورة بالكاميرا": "PNG or JPG — an original screenshot is recommended",
+  "الصق نص إشعار أو تفاصيل العرض أولًا.": "Paste a notification or offer details first.",
+  "الصق نص العرض هنا… مثال: inDrive — القبول مقابل 165 جنيه — 22 كم — 40 دقيقة": "Paste the offer text here… e.g. inDrive — accept for EGP 165 — 22 km — 40 min",
+  "مراجعة قبل الحساب": "Review before calculating",
+  "حدد هل الأجرة صافية أم إجمالية أولًا": "Choose whether the fare is net or gross first",
+  "الأرقام المعروضة تقديرية مؤقتًا بافتراض أن الأجرة صافية؛ لا تعتمد القرار ولا تحفظ الرحلة قبل تحديد نوع الأجرة.": "Figures are temporarily estimated as if the fare were net. Do not rely on the decision or save the trip until you choose the fare type.",
+  "الحساب يفترض أن كل المسافات المدخلة فعلية، وأن الأجرة الصافية لا تُخصم منها عمولة مرة ثانية.": "The calculation assumes all entered distances are actual and that a net fare is not charged commission again.",
+  "الحد الأدنى للأجرة المطلوبة": "Minimum required fare",
+  "الفرق عن الأجرة الحالية": "Difference from current fare",
+  "مصدر البيانات": "Data source",
+  "الثقة:": "Confidence:",
+  "لا يوجد دليل مستخرج": "No evidence extracted",
+  "غير محدد — اختر يدويًا": "Not specified — choose manually",
+  "مراجعة بيانات الرحلة قبل الحفظ": "Review trip details before saving",
+  "راجع بيانات الرحلة قبل الحفظ": "Review trip details before saving",
+  "راجع العرض": "Review offer",
+  "راجع رحلة": "Review trip",
+  "أكد العرض بعد مراجعته قبل نقله للحاسبة.": "Confirm the offer after reviewing it before transferring it to the calculator.",
+  "تم الإدخال أو التصحيح يدويًا": "Entered or corrected manually",
+  "تم استيراد النسخة الاحتياطية": "Backup imported",
+  "تم حفظ الإعدادات محليًا": "Settings saved locally",
+  "تم حفظ الرحلة على جهازك": "Trip saved on your device",
+  "تعذر حفظ النسخة الاحتياطية على هذا الجهاز": "Could not save the backup on this device",
+  "ملف النسخة الاحتياطية غير صالح أو غير متوافق": "Backup file is invalid or incompatible",
+  "إعادة الإعدادات الافتراضية؟": "Restore default settings?",
+  "هل تريد رفض هذا العرض؟ سيظل ظاهرًا في العناصر المرفوضة.": "Reject this offer? It will remain visible in rejected items.",
+  "حذف العرض من صندوق الوارد؟ لا يمكن التراجع عن الحذف.": "Delete this inbox offer? This cannot be undone.",
+  "لا يمكن التأكيد قبل إدخال الأجرة والمسافة والمدة ومراجعتها.": "You cannot confirm until fare, distance, and duration are entered and reviewed.",
+  "لا يمكن نقل عرض غير مؤكد أو ناقص البيانات": "An unconfirmed offer or one with missing data cannot be transferred",
+  "انتظر استعادة صندوق الرحلات قبل إضافة العرض.": "Wait for the trip inbox to finish restoring before adding an offer.",
+  "انتظر استعادة صندوق الرحلات قبل معالجة صورة جديدة.": "Wait for the trip inbox to finish restoring before processing another image.",
+  "تمت إضافة الصورة لصندوق المراجعة. راجع كل الحقول وأكدها قبل الحساب.": "The image was added to the review inbox. Check every field and confirm before calculating.",
+  "انتهت قراءة الصورة؛ راجع البيانات قبل اعتمادها": "Image reading is complete; review the data before accepting it",
+  "تعذر تحليل النص. يمكنك إدخال البيانات يدويًا.": "Could not parse the text. You can enter the details manually.",
+  "تعذرت قراءة الصورة؛ أضف البيانات يدويًا في عنصر الخطأ داخل صندوق المراجعة.": "Could not read the image. Enter the details manually in the error item in the review inbox.",
+  "لا توجد رحلات محفوظة بعد": "No trips saved yet",
+  "لسه مفيش رحلات محفوظة": "No saved trips yet",
+  "احسب أول مشوار واحفظه علشان يظهر هنا.": "Calculate and save your first trip to see it here.",
+  "مفيش عروض غير مؤكدة": "No unconfirmed offers",
+  "قائمة العروض": "Offers list",
+  "عدد العروض": "Offer count",
+  "قدرات المتصفح الحالية": "Current browser capabilities",
+  "غير متوفر": "Unavailable",
+  "غير مدعوم": "Not supported",
+  "مدعوم": "Supported",
+  "واجهة API متاحة بعد الإذن": "API available after permission is granted",
+  "التقاط إشعارات Android": "Capture Android notifications",
+  "الميزة متاحة داخل تطبيق Android الأصلي فقط. نسخة المتصفح لا تستطيع قراءة إشعارات التطبيقات الأخرى.": "This feature is available only in the native Android app. The browser cannot read notifications from other apps.",
+  "يمكنك الاستمرار في لصق نص العرض أو رفع Screenshot من هنا.": "You can still paste offer text or upload a screenshot here.",
+  "ربط إشعارات الرحلات": "Connect trip notifications",
+  "لا تتم قراءة أي تطبيق إلا بعد تفعيله ومنح إذن Android صراحةً.": "No app is read unless you enable it and explicitly grant Android permission.",
+  "خدمة قراءة الإشعارات متصلة": "Notification access service connected",
+  "الإذن مفعّل والخدمة غير متصلة بعد": "Permission is enabled; service is not connected yet",
+  "إذن قراءة الإشعارات غير مفعّل": "Notification access is not enabled",
+  "تحديث الحالة": "Refresh status",
+  "فتح إعدادات إذن الإشعارات": "Open notification access settings",
+  "لا توجد إشعارات رحلات جديدة في انتظار الاستيراد.": "There are no new trip notifications waiting to be imported.",
+  "تعذر استيراد الإشعارات. لم يتم حذف قائمة الانتظار الأصلية.": "Could not import notifications. The original queue was not deleted.",
+  "لم يتم تأكيد الحفظ المحلي؛ ستظل الإشعارات في قائمة الانتظار لإعادة المحاولة.": "Local saving was not confirmed. Notifications remain queued for retry.",
+  "تعذر فك تشفير قائمة الإشعارات المحلية. تم إيقاف الاستيراد لحماية البيانات؛ لا تحذف بيانات التطبيق قبل تصدير ما يلزم.": "Could not decrypt the local notification queue. Import was stopped to protect your data; export anything needed before clearing app data.",
+  "الإشعارات المؤهلة تُحفظ مؤقتًا مشفّرة على الجهاز، ثم تُحذف من قائمة الانتظار بعد نجاح حفظها في IndexedDB. لا يوجد إرسال إلى خادم.": "Eligible notifications are temporarily encrypted on the device, then removed from the queue after they are saved to IndexedDB. Nothing is sent to a server.",
+  "تعذر قراءة حالة خدمة Android. أغلق التطبيق وافتحه مرة أخرى.": "Could not read Android service status. Close and reopen the app.",
+  "تعذر حفظ إعداد التطبيق على هذا الجهاز.": "Could not save the app setting on this device.",
+  "التعرف على الصوت غير مدعوم في هذا المتصفح. جرّب Chrome أو تطبيق Android.": "Speech recognition is not supported in this browser. Try Chrome or the Android app.",
+  "لم تُمنح صلاحية الميكروفون. فعّلها من إعدادات الجهاز ثم حاول مرة أخرى.": "Microphone permission was not granted. Enable it in device settings and try again.",
+  "ما سمعتش صوت. اضغط الزر وتكلم بعد ما يبدأ الاستماع.": "No speech was heard. Tap the button and speak after listening starts.",
+  "مفيش ميكروفون متاح على الجهاز.": "No microphone is available on this device.",
+  "التعرف على الصوت يحتاج اتصالًا بالإنترنت في هذا المتصفح.": "Speech recognition requires an internet connection in this browser.",
+  "خدمة التعرف على الصوت غير متاحة على هذا الجهاز.": "Speech recognition service is unavailable on this device.",
+  "خدمة التعرف على الصوت مشغولة. حاول بعد لحظة.": "Speech recognition is busy. Try again in a moment.",
+  "خدمة التعرف على الصوت واجهت مشكلة في الشبكة.": "Speech recognition encountered a network problem.",
+  "حصل خطأ في التعرف على الصوت. حاول مرة أخرى.": "Speech recognition failed. Please try again.",
+  "تعذر بدء التعرف الصوتي على Android.": "Could not start Android speech recognition.",
+  "تعذر بدء الاستماع. حاول مرة أخرى.": "Could not start listening. Please try again.",
+  "إيقاف الاستماع": "Stop listening",
+  "أمر صوتي": "Voice command",
+  "جارٍ الاستماع… تكلم الآن": "Listening… speak now",
+  "سمعت:": "Heard:",
+  "الأمر:": "Command:",
+  "نفّذ الأمر": "Run command",
+  "تجاهل": "Dismiss",
+  "جرّب: احسب المشوار، آخر رحلة، صندوق الرحلات، العروض غير المؤكدة، ابدأ مراجعة، إلغاء.": "Try: calculate trip, last trip, trip inbox, unconfirmed offers, start review, cancel.",
+  "التعرف الصوتي الأصلي يبدأ فقط عند ضغطك على الزر. يطلب التطبيق إذن الميكروفون وقت الاستخدام ولا يحفظ التسجيل. يطلب وضع عدم الاتصال من خدمة Android، لكن توفره يعتمد على محرك الجهاز وقد تُعالج الخدمة الصوت خارجيًا.": "Native speech recognition starts only when you tap the button. Microphone permission is requested when needed and audio is not saved. Offline recognition depends on the device engine; audio may be processed externally.",
+  "التعرف يبدأ فقط عند ضغطك على الزر، ولا يعمل في الخلفية. لا يتم حفظ أي تسجيل صوتي داخل التطبيق. في Chrome قد يُرسل الصوت لخدمة التعرف عند جوجل ويحتاج اتصالًا بالإنترنت.": "Recognition starts only when you tap the button and does not run in the background. Audio recordings are not saved in the app. Chrome may send audio to Google's recognition service and requires an internet connection.",
+  "احسب المشوار في الحاسبة": "Calculate trip in calculator",
+  "اعرض آخر رحلة محفوظة": "Show the last saved trip",
+  "افتح صندوق الرحلات الملتقطة": "Open captured trips inbox",
+  "اعرض العروض غير المؤكدة": "Show unconfirmed offers",
+  "ابدأ مراجعة عرض": "Start reviewing an offer",
+  "إلغاء الأمر": "Cancel command",
+  "الأمر غير مفهوم": "Command not understood",
+  "مجانية 100% • بياناتك على جهازك": "Free • Your data stays on your device",
+  "غير محدد": "Not specified",
+  "وصل حديثًا": "Recently received",
+  "تم التحليل": "Parsed",
+  "في انتظار المراجعة": "Awaiting review",
+  "تم التأكيد": "Confirmed",
+  "مرفوض": "Rejected",
+  "محذوف": "Deleted",
+  "تعذر التحليل": "Could not parse",
+  "تم النقل للحاسبة": "Transferred to calculator",
+  "غير متأكد": "Not sure",
+  "صافي": "Net",
+  "إجمالي": "Gross",
+  "صافي الأجرة": "Net fare",
+  "الأجرة المدخلة": "Entered fare",
+  "الأجرة المعروضة": "Displayed fare",
+  "تكلفة الوقود": "Fuel cost",
+  "إجمالي تكلفة التشغيل": "Total operating cost",
+  "إجمالي المسافة": "Total distance",
+  "إجمالي الوقت": "Total time",
+  "عدد الرحلات": "Trip count",
+  "إجمالي الأجرة الصافية": "Total net fare",
+  "إجمالي التشغيل": "Total operating cost",
+  "إجمالي المسافات": "Total distance",
+  "مقارنة حسب التطبيق": "Compare by platform",
+  "متوسط الربح": "Average profit",
+  "سعر لتر البنزين": "Fuel price per liter",
+  "استهلاك السيارة لكل 100 كم": "Vehicle consumption per 100 km",
+  "الصيانة والإهلاك لكل كم": "Maintenance and depreciation per km",
+  "الحد الأدنى لصافي الرحلة": "Minimum net profit per trip",
+  "هدف الربح في الساعة": "Hourly profit target",
+  "عمولة التطبيقات (اختيارية)": "Platform commissions (optional)",
+  "نسبة عمولة التطبيق": "Platform commission rate",
+  "كل تطبيق له نسبته المستقلة. القيمة 0% افتراضية حتى تُدخل نسبتك، وتُستخدم عند اختيار أجرة إجمالية": "Each platform has its own rate. The default is 0% until you enter your rate, and it applies when gross fare is selected.",
+  "تصدير نسخة احتياطية": "Export backup",
+  "استيراد نسخة احتياطية": "Import backup",
+  "استعادة الافتراضي": "Restore defaults",
+  "حفظ الإعدادات": "Save settings",
+  "مسافة الوصول للراكب": "Pickup distance",
+  "مسافة الرحلة بالراكب": "Passenger trip distance",
+  "العودة الفارغة": "Empty return distance",
+  "الوقت الإجمالي": "Total time",
+  "مصروفات إضافية": "Extra expenses",
+  "ملاحظات اختيارية": "Optional notes",
+  "أي تفاصيل تساعدك في مراجعة الرحلة...": "Add details to help review this trip...",
+  "قرار أذكى • ربح أوضح": "Smarter decisions • Clearer profit",
+  "احسبها قبل ما تقبل المشوار": "Calculate before accepting a trip",
+  "اعرف تكلفة الرحلة وصافي ربحك الحقيقي في ثوانٍ.": "Know your trip cost and actual net profit in seconds.",
+  "نماذج جاهزة للاختبار السريع": "Quick test examples",
+  "اضغط لملء الحقول": "Select to fill the fields",
+  "بيانات العرض": "Offer details",
+  "بيانات المشوار المقترح": "Proposed trip details",
+  "تفريغ الحقول": "Clear fields",
+  "التحليل المالي": "Financial analysis",
+  "قرار الرحلة النهائي": "Final trip decision",
+  "نطق القرار": "Speak decision",
+  "اقبل الرحلة": "Accept trip",
+  "راجع الرحلة": "Review trip",
+  "ارفض الرحلة": "Reject trip",
+  "ربح تقديري — أكد نوع الأجرة أولًا": "Estimated profit — confirm fare type first",
+  "صافي ربحك المتوقع": "Estimated net profit",
+  "بعد الوقود والصيانة والمصروفات": "After fuel, maintenance and expenses",
+  "بيانات محفوظة على جهازك": "Data saved on your device",
+  "التاريخ": "Date",
+  "التطبيق": "Platform",
+  "الأجرة": "Fare",
+  "المسافة": "Distance",
+  "صافي الربح": "Net profit",
+  "القرار": "Decision",
+  "حذف": "Delete",
+  "ملخص السجل المحفوظ": "Saved history summary",
+  "التقارير والإحصائيات": "Reports & statistics",
+  "تحكم في افتراضات الحساب": "Calculation assumptions",
+  "البيانات محفوظة محليًا في هذا المتصفح باستخدام IndexedDB. مسح بيانات المتصفح قد يؤدي إلى حذفها؛ صدّر نسخة احتياطية بانتظام.": "Data is stored locally in this browser using IndexedDB. Clearing browser data may delete it; export backups regularly.",
+  "جاري قراءة الصورة": "Reading image",
+  "الصق": "Paste",
+  "رفع صورة": "Upload image",
+  "مراجعة البيانات": "Review data",
+  "تأكيد العرض بعد المراجعة": "Confirm offer after review",
+  "نقل العرض المؤكد للحاسبة": "Transfer confirmed offer to calculator",
 }
-const enToAr = Object.fromEntries(Object.entries(arToEn).map(([ar,en])=>[en,ar])) as Record<string,string>
-const attributes = ['placeholder','title','aria-label']
+const EN_TO_AR: Readonly<Record<string,string>> = Object.fromEntries(
+  Object.entries(AR_TO_EN).map(([ar,en]) => [en,ar])
+)
+const ATTRIBUTES = ['placeholder','title','aria-label'] as const
+const INTERPOLATED: Array<[RegExp,(match:RegExpMatchArray)=>string]> = [
+  [/^تم استيراد (\d+) إشعار إلى صندوق المراجعة\.$/, m => `Imported ${m[1]} notifications into the review inbox.`],
+  [/^استيراد الإشعارات \((\d+)\)$/, m => `Import notifications (${m[1]})`],
+  [/^آخر إشعار مؤهل: (.+)$/, m => `Last eligible notification: ${m[1]}`],
+  [/^عدد العروض (\d+)$/, m => `Offers (${m[1]})`],
+  [/^عندك (\d+) عرض غير مؤكد$/, m => `You have ${m[1]} unconfirmed offers`],
+  [/^عمولة (.+)$/, m => `Commission ${m[1]}`],
+  [/^(.+) كم$/, m => `${m[1]} km`],
+  [/^(.+) دقيقة$/, m => `${m[1]} min`],
+  [/^(.+) جنيه$/, m => `EGP ${m[1]}`],
+  [/^صافي الربح (.+)$/, m => `Net profit ${m[1]}`],
+]
 export function translateText(value:string, locale:AppLocale):string {
   const trimmed=value.trim()
-  const translated=(locale==='en'?arToEn:enToAr)[trimmed]
-  return translated ? value.replace(trimmed,translated) : value
+  const table=locale==='en'?AR_TO_EN:EN_TO_AR
+  const direct=table[trimmed]
+  if(direct) return value.replace(trimmed,direct)
+  if(locale==='en') {
+    for(const [pattern,translate] of INTERPOLATED) {
+      const match=trimmed.match(pattern)
+      if(match) return value.replace(trimmed,translate(match))
+    }
+  }
+  return value
 }
-export function applyLocale(root:ParentNode, locale:AppLocale):void {
+export function applyLocale(root:ParentNode,locale:AppLocale):void {
   const html=document.documentElement
   html.lang=locale
   html.dir=locale==='ar'?'rtl':'ltr'
+  html.dataset.locale=locale
   const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT)
   const nodes:Text[]=[]
   while(walker.nextNode()) nodes.push(walker.currentNode as Text)
-  for(const node of nodes){
+  for(const node of nodes) {
     const parent=node.parentElement
-    if(!parent||parent.closest('script,style,textarea,input,pre,code,[contenteditable="true"]')) continue
+    if(!parent||parent.closest('script,style,textarea,input,pre,code,[contenteditable="true"],[data-user-content="true"]')) continue
     const next=translateText(node.nodeValue??'',locale)
     if(next!==node.nodeValue) node.nodeValue=next
   }
-  if(root instanceof Element){
-    for(const element of [root,...Array.from(root.querySelectorAll('*'))]){
-      for(const name of attributes){
+  if(root instanceof Element) {
+    for(const element of [root,...Array.from(root.querySelectorAll('*'))]) {
+      for(const name of ATTRIBUTES) {
         const current=element.getAttribute(name)
-        if(current){const next=translateText(current,locale);if(next!==current)element.setAttribute(name,next)}
+        if(current) {
+          const next=translateText(current,locale)
+          if(next!==current) element.setAttribute(name,next)
+        }
       }
     }
   }
