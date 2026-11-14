@@ -8,6 +8,7 @@ import AndroidNotificationPanel from './AndroidNotificationPanel'
 import NumericInput from '../components/NumericInput'
 import { acceptNativeNotification, type NativeNotificationPayload } from './notificationBridge'
 import './assistant-inbox.css'
+import { t, type TranslationKey } from '../lib/i18n'
 
 interface Props {
   locale: 'ar' | 'en'
@@ -28,10 +29,10 @@ const fieldLabels: Record<'fare' | 'distanceKm' | 'pickupDistanceKm' | 'duration
   pickupDistanceKm: 'مسافة الوصول للراكب', durationMinutes: 'المدة المتوقعة'
 }
 const formatValue = (field: keyof typeof fieldLabels, value: number | null, locale: 'ar' | 'en') => {
-  if (value === null) return 'غير متوفر'
-  if (field === 'fare') return `${value.toLocaleString(locale==='ar'?'ar-EG':'en-EG')} جنيه`
-  if (field === 'durationMinutes') return `${value.toLocaleString(locale==='ar'?'ar-EG':'en-EG')} دقيقة`
-  return `${value.toLocaleString(locale==='ar'?'ar-EG':'en-EG')} كم`
+  if (value === null) return t('غير متوفر', locale)
+  if (field === 'fare') return `${value.toLocaleString(locale==='ar'?'ar-EG':'en-EG')} ${t('جنيه', locale)}`
+  if (field === 'durationMinutes') return `${value.toLocaleString(locale==='ar'?'ar-EG':'en-EG')} ${t('دقيقة', locale)}`
+  return `${value.toLocaleString(locale==='ar'?'ar-EG':'en-EG')} ${t('كم', locale)}`
 }
 const newId = () => globalThis.crypto?.randomUUID?.() ?? `offer-${Date.now()}-${Math.random().toString(36).slice(2)}`
 
@@ -44,7 +45,7 @@ export default function AssistantInbox({ items, onChange, onTransfer, locale }: 
   const active = items.filter(item => item.status !== 'dismissed' && item.status !== 'rejected' && item.status !== 'transferred')
   const addOffer = () => {
     const text = sourceText.trim()
-    if (!text) { setError('الصق نص إشعار أو تفاصيل العرض أولًا.'); return }
+    if (!text) { setError(t('الصق نص إشعار أو تفاصيل العرض أولًا.', locale)); return }
     try {
       const draft = parseRideOffer({ text, source: 'manual' })
       const now = new Date()
@@ -63,7 +64,7 @@ export default function AssistantInbox({ items, onChange, onTransfer, locale }: 
             fare: emptyField(), distanceKm: emptyField(), durationMinutes: emptyField(),
             pickupDistanceKm: emptyField(), currency: { ...emptyField<'EGP'>(), value: null }
           },
-          warnings: ['تعذر تحليل النص. يمكنك إدخال البيانات يدويًا.'], createdAt: now.toISOString()
+          warnings: [t('تعذر تحليل النص. يمكنك إدخال البيانات يدويًا.', locale)], createdAt: now.toISOString()
         },
         createdAt: now.toISOString(), updatedAt: now.toISOString(), reviewedFields: []
       }
@@ -74,7 +75,7 @@ export default function AssistantInbox({ items, onChange, onTransfer, locale }: 
     onChange(items.map(current => current.id === item.id ? updateInboxDraft(current, draft) : current))
   const setManualField = (item: InboxItem, field: 'fare' | 'distanceKm' | 'pickupDistanceKm' | 'durationMinutes', value: number | null) => {
     if (value !== null && (!Number.isFinite(value) || value < 0)) return
-    const evidence = value === null ? [] : [{ text: 'تم الإدخال أو التصحيح يدويًا', start: 0, end: 0 }]
+    const evidence = value === null ? [] : [{ text: t('تم الإدخال أو التصحيح يدويًا', locale), start: 0, end: 0 }]
     const draft: RideOfferDraft = {
       ...item.draft,
       fields: { ...item.draft.fields, [field]: {
@@ -91,17 +92,17 @@ export default function AssistantInbox({ items, onChange, onTransfer, locale }: 
     onChange(items.map(current => current.id === item.id ? setInboxFieldReviewed(current, field, checked) : current))
   const confirm = (item: InboxItem) => {
     const next = confirmInboxItem(item, item.reviewedFields ?? [])
-    if (next.status !== 'confirmed') { setError('لا يمكن التأكيد قبل إدخال الأجرة والمسافة والمدة ومراجعتها.'); return }
+    if (next.status !== 'confirmed') { setError(t('لا يمكن التأكيد قبل إدخال الأجرة والمسافة والمدة ومراجعتها.', locale)); return }
     onChange(items.map(current => current.id === item.id ? next : current))
     setError('')
   }
   const reject = (item: InboxItem) => {
-    if (!window.confirm('هل تريد رفض هذا العرض؟ سيظل ظاهرًا في العناصر المرفوضة.')) return
+    if (!window.confirm(t('هل تريد رفض هذا العرض؟ سيظل ظاهرًا في العناصر المرفوضة.', locale))) return
     onChange(items.map(current => current.id === item.id ? rejectInboxItem(current) : current))
     setSelectedId(null)
   }
   const remove = (item: InboxItem) => {
-    if (!window.confirm('حذف العرض من صندوق الوارد؟ لا يمكن التراجع عن الحذف.')) return
+    if (!window.confirm(t('حذف العرض من صندوق الوارد؟ لا يمكن التراجع عن الحذف.', locale))) return
     onChange(deleteInboxItem(items, item.id))
     setSelectedId(null)
   }
@@ -117,62 +118,62 @@ export default function AssistantInbox({ items, onChange, onTransfer, locale }: 
     return saved !== false
   }
   const transfer = (item: InboxItem) => {
-    if (item.status !== 'confirmed') { setError('أكد العرض بعد مراجعته قبل نقله للحاسبة.'); return }
+    if (item.status !== 'confirmed') { setError(t('أكد العرض بعد مراجعته قبل نقله للحاسبة.', locale)); return }
     onTransfer(item)
   }
 
-  return <section className="panel assistant-inbox" dir="rtl" aria-labelledby="inbox-title">
+  return <section className="panel assistant-inbox" dir={locale === 'ar' ? 'rtl' : 'ltr'} aria-labelledby="inbox-title">
     <div className="panel-head">
-      <div><span className="eyebrow">مراجعة قبل الحساب</span><h2 id="inbox-title"><Archive/> صندوق الرحلات الملتقطة</h2>
-        <p>العروض هنا لا تُحفظ في سجل الرحلات ولا تُرسل للحاسبة إلا بعد تأكيدك.</p></div>
-      <span className="inbox-count" aria-label={`عدد العروض ${active.length}`}>{active.length} عرض</span>
+      <div><span className="eyebrow">{t('مراجعة قبل الحساب', locale)}</span><h2 id="inbox-title"><Archive/> صندوق الرحلات الملتقطة</h2>
+        <p>{t('العروض هنا لا تُحفظ في سجل الرحلات ولا تُرسل للحاسبة إلا بعد تأكيدك.', locale)}</p></div>
+      <span className="inbox-count" aria-label={`${t('عدد العروض', locale)} ${active.length}`}>{active.length} {t('عرض', locale)}</span>
     </div>
 
     <AndroidNotificationPanel onImport={importNativeNotifications} locale={locale} />
 
     <div className="inbox-capabilities" aria-label="قدرات المتصفح الحالية">
-      <span>رفع الصور: متاح</span>
+      <span>{t('رفع الصور: متاح', locale)}</span>
       <span>الميكروفون: {capabilities.microphone ? 'واجهة API متاحة بعد الإذن' : 'غير مدعوم'}</span>
       <span>التعرف الصوتي: {capabilities.speechRecognition ? 'مدعوم' : 'غير مدعوم'}</span>
       <span>مشاركة الشاشة: {capabilities.screenCapture ? 'واجهة API متاحة بعد الإذن' : 'غير مدعوم'}</span>
     </div>
 
     <div className="inbox-capture">
-      <label htmlFor="ride-offer-text">إضافة عرض يدويًا أو لصق نص إشعار</label>
+      <label htmlFor="ride-offer-text">{t('إضافة عرض يدويًا أو لصق نص إشعار', locale)}</label>
       <textarea id="ride-offer-text" dir="auto" rows={3} value={sourceText} onChange={event => setSourceText(event.target.value)}
-        placeholder="الصق نص العرض هنا… مثال: inDrive — القبول مقابل 165 جنيه — 22 كم — 40 دقيقة" />
-      <div className="inbox-capture-actions"><small>المتصفح لا يستطيع قراءة إشعارات تطبيقات Android الأخرى تلقائيًا.</small>
+        placeholder={t('الصق نص العرض هنا… مثال: inDrive — القبول مقابل 165 جنيه — 22 كم — 40 دقيقة', locale)} />
+      <div className="inbox-capture-actions"><small>{t('المتصفح لا يستطيع قراءة إشعارات تطبيقات Android الأخرى تلقائيًا.', locale)}</small>
         <button className="primary-btn" type="button" onClick={addOffer}><ClipboardPaste size={16}/> تحليل وإضافة للإنبوكس</button></div>
       {error && <p className="inbox-error" role="alert"><AlertCircle size={15}/>{error}</p>}
     </div>
 
     <div className="inbox-layout">
       <div className="inbox-list" aria-label="قائمة العروض">
-        {items.length === 0 ? <div className="empty-state"><Archive size={34}/><strong>صندوق الوارد فارغ</strong>
-          <p>الصق نص عرض رحلة في الأعلى لبدء المراجعة. لا توجد بيانات تجريبية محفوظة.</p></div> :
+        {items.length === 0 ? <div className="empty-state"><Archive size={34}/><strong>{t('صندوق الوارد فارغ', locale)}</strong>
+          <p>{t('الصق نص عرض رحلة في الأعلى لبدء المراجعة. لا توجد بيانات تجريبية محفوظة.', locale)}</p></div> :
           items.map(item => <button type="button" key={item.id} className={`inbox-row ${selectedId === item.id ? 'is-selected' : ''}`}
             onClick={() => { setSelectedId(item.id); setError('') }}>
-            <span className="inbox-row-top"><strong>{providerLabels[item.draft.provider]}</strong><span className={`inbox-status status-${item.status}`}>{statusLabels[item.status]}</span></span>
+            <span className="inbox-row-top"><strong>{t(providerLabels[item.draft.provider] as TranslationKey, locale)}</strong><span className={`inbox-status status-${item.status}`}>{t(statusLabels[item.status] as TranslationKey, locale)}</span></span>
             <span>{formatValue('fare', item.draft.fields.fare.value, locale)} · {formatValue('distanceKm', item.draft.fields.distanceKm.value, locale)}</span>
             <small>{new Date(item.createdAt).toLocaleString(locale==='ar'?'ar-EG':'en-EG')}</small>
           </button>)}
       </div>
 
       <div className="inbox-detail">
-        {!selected ? <div className="inbox-hint"><CircleHelp size={30}/><strong>اختار عرض من القائمة</strong><span>هتظهر هنا تفاصيل الاستخراج والمراجعة.</span></div> :
+        {!selected ? <div className="inbox-hint"><CircleHelp size={30}/><strong>{t('اختار عرض من القائمة', locale)}</strong><span>{t('هتظهر هنا تفاصيل الاستخراج والمراجعة.', locale)}</span></div> :
           <div className="inbox-review">
-            <div className="inbox-review-head"><div><span className="eyebrow">تفاصيل العرض</span><h3>{providerLabels[selected.draft.provider]}</h3></div>
-              <span className={`inbox-status status-${selected.status}`}>{statusLabels[selected.status]}</span></div>
-            <label className="inbox-field"><span>تطبيق النقل</span><select value={selected.draft.provider} disabled={selected.status === 'confirmed' || selected.status === 'rejected' || selected.status === 'transferred'}
+            <div className="inbox-review-head"><div><span className="eyebrow">{t('تفاصيل العرض', locale)}</span><h3>{t(providerLabels[selected.draft.provider] as TranslationKey, locale)}</h3></div>
+              <span className={`inbox-status status-${selected.status}`}>{t(statusLabels[selected.status] as TranslationKey, locale)}</span></div>
+            <label className="inbox-field"><span>{t('تطبيق النقل', locale)}</span><select value={selected.draft.provider} disabled={selected.status === 'confirmed' || selected.status === 'rejected' || selected.status === 'transferred'}
               onChange={event => setProvider(selected, event.target.value as RideProvider)}>
-              <option value="unknown">غير محدد — اختر يدويًا</option><option value="uber">Uber</option><option value="didi">DiDi</option><option value="indrive">inDrive</option>
+              <option value="unknown">{t('غير محدد — اختر يدويًا', locale)}</option><option value="uber">Uber</option><option value="didi">DiDi</option><option value="indrive">inDrive</option>
             </select></label>
             <div className="inbox-fields">
               {(['fare', 'pickupDistanceKm', 'distanceKm', 'durationMinutes'] as const).map(field => {
                 const candidate = selected.draft.fields[field]
                 const needsReview = candidate.value === null || candidate.confidence < 0.85 || candidate.status !== 'candidate'
                 return <div className={`inbox-field ${needsReview ? 'needs-review' : ''}`} key={field}>
-                  <span id={`inbox-field-label-${selected.id}-${field}`}>{fieldLabels[field]} {needsReview && <b>مطلوب مراجعة</b>}</span>
+                  <span id={`inbox-field-label-${selected.id}-${field}`}>{t(fieldLabels[field] as TranslationKey, locale)} {needsReview && <b>{t('مطلوب مراجعة', locale)}</b>}</span>
                   <div className="inbox-input"><NumericInput allowEmpty aria-labelledby={`inbox-field-label-${selected.id}-${field}`} value={candidate.value}
                     disabled={selected.status === 'confirmed' || selected.status === 'rejected' || selected.status === 'transferred'}
                     onValueChange={value => setManualField(selected, field, value)} placeholder="أدخل القيمة"/>
@@ -182,10 +183,10 @@ export default function AssistantInbox({ items, onChange, onTransfer, locale }: 
                 </div>
               })}
             </div>
-            <div className="inbox-source"><strong>مصدر البيانات</strong><span>{selected.draft.source === 'notification' ? 'إشعار مستلم من جسر Android' : selected.draft.source === 'screenshot' ? 'صورة شاشة' : 'إدخال أو لصق يدوي'}</span>
+            <div className="inbox-source"><strong>{t('مصدر البيانات', locale)}</strong><span>{selected.draft.source === 'notification' ? 'إشعار مستلم من جسر Android' : selected.draft.source === 'screenshot' ? 'صورة شاشة' : 'إدخال أو لصق يدوي'}</span>
               {selected.draft.sourceAppPackage && <span>معرّف التطبيق: {selected.draft.sourceAppPackage}</span>}
               {selected.draft.sourceTimestamp && <span>وقت الإشعار: {new Date(selected.draft.sourceTimestamp).toLocaleString(locale==='ar'?'ar-EG':'en-EG')}</span>}
-              <details><summary>عرض النص الأصلي للمراجعة</summary><pre>{selected.draft.rawText}</pre></details>
+              <details><summary>{t('عرض النص الأصلي للمراجعة', locale)}</summary><pre>{selected.draft.rawText}</pre></details>
             </div>
             {selected.draft.warnings.map((warning, index) => <p className="inbox-warning" key={index}><ShieldAlert size={15}/>{warning}</p>)}
             {selected.status !== 'confirmed' && selected.status !== 'rejected' && selected.status !== 'transferred' && <div className="inbox-actions">
@@ -196,11 +197,11 @@ export default function AssistantInbox({ items, onChange, onTransfer, locale }: 
             {selected.status === 'confirmed' && <div className="inbox-actions"><button className="primary-btn" type="button" onClick={() => transfer(selected)}><ChevronDown size={16}/> نقل العرض المؤكد للحاسبة</button>
               <button className="inbox-delete" type="button" onClick={() => remove(selected)}><Trash2 size={16}/> حذف</button></div>}
             {selected.status === 'rejected' && <div className="inbox-actions"><button className="inbox-delete" type="button" onClick={() => remove(selected)}><Trash2 size={16}/> حذف نهائي</button></div>}
-            {selected.status === 'transferred' && <p className="inbox-success" role="status">تم نقل هذا العرض للحاسبة بالفعل. لن يظهر زر النقل مرة أخرى.</p>}
+            {selected.status === 'transferred' && <p className="inbox-success" role="status">{t('تم نقل هذا العرض للحاسبة بالفعل. لن يظهر زر النقل مرة أخرى.', locale)}</p>}
           </div>}
       </div>
     </div>
-    <div className="inbox-native-note"><ShieldAlert size={17}/><p><strong>تكامل Android لاحقًا:</strong> استقبال الإشعارات يتطلب تطبيقًا أصليًا يستخدم NotificationListenerService بعد موافقة المستخدم. صفحة الويب لا تقرأ إشعارات Uber أو DiDi أو inDrive بنفسها.</p></div>
+    <div className="inbox-native-note"><ShieldAlert size={17}/><p><strong>{t('تكامل Android لاحقًا:', locale)}</strong> استقبال الإشعارات يتطلب تطبيقًا أصليًا يستخدم NotificationListenerService بعد موافقة المستخدم. صفحة الويب لا تقرأ إشعارات Uber أو DiDi أو inDrive بنفسها.</p></div>
   </section>
 }
 
