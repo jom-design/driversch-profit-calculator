@@ -6,8 +6,11 @@ on:
       - feat/full-driver-assistant-20261114
     paths:
       - "driversch-profit-calculator/src/assistant/**"
+      - "driversch-profit-calculator/src/App.tsx"
+      - "driversch-profit-calculator/src/styles.css"
       - "driversch-profit-calculator/src/platform/**"
       - "driversch-profit-calculator/tests/assistant/**"
+      - "driversch-profit-calculator/tests/platform/**"
       - "driversch-profit-calculator/package.json"
       - ".github/workflows/assistant-foundation.yml"
   pull_request:
@@ -35,6 +38,6 @@ jobs:
       - name: Install dependencies
         run: npm install --no-package-lock --no-audit --no-fund
       - name: Run assistant parser tests
-        run: node --experimental-strip-types --test tests/assistant/*.test.mjs
+        run: npm run test:assistant
       - name: Type-check and build the existing app
         run: npm run build
