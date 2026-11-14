@@ -4,7 +4,7 @@ import { parseRideOffer } from '../../src/assistant/parser.ts'
 import {
   createInboxItem, markInboxParsed, requestInboxReview, confirmInboxItem,
   rejectInboxItem, dismissInboxItem, updateInboxDraft, markInboxParseError,
-  hasRequiredReviewData
+  hasRequiredReviewData, deleteInboxItem
 } from '../../src/assistant/inbox.ts'
 import { acceptNativeNotification } from '../../src/assistant/notificationBridge.ts'
 import { toCalculatorTripInput } from '../../src/assistant/calculatorTransfer.ts'
@@ -113,7 +113,7 @@ test('calculator handoff is impossible before confirmation and never persists hi
 
 test('deletion removes only the selected inbox item and does not save a trip', () => {
   const items = [reviewableItem('keep'), reviewableItem('delete')]
-  const afterDelete = items.filter(item => item.id !== 'delete')
+  const afterDelete = deleteInboxItem(items, 'delete')
   assert.deepEqual(afterDelete.map(item => item.id), ['keep'])
 })
 
@@ -126,6 +126,7 @@ test('screenshot OCR enters review inbox and is never sent directly to calculato
   assert.equal(item.status, 'needs-review')
   assert.equal(item.draft.source, 'screenshot')
   assert.equal(item.draft.fields.fare.value, 165)
+  assert.equal(item.draft.fields.fare.confidence, 0)
   assert.equal(item.draft.fields.pickupDistanceKm.value, 4)
   assert.equal(toCalculatorTripInput(item), null)
 })
