@@ -9,7 +9,7 @@
     "preview": "vite preview --host 0.0.0.0",
     "test:assistant": "node --experimental-strip-types --test tests/assistant/*.test.mjs",
     "test": "npm run test:assistant && npm run test:e2e",
-    "test:e2e": "node tests/e2e/inbox-persistence.mjs && node tests/e2e/native-voice-bridge.mjs"
+    "test:e2e": "node tests/e2e/inbox-persistence.mjs && node tests/e2e/native-voice-bridge.mjs && node tests/e2e/input-compat.mjs"
   },
   "dependencies": {
     "idb": "^8.0.2",

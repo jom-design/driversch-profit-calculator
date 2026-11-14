@@ -5,6 +5,7 @@ import { parseRideOffer } from './parser'
 import type { InboxItem, RideOfferDraft, RideProvider } from './types'
 import { detectBrowserCapabilities, type BrowserRuntimeLike } from '../platform/browserCapabilities'
 import AndroidNotificationPanel from './AndroidNotificationPanel'
+import NumericInput from '../components/NumericInput'
 import { acceptNativeNotification, type NativeNotificationPayload } from './notificationBridge'
 import './assistant-inbox.css'
 
@@ -70,8 +71,7 @@ export default function AssistantInbox({ items, onChange, onTransfer }: Props) {
   }
   const update = (item: InboxItem, draft: RideOfferDraft) =>
     onChange(items.map(current => current.id === item.id ? updateInboxDraft(current, draft) : current))
-  const setManualField = (item: InboxItem, field: 'fare' | 'distanceKm' | 'pickupDistanceKm' | 'durationMinutes', raw: string) => {
-    const value = raw === '' ? null : Number(raw)
+  const setManualField = (item: InboxItem, field: 'fare' | 'distanceKm' | 'pickupDistanceKm' | 'durationMinutes', value: number | null) => {
     if (value !== null && (!Number.isFinite(value) || value < 0)) return
     const evidence = value === null ? [] : [{ text: 'تم الإدخال أو التصحيح يدويًا', start: 0, end: 0 }]
     const draft: RideOfferDraft = {
@@ -138,7 +138,7 @@ export default function AssistantInbox({ items, onChange, onTransfer }: Props) {
 
     <div className="inbox-capture">
       <label htmlFor="ride-offer-text">إضافة عرض يدويًا أو لصق نص إشعار</label>
-      <textarea id="ride-offer-text" rows={3} value={sourceText} onChange={event => setSourceText(event.target.value)}
+      <textarea id="ride-offer-text" dir="auto" rows={3} value={sourceText} onChange={event => setSourceText(event.target.value)}
         placeholder="الصق نص العرض هنا… مثال: inDrive — القبول مقابل 165 جنيه — 22 كم — 40 دقيقة" />
       <div className="inbox-capture-actions"><small>المتصفح لا يستطيع قراءة إشعارات تطبيقات Android الأخرى تلقائيًا.</small>
         <button className="primary-btn" type="button" onClick={addOffer}><ClipboardPaste size={16}/> تحليل وإضافة للإنبوكس</button></div>
@@ -172,9 +172,9 @@ export default function AssistantInbox({ items, onChange, onTransfer }: Props) {
                 const needsReview = candidate.value === null || candidate.confidence < 0.85 || candidate.status !== 'candidate'
                 return <div className={`inbox-field ${needsReview ? 'needs-review' : ''}`} key={field}>
                   <span id={`inbox-field-label-${selected.id}-${field}`}>{fieldLabels[field]} {needsReview && <b>مطلوب مراجعة</b>}</span>
-                  <div className="inbox-input"><input type="number" min="0" step="any" inputMode="decimal" aria-labelledby={`inbox-field-label-${selected.id}-${field}`} value={candidate.value ?? ''}
+                  <div className="inbox-input"><NumericInput allowEmpty aria-labelledby={`inbox-field-label-${selected.id}-${field}`} value={candidate.value}
                     disabled={selected.status === 'confirmed' || selected.status === 'rejected' || selected.status === 'transferred'}
-                    onChange={event => setManualField(selected, field, event.target.value)} placeholder="أدخل القيمة"/>
+                    onValueChange={value => setManualField(selected, field, value)} placeholder="أدخل القيمة"/>
                     <small>{field === 'fare' ? 'جنيه' : field === 'durationMinutes' ? 'دقيقة' : 'كم'}</small></div>
                   <label className="inbox-reviewed"><input type="checkbox" checked={(selected.reviewedFields ?? []).includes(field)} disabled={selected.status === 'confirmed' || selected.status === 'rejected' || selected.status === 'transferred'} onChange={event => setFieldReviewed(selected, field, event.target.checked)}/> راجعت هذه القيمة وأؤكدها</label>
                   <small className="inbox-confidence">الثقة: {Math.round(candidate.confidence * 100)}% · {candidate.evidence.length ? 'الدليل: ' + candidate.evidence.map(e => e.text).join('، ') : 'لا يوجد دليل مستخرج'}</small>

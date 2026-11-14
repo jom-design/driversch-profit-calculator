@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Activity, Archive, Calculator, CarFront, Check, ChevronDown, Download, FileImage, Gauge, History, LayoutDashboard, Mic, MicOff, RotateCcw, Save, Settings as SettingsIcon, ShieldCheck, Trash2, Upload, Wallet, X } from 'lucide-react'
 import { calculateTrip } from './lib/calculator'
+import NumericInput from './components/NumericInput'
 import AssistantInbox from './assistant/AssistantInbox'
 import type { InboxItem } from './assistant/types'
 import { toCalculatorTripInput } from './assistant/calculatorTransfer'
@@ -26,8 +27,8 @@ const nav: {id:Page;label:string;icon:any}[] = [
   {id:'inbox',label:'الرحلات الملتقطة',icon:Archive},{id:'history',label:'سجل الرحلات',icon:History},
   {id:'reports',label:'التقارير',icon:LayoutDashboard},{id:'settings',label:'الإعدادات',icon:SettingsIcon}
 ]
-function Field({label,value,onChange,unit='',step='any',type='number'}:{label:string;value:number|string;onChange:(v:string)=>void;unit?:string;step?:string;type?:string}) {
-  return <label className="field"><span>{label}</span><div className="input-wrap"><input type={type} step={step} value={value} onChange={e=>onChange(e.target.value)} /><small>{unit}</small></div></label>
+function Field({label,value,onChange,unit='',allowEmpty=false}:{label:string;value:number|null|undefined;onChange:(v:number|null)=>void;unit?:string;allowEmpty?:boolean}) {
+  return <label className="field"><span>{label}</span><div className="input-wrap"><NumericInput value={value} onValueChange={onChange} allowEmpty={allowEmpty}/><small>{unit}</small></div></label>
 }
 export default function App() {
   const [page,setPage]=useState<Page>('calculator')
@@ -211,21 +212,21 @@ export default function App() {
         <section className="templates"><div className="section-head"><h2>نماذج جاهزة للاختبار السريع</h2><span>اضغط لملء الحقول</span></div><div className="template-grid">{templates.map(t=><button className="template" key={t.name} onClick={()=>loadTemplate(t.trip)}><strong>{t.name}</strong><small>{t.desc}</small></button>)}</div></section>
         <div className="work-grid"><section className="panel form-panel"><div className="panel-head"><div><span className="eyebrow">بيانات العرض</span><h2><CarFront/> بيانات المشوار المقترح</h2></div><button className="subtle-btn" onClick={()=>setTrip(EMPTY_TRIP)}><RotateCcw size={15}/> تفريغ الحقول</button></div>
           <div className="app-select">{(['Uber','DiDi','inDrive','أخرى'] as AppName[]).map(a=><button key={a} className={trip.app===a?'selected':''} onClick={()=>{patch('app',a);patch('commissionRate',settings.commission[a as 'inDrive'|'DiDi'|'أخرى']??0);patch('fareMode',a==='Uber'?'net':'unknown')}}>{a}</button>)}</div>
-          <Field label="الأجرة المعروضة" value={trip.fare} onChange={v=>patch('fare',Number(v))} unit="ج.م"/>
+          <Field label="الأجرة المعروضة" value={trip.fare} onChange={v=>patch('fare',v??0)} unit="ج.م"/>
           <div className="field"><span>نوع الأجرة</span><div className="choice-row">
             <button className={trip.fareMode==='net'?'chosen':''} onClick={()=>patch('fareMode','net')}>صافي للسائق</button>
             <button className={trip.fareMode==='gross'?'chosen':''} onClick={()=>patch('fareMode','gross')}>إجمالي قبل العمولة</button>
             <button className={trip.fareMode==='unknown'?'chosen':''} onClick={()=>patch('fareMode','unknown')}>غير متأكد</button>
           </div></div>
-          {trip.fareMode==='gross'&&<Field label="نسبة عمولة التطبيق" value={trip.commissionRate} onChange={v=>patch('commissionRate',Number(v))} unit="%"/>}
+          {trip.fareMode==='gross'&&<Field label="نسبة عمولة التطبيق" value={trip.commissionRate} onChange={v=>patch('commissionRate',v??0)} unit="%"/>}
           <div className="field-grid">
-            <Field label="مسافة الوصول للراكب" value={trip.pickupKm} onChange={v=>patch('pickupKm',Number(v))} unit="كم"/>
-            <Field label="مسافة الرحلة بالراكب" value={trip.passengerKm} onChange={v=>patch('passengerKm',Number(v))} unit="كم"/>
-            <Field label="العودة الفارغة" value={trip.returnKm} onChange={v=>patch('returnKm',Number(v))} unit="كم"/>
-            <Field label="الوقت الإجمالي" value={trip.totalMinutes} onChange={v=>patch('totalMinutes',Number(v))} unit="دقيقة"/>
-            <Field label="مصروفات إضافية" value={trip.extraExpenses} onChange={v=>patch('extraExpenses',Number(v))} unit="ج.م"/>
+            <Field label="مسافة الوصول للراكب" value={trip.pickupKm} onChange={v=>patch('pickupKm',v??0)} unit="كم"/>
+            <Field label="مسافة الرحلة بالراكب" value={trip.passengerKm} onChange={v=>patch('passengerKm',v??0)} unit="كم"/>
+            <Field label="العودة الفارغة" value={trip.returnKm} onChange={v=>patch('returnKm',v??0)} unit="كم"/>
+            <Field label="الوقت الإجمالي" value={trip.totalMinutes} onChange={v=>patch('totalMinutes',v??0)} unit="دقيقة"/>
+            <Field label="مصروفات إضافية" value={trip.extraExpenses} onChange={v=>patch('extraExpenses',v??0)} unit="ج.م"/>
           </div>
-          <label className="field"><span>ملاحظات اختيارية</span><textarea rows={2} value={trip.notes} onChange={e=>patch('notes',e.target.value)} placeholder="أي تفاصيل تساعدك في مراجعة الرحلة..."/></label>
+          <label className="field"><span>ملاحظات اختيارية</span><textarea rows={2} dir="auto" value={trip.notes} onChange={e=>patch('notes',e.target.value)} placeholder="أي تفاصيل تساعدك في مراجعة الرحلة..."/></label>
           {trip.fareMode==='unknown'&&<div className="inline-alert">حدد نوع الأجرة قبل حفظ الرحلة. لن نفترض أن المبلغ صافي أو نخصم عمولة تلقائيًا.</div>}
           <button className="primary-btn full" onClick={saveCurrent}><Save size={17}/> حفظ الرحلة في السجل</button>
         </section>
@@ -252,11 +253,11 @@ export default function App() {
         {draft&&<div className="ocr-review"><div className="section-head"><h3>راجع البيانات المستخرجة</h3><span>ثقة OCR: {Math.round(draft.confidence)}%</span></div>
           <div className="field-grid">
             <div className="field"><span>التطبيق</span><select value={draft.app} onChange={e=>setDraft({...draft,app:e.target.value as AppName})}>{['Uber','DiDi','inDrive','أخرى'].map(x=><option>{x}</option>)}</select></div>
-            <Field label="الأجرة" value={draft.fare??''} onChange={v=>setDraft({...draft,fare:v===''?null:Number(v)})} unit="ج.م"/>
+            <Field label="الأجرة" allowEmpty value={draft.fare} onChange={v=>setDraft({...draft,fare:v})} unit="ج.م"/>
             <div className="field"><span>نوع الأجرة</span><select value={draft.fareMode} onChange={e=>setDraft({...draft,fareMode:e.target.value as FareMode})}><option value="unknown">غير متأكد</option><option value="net">صافي</option><option value="gross">إجمالي</option></select></div>
-            <Field label="مسافة الوصول" value={draft.pickupKm??''} onChange={v=>setDraft({...draft,pickupKm:v===''?null:Number(v)})} unit="كم"/>
-            <Field label="مسافة الرحلة" value={draft.passengerKm??''} onChange={v=>setDraft({...draft,passengerKm:v===''?null:Number(v)})} unit="كم"/>
-            <Field label="الوقت" value={draft.totalMinutes??''} onChange={v=>setDraft({...draft,totalMinutes:v===''?null:Number(v)})} unit="دقيقة"/>
+            <Field label="مسافة الوصول" allowEmpty value={draft.pickupKm} onChange={v=>setDraft({...draft,pickupKm:v})} unit="كم"/>
+            <Field label="مسافة الرحلة" allowEmpty value={draft.passengerKm} onChange={v=>setDraft({...draft,passengerKm:v})} unit="كم"/>
+            <Field label="الوقت" allowEmpty value={draft.totalMinutes} onChange={v=>setDraft({...draft,totalMinutes:v})} unit="دقيقة"/>
           </div>
           {draft.warnings.map(w=><div className="inline-alert">{w}</div>)}
           <details><summary>عرض نص OCR للمراجعة فقط</summary><pre>{draft.rawText}</pre></details>
@@ -275,14 +276,14 @@ export default function App() {
       </section>}
       {page==='settings'&&<section className="panel"><div className="panel-head"><div><span className="eyebrow">تحكم في افتراضات الحساب</span><h2><SettingsIcon/> الإعدادات</h2></div><button className="primary-btn" onClick={persistSettings}><Save size={16}/> حفظ الإعدادات</button></div>
         <div className="field-grid settings-grid">
-          <Field label="سعر لتر البنزين" value={settings.fuelPrice} onChange={v=>updateSettings('fuelPrice',Number(v))} unit="ج.م"/>
-          <Field label="استهلاك السيارة لكل 100 كم" value={settings.consumptionPer100} onChange={v=>updateSettings('consumptionPer100',Number(v))} unit="لتر"/>
-          <Field label="الصيانة والإهلاك لكل كم" value={settings.maintenancePerKm} onChange={v=>updateSettings('maintenancePerKm',Number(v))} unit="ج.م"/>
-          <Field label="الحد الأدنى لصافي الرحلة" value={settings.minNetProfit} onChange={v=>updateSettings('minNetProfit',Number(v))} unit="ج.م"/>
-          <Field label="هدف الربح في الساعة" value={settings.hourlyTarget} onChange={v=>updateSettings('hourlyTarget',Number(v))} unit="ج.م"/>
+          <Field label="سعر لتر البنزين" value={settings.fuelPrice} onChange={v=>updateSettings('fuelPrice',v??0)} unit="ج.م"/>
+          <Field label="استهلاك السيارة لكل 100 كم" value={settings.consumptionPer100} onChange={v=>updateSettings('consumptionPer100',v??0)} unit="لتر"/>
+          <Field label="الصيانة والإهلاك لكل كم" value={settings.maintenancePerKm} onChange={v=>updateSettings('maintenancePerKm',v??0)} unit="ج.م"/>
+          <Field label="الحد الأدنى لصافي الرحلة" value={settings.minNetProfit} onChange={v=>updateSettings('minNetProfit',v??0)} unit="ج.م"/>
+          <Field label="هدف الربح في الساعة" value={settings.hourlyTarget} onChange={v=>updateSettings('hourlyTarget',v??0)} unit="ج.م"/>
         </div>
         <div className="section-head"><h3>عمولة التطبيقات (اختيارية)</h3><span>تستخدم عند اختيار أجرة إجمالية</span></div>
-        <div className="field-grid">{(['inDrive','DiDi','أخرى'] as const).map(a=><Field label={`عمولة ${a}`} value={settings.commission[a]} onChange={v=>setSettings(s=>({...s,commission:{...s.commission,[a]:Number(v)}}))} unit="%"/>)}</div>
+        <div className="field-grid">{(['inDrive','DiDi','أخرى'] as const).map(a=><Field label={`عمولة ${a}`} value={settings.commission[a]} onChange={v=>setSettings(s=>({...s,commission:{...s.commission,[a]:v??0}}))} unit="%"/>)}</div>
         <div className="backup-actions"><button className="subtle-btn" onClick={exportBackup}><Download size={16}/> تصدير نسخة احتياطية</button><label className="subtle-btn file-button"><Upload size={16}/> استيراد نسخة احتياطية<input type="file" accept="application/json" onChange={e=>importBackup(e.target.files?.[0])}/></label><button className="subtle-btn" onClick={()=>{if(confirm('إعادة الإعدادات الافتراضية؟'))setSettings(DEFAULT_SETTINGS)}}><RotateCcw size={16}/> استعادة الافتراضي</button></div>
         <p className="formula-note">البيانات محفوظة محليًا في هذا المتصفح باستخدام IndexedDB. مسح بيانات المتصفح قد يؤدي إلى حذفها؛ صدّر نسخة احتياطية بانتظام.</p>
       </section>}

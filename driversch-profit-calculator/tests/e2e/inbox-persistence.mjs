@@ -60,7 +60,7 @@ try {
   await page.keyboard.press('Enter')
   await page.locator('.inbox-row').first().waitFor()
 
-  const numberInputs = page.locator('.inbox-field input[type="number"]')
+  const numberInputs = page.locator('.inbox-field input.numeric-input')
   await numberInputs.nth(0).fill('175')
   const reviewChecks = page.locator('.inbox-reviewed input[type="checkbox"]')
   if (await reviewChecks.count() !== 4) throw new Error('Expected four independent review confirmations')
@@ -108,7 +108,7 @@ try {
   await page.reload({ waitUntil: 'networkidle' })
   await page.getByRole('button', { name: 'الرحلات الملتقطة' }).click()
   await page.locator('.inbox-row').first().click()
-  const restoredFare = await page.locator('.inbox-field input[type="number"]').first().inputValue()
+  const restoredFare = await page.locator('.inbox-field input.numeric-input').first().inputValue()
   const restoredReview = await page.locator('.inbox-reviewed input[type="checkbox"]').evaluateAll(elements => elements.map(element => element.checked))
   if (restoredFare !== '175' || restoredReview.length !== 4 || !restoredReview.every(Boolean)) {
     throw new Error('Manual correction or review confirmations did not survive reload')
@@ -126,7 +126,7 @@ try {
   const unknownFareModeButton = page.getByRole('button', { name: 'غير متأكد' })
   await unknownFareModeButton.waitFor()
   const fareModeRemainsUnknown = (await unknownFareModeButton.getAttribute('class') ?? '').includes('chosen')
-  const calculatorFare = await page.locator('input[type="number"]').first().inputValue()
+  const calculatorFare = await page.locator('input.numeric-input').first().inputValue()
   if (calculatorFare !== '175' || !fareModeRemainsUnknown) {
     throw new Error('Calculator handoff changed the fare or guessed fare mode')
   }

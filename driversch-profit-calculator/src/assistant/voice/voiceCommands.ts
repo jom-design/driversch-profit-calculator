@@ -1,3 +1,5 @@
+import { toAsciiDigits } from '../../lib/numericInput.ts'
+
 /**
  * Arabic voice command parser. Pure text-to-intent logic: no browser APIs, no storage.
  * Commands only navigate or read. None of them accepts, rejects, moves or deletes a trip.
@@ -20,7 +22,7 @@ export interface VoiceCommandResult {
 
 /** Turns Arabic text into a comparable form: no diacritics, unified letters, western digits. */
 export function normalizeArabicSpeech(text: string): string {
-  return text
+  return toAsciiDigits(text)
     .replace(/[ؐ-ًؚ-ٰٟۖ-ۭ]/g, '') // tashkeel and Quranic marks
     .replace(/ـ/g, '') // tatweel
     .replace(/[آأإ]/g, 'ا') // alef variants -> ا
