@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Check, Mic, MicOff, X } from 'lucide-react'
 import { parseVoiceCommand, VOICE_HELP_TEXT, VOICE_INTENT_LABEL, type VoiceIntent } from './voiceCommands'
 import './voice-command.css'
+import { t, type TranslationKey } from '../../lib/i18n'
 
 interface SpeechRecognitionAlternativeLike { transcript: string }
 interface SpeechRecognitionEventLike { results: ArrayLike<ArrayLike<SpeechRecognitionAlternativeLike>> }
@@ -26,11 +27,11 @@ function getRecognitionCtor(): SpeechRecognitionCtor | null {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null
 }
 
-const PERMISSION_TEXT = 'لم تُمنح صلاحية الميكروفون. فعّلها من إعدادات الجهاز ثم حاول مرة أخرى.'
-const ERROR_TEXT: Record<string, string> = {
+const PERMISSION_TEXT: TranslationKey = 'لم تُمنح صلاحية الميكروفون. فعّلها من إعدادات الجهاز ثم حاول مرة أخرى.'
+const ERROR_TEXT: Record<string, TranslationKey> = {
   'not-allowed': PERMISSION_TEXT,
   'service-not-allowed': PERMISSION_TEXT,
-  'no-speech': 'ما سمعتش صوت. اضغط الزر وتكلم بعد ما يبدأ الاستماع.',
+  'no-speech': 'ما سمعتش صوت. اضغط الزر وتكلم بعد ما يبدأ الاستماع.' as TranslationKey,
   'audio-capture': 'مفيش ميكروفون متاح على الجهاز.',
   network: 'التعرف على الصوت يحتاج اتصالًا بالإنترنت في هذا المتصفح.'
 }
@@ -44,7 +45,7 @@ export default function VoiceCommandBar({ onCommand, locale }: Props) {
   const [phase, setPhase] = useState<Phase>('idle')
   const [heard, setHeard] = useState('')
   const [intent, setIntent] = useState<VoiceIntent>('unknown')
-  const [message, setMessage] = useState('')
+  const [message, setMessage] = useState<TranslationKey | ''>('')
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
 
   useEffect(() => {
@@ -58,14 +59,14 @@ export default function VoiceCommandBar({ onCommand, locale }: Props) {
         setMessage('')
         setPhase('confirm')
       } else if (detail.type === 'error') {
-        const errors: Record<string, string> = {
+        const errors: Record<string, TranslationKey> = {
           'not-allowed': PERMISSION_TEXT,
-          'recognition-unavailable': 'خدمة التعرف على الصوت غير متاحة على هذا الجهاز.',
-          'no-speech': 'ما سمعتش صوت. اضغط الزر وتكلم بعد ما يبدأ الاستماع.',
-          network: 'خدمة التعرف على الصوت واجهت مشكلة في الشبكة.',
-          busy: 'خدمة التعرف على الصوت مشغولة. حاول بعد لحظة.'
+          'recognition-unavailable': 'خدمة التعرف على الصوت غير متاحة على هذا الجهاز.' as TranslationKey,
+          'no-speech': 'ما سمعتش صوت. اضغط الزر وتكلم بعد ما يبدأ الاستماع.' as TranslationKey,
+          network: 'خدمة التعرف على الصوت واجهت مشكلة في الشبكة.' as TranslationKey,
+          busy: 'خدمة التعرف على الصوت مشغولة. حاول بعد لحظة.' as TranslationKey
         }
-        setMessage(errors[detail.value ?? ''] ?? 'حصل خطأ في التعرف على الصوت. حاول مرة أخرى.')
+        setMessage(errors[detail.value ?? ''] ?? 'حصل خطأ في التعرف على الصوت. حاول مرة أخرى.' as TranslationKey)
         setPhase('error')
       } else if (detail.type === 'stopped') {
         setPhase(current => current === 'listening' ? 'idle' : current)
@@ -86,7 +87,7 @@ export default function VoiceCommandBar({ onCommand, locale }: Props) {
       setMessage('')
       setPhase('listening')
       if (!native.startSpeechRecognition(locale === 'ar' ? 'ar-EG' : 'en-US')) {
-        setMessage('تعذر بدء التعرف الصوتي على Android.')
+        setMessage('تعذر بدء التعرف الصوتي على Android.' as TranslationKey)
         setPhase('error')
       }
       return
@@ -108,7 +109,7 @@ export default function VoiceCommandBar({ onCommand, locale }: Props) {
     }
     recognition.onerror = event => {
       if (event.error === 'aborted') { setPhase('idle'); return }
-      setMessage(ERROR_TEXT[event.error] ?? 'حصل خطأ في التعرف على الصوت. حاول مرة أخرى.')
+      setMessage(ERROR_TEXT[event.error] ?? 'حصل خطأ في التعرف على الصوت. حاول مرة أخرى.' as TranslationKey)
       setPhase('error')
     }
     recognition.onend = () => {
@@ -121,7 +122,7 @@ export default function VoiceCommandBar({ onCommand, locale }: Props) {
     setPhase('listening')
     try { recognition.start() } catch {
       recognitionRef.current = null
-      setMessage('تعذر بدء الاستماع. حاول مرة أخرى.')
+      setMessage('تعذر بدء الاستماع. حاول مرة أخرى.' as TranslationKey)
       setPhase('error')
     }
   }
@@ -135,33 +136,33 @@ export default function VoiceCommandBar({ onCommand, locale }: Props) {
   const confirm = () => { onCommand(intent); setHeard(''); setPhase('idle') }
   const dismiss = () => { if (nativeSupported) native?.stopSpeechRecognition(); setHeard(''); setPhase('idle') }
 
-  if (!supported) return <section className="voice-bar"><p className="voice-note">التعرف على الصوت غير مدعوم في هذا المتصفح. جرّب Chrome أو تطبيق Android.</p></section>
+  if (!supported) return <section className="voice-bar"><p className="voice-note">{t('التعرف على الصوت غير مدعوم في هذا المتصفح. جرّب Chrome أو تطبيق Android.', locale)}</p></section>
 
   return (
     <section className="voice-bar" aria-live="polite">
       <div className="voice-head">
         {phase === 'listening' ? (
-          <button type="button" className="subtle-btn" onClick={stopListening}><MicOff size={16} /> إيقاف الاستماع</button>
+          <button type="button" className="subtle-btn" onClick={stopListening}><MicOff size={16} /> {t('إيقاف الاستماع', locale)}</button>
         ) : (
-          <button type="button" className="primary-btn" onClick={startListening} disabled={phase === 'confirm'}><Mic size={16} /> أمر صوتي</button>
+          <button type="button" className="primary-btn" onClick={startListening} disabled={phase === 'confirm'}><Mic size={16} /> {t('أمر صوتي', locale)}</button>
         )}
-        {phase === 'listening' && <span className="voice-status">جارٍ الاستماع… تكلم الآن</span>}
+        {phase === 'listening' && <span className="voice-status">{t('جارٍ الاستماع… تكلم الآن', locale)}</span>}
       </div>
       {phase === 'confirm' && (
         <div className="voice-confirm">
-          <p>سمعت: <strong>"{heard}"</strong></p>
-          <p>الأمر: <strong>{VOICE_INTENT_LABEL[intent]}</strong></p>
-          {intent === 'unknown' ? <p className="voice-note">{VOICE_HELP_TEXT}</p> : (
-            <button type="button" className="primary-btn" onClick={confirm}><Check size={16} /> نفّذ الأمر</button>
+          <p>{t('سمعت:', locale)} <strong>"{heard}"</strong></p>
+          <p>{t('الأمر:', locale)} <strong>{t(VOICE_INTENT_LABEL[intent] as TranslationKey, locale)}</strong></p>
+          {intent === 'unknown' ? <p className="voice-note">{t(VOICE_HELP_TEXT as TranslationKey, locale)}</p> : (
+            <button type="button" className="primary-btn" onClick={confirm}><Check size={16} /> {t('نفّذ الأمر', locale)}</button>
           )}
-          <button type="button" className="subtle-btn" onClick={dismiss}><X size={16} /> تجاهل</button>
+          <button type="button" className="subtle-btn" onClick={dismiss}><X size={16} /> {t('تجاهل', locale)}</button>
         </div>
       )}
-      {phase === 'error' && <p className="inline-alert" role="alert">{message}</p>}
+      {phase === 'error' && <p className="inline-alert" role="alert">{t(message, locale)}</p>}
       <p className="voice-note">
         {nativeSupported
-          ? 'التعرف الصوتي الأصلي يبدأ فقط عند ضغطك على الزر. يطلب التطبيق إذن الميكروفون وقت الاستخدام ولا يحفظ التسجيل. يطلب وضع عدم الاتصال من خدمة Android، لكن توفره يعتمد على محرك الجهاز وقد تُعالج الخدمة الصوت خارجيًا.'
-          : 'التعرف يبدأ فقط عند ضغطك على الزر، ولا يعمل في الخلفية. لا يتم حفظ أي تسجيل صوتي داخل التطبيق. في Chrome قد يُرسل الصوت لخدمة التعرف عند جوجل ويحتاج اتصالًا بالإنترنت.'}
+          ? 'التعرف الصوتي الأصلي يبدأ فقط عند ضغطك على الزر. يطلب التطبيق إذن الميكروفون وقت الاستخدام ولا يحفظ التسجيل. يطلب وضع عدم الاتصال من خدمة Android، لكن توفره يعتمد على محرك الجهاز وقد تُعالج الخدمة الصوت خارجيًا.' as TranslationKey
+          : 'التعرف يبدأ فقط عند ضغطك على الزر، ولا يعمل في الخلفية. لا يتم حفظ أي تسجيل صوتي داخل التطبيق. في Chrome قد يُرسل الصوت لخدمة التعرف عند جوجل ويحتاج اتصالًا بالإنترنت.' as TranslationKey}
       </p>
     </section>
   )
