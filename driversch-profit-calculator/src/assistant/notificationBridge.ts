@@ -1,6 +1,6 @@
 import { createInboxItem, markInboxParsed, requestInboxReview } from './inbox.ts'
 import { parseRideOffer } from './parser.ts'
-import type { InboxItem, RideOfferDraft } from './types'
+import type { InboxItem, NativeProfitabilityPreview, RideOfferDraft } from './types'
 
 export interface NativeNotificationPayload {
   notificationId: string
@@ -9,6 +9,22 @@ export interface NativeNotificationPayload {
   title: string
   text: string
   postedAt: string
+  offer?: {
+    fare?: NativeFieldCandidate
+    pickupDistanceKm?: NativeFieldCandidate
+    distanceKm?: NativeFieldCandidate
+    durationMinutes?: NativeFieldCandidate
+    currency?: string | null
+    fareMode?: 'net' | 'gross' | 'unknown'
+  }
+  analysis?: NativeProfitabilityPreview
+}
+
+interface NativeFieldCandidate {
+  value: number | null
+  confidence: number
+  evidence: Array<{ text: string; start: number; end: number }>
+  status: 'missing' | 'candidate' | 'needs-review'
 }
 
 const SUPPORTED_PACKAGES: Record<string, string> = {
@@ -45,8 +61,28 @@ export function acceptNativeNotification(
     source: 'notification',
     now
   })
+  const nativeField = (field: NativeFieldCandidate | undefined, fallback: RideOfferDraft['fields']['fare']) => {
+    if (!field || (field.value !== null && (!Number.isFinite(field.value) || field.value < 0)) ||
+        !Number.isFinite(field.confidence) || field.confidence < 0 || field.confidence > 1 ||
+        !['missing', 'candidate', 'needs-review'].includes(field.status)) return fallback
+    return { value: field.value, confidence: field.confidence, evidence: Array.isArray(field.evidence) ? field.evidence.filter(e => e && typeof e.text === 'string' && Number.isInteger(e.start) && Number.isInteger(e.end) && e.start >= 0 && e.end >= e.start).slice(0, 4) : [], status: field.status }
+  }
+  const fields = payload.offer ? {
+    ...parsed.fields,
+    fare: nativeField(payload.offer.fare, parsed.fields.fare),
+    pickupDistanceKm: nativeField(payload.offer.pickupDistanceKm, parsed.fields.pickupDistanceKm),
+    distanceKm: nativeField(payload.offer.distanceKm, parsed.fields.distanceKm),
+    durationMinutes: nativeField(payload.offer.durationMinutes, parsed.fields.durationMinutes),
+    currency: payload.offer.currency === 'EGP' ? { value: 'EGP' as const, confidence: 1, evidence: [], status: 'candidate' as const } : parsed.fields.currency
+  } : parsed.fields
+  const analysis = payload.analysis && payload.analysis.status === 'review' &&
+    [payload.analysis.netProfit, payload.analysis.hourlyProfit, payload.analysis.totalCost, payload.analysis.requiredFare].every(Number.isFinite) &&
+    ['review', 'accept', 'reject'].includes(payload.analysis.decision) &&
+    ['review', 'accept', 'reject'].includes(payload.analysis.calculatedDecision) &&
+    typeof payload.analysis.reason === 'string' && Array.isArray(payload.analysis.assumptions) && payload.analysis.assumptions.every(value => typeof value === 'string')
+    ? payload.analysis : undefined
   const draft: RideOfferDraft = {
-    ...parsed,
+    ...parsed, fields, nativeAnalysis: analysis,
     sourceAppPackage: payload.packageName,
     sourceAppLabel: canonicalLabel,
     sourceTimestamp: postedAt.toISOString()

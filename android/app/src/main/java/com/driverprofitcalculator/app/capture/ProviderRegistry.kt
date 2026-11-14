@@ -20,6 +20,8 @@ object ProviderRegistry {
     fun forId(id: String) = providers.firstOrNull { it.id == id }
     fun relevant(provider: RideProvider, title: String, text: String): Boolean {
         val content = (title + " " + text).lowercase()
+        // Android MessagingStyle is filtered separately; obvious chat copy is never a ride offer.
+        if (listOf("message", "chat", "رسالة", "محادثة", "دردشة").any { content.contains(it) }) return false
         return provider.keywords.any { content.contains(it.lowercase()) }
     }
 }

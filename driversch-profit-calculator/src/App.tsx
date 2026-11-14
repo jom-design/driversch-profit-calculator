@@ -59,6 +59,11 @@ export default function App() {
   useEffect(()=>{const bridge=(window as Window & {DriverAndroid?:{setVoiceLanguage?:(tag:string)=>boolean;setSystemTheme?:(theme:string)=>boolean}}).DriverAndroid;bridge?.setVoiceLanguage?.(locale==='ar'?'ar-EG':'en-US');bridge?.setSystemTheme?.(theme)},[locale])
   useEffect(()=>{(async()=>{setSettings(await getSettings());setTrips(await getTrips())})()},[])
   useEffect(()=>{
+    const bridge=(window as Window & {DriverAndroid?:{setTripAnalysisSettings?:(json:string)=>boolean}}).DriverAndroid
+    const activeProvider=trip.app==='Uber'?'uber':trip.app==='DiDi'?'didi':trip.app==='inDrive'?'indrive':'unknown'
+    bridge?.setTripAnalysisSettings?.(JSON.stringify({...settings,activeProvider,fareMode:trip.fareMode}))
+  },[settings,trip.app,trip.fareMode])
+  useEffect(()=>{
     let active=true
     void loadInboxItems().then(({items,invalidCount})=>{
       if(!active)return

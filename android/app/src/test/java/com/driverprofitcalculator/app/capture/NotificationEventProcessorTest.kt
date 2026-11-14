@@ -117,6 +117,15 @@ class NotificationEventProcessorTest {
     }
 
     @Test
+    fun messagingStyleNotificationsAreIgnoredEvenWhenTheyContainRideKeywords() {
+        val (p, store, counters) = processor()
+        val outcome = p.process(event(text = "Fare 95 EGP, pickup 3 min").copy(isMessaging = true))
+        assertTrue(outcome is CaptureOutcome.NotRelevant)
+        assertTrue(store.saved.isEmpty())
+        assertEquals(1, counters.get(CaptureCounterNames.NOT_RELEVANT))
+    }
+
+    @Test
     fun unsupportedPackageIsIgnoredAndCounted() {
         val (p, store, c) = processor()
         assertTrue(p.process(event(packageName = passengerApp)) is CaptureOutcome.UnsupportedPackage)

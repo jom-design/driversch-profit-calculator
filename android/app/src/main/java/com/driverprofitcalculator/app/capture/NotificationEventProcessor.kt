@@ -23,6 +23,8 @@ data class RawNotificationEvent(
     val isGroupSummary: Boolean,
     /** NotificationListenerService removal reason code, meaningful only for REMOVED. */
     val removeReason: Int? = null,
+    /** Android MessagingStyle notifications are conversations, not ride offers. */
+    val isMessaging: Boolean = false,
 )
 
 sealed class CaptureOutcome {
@@ -83,6 +85,7 @@ class NotificationEventProcessor(
     private val store: CaptureStore,
     private val isProviderEnabled: (providerId: String) -> Boolean,
     private val counters: CaptureCounters,
+    private val analysisConfig: () -> TripAnalysisConfig? = { null },
 ) {
     fun process(event: RawNotificationEvent): CaptureOutcome {
         counters.increment(CaptureCounterNames.RECEIVED)
@@ -111,6 +114,10 @@ class NotificationEventProcessor(
 
     private fun posted(event: RawNotificationEvent, provider: RideProvider, id: String): CaptureOutcome {
         // Group summaries carry no offer content; the bundled children are processed individually.
+        if (event.isMessaging) {
+            counters.increment(CaptureCounterNames.NOT_RELEVANT)
+            return CaptureOutcome.NotRelevant
+        }
         if (event.isGroupSummary) {
             counters.increment(CaptureCounterNames.GROUP_SUMMARY)
             return CaptureOutcome.GroupSummary
@@ -137,7 +144,7 @@ class NotificationEventProcessor(
         }
         val isUpdate = previous != null
         val payload = NotificationPayloadNormalizer.normalize(
-            event.packageName, event.key, title, text, event.postedAtMillis,
+            event.packageName, event.key, title, text, event.postedAtMillis, analysisConfig(),
         )
         if (payload == null) {
             counters.increment(CaptureCounterNames.PARSER_FAILURE)

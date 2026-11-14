@@ -10,6 +10,7 @@ import com.driverprofitcalculator.app.capture.EncryptedNotificationStore
 import com.driverprofitcalculator.app.capture.NotificationCaptureService
 import com.driverprofitcalculator.app.capture.ProviderPreferences
 import com.driverprofitcalculator.app.capture.ProviderRegistry
+import com.driverprofitcalculator.app.capture.TripAnalysisPreferences
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -34,6 +35,8 @@ class AndroidBridge(private val activity: MainActivity, private val voice: Nativ
     }
     @JavascriptInterface fun getPendingNotificationsJson(): String = EncryptedNotificationStore(context).pendingJson()
     @JavascriptInterface fun acknowledgeNotification(id: String): Boolean = EncryptedNotificationStore(context).acknowledge(id)
+    @JavascriptInterface fun setTripAnalysisSettings(json: String): Boolean =
+        TripAnalysisPreferences(context).saveFromJson(json)
     @JavascriptInterface fun setProviderEnabled(id: String, enabled: Boolean): Boolean =
         ProviderPreferences.setEnabled(context, id, enabled)
     @JavascriptInterface fun openNotificationAccessSettings(): Boolean = try {

@@ -5,6 +5,12 @@ export type AppLocale = 'ar' | 'en'
  * notes are intentionally not translated: they are user/source content, not interface copy.
  */
 export const AR_TO_EN = {
+  "تقدير مبدئي من محرك الربحية": "Preliminary estimate from the profit engine",
+  "صافي الربح التقديري": "Estimated net profit",
+  "الربح بالساعة": "Hourly profit",
+  "التكلفة التشغيلية": "Operating cost",
+  "الأجرة المطلوبة": "Required fare",
+  "مراجعة مطلوبة: التقدير لا يشمل مسافة العودة أو المصروفات الإضافية، وتأكد من نسبة العمولة.": "Review required: this estimate excludes return distance and additional expenses; verify the commission rate.",
   "العربية": "Arabic",
   "التبديل إلى العربية": "Switch to Arabic",
   "التبديل للوضع الداكن": "Switch to dark mode",

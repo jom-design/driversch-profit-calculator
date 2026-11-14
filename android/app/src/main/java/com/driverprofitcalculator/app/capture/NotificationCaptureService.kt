@@ -17,6 +17,7 @@ class NotificationCaptureService : NotificationListenerService() {
             store = EncryptedNotificationStore(this),
             isProviderEnabled = { id -> ProviderPreferences.enabled(this, id) },
             counters = diagnostics,
+            analysisConfig = { TripAnalysisPreferences(this).load() },
         )
     }
 
@@ -58,15 +59,20 @@ class NotificationCaptureService : NotificationListenerService() {
         val title = extras?.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty()
         val bigText = extras?.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString().orEmpty()
         val text = extras?.getCharSequence(Notification.EXTRA_TEXT)?.toString().orEmpty()
+        val isMessaging = extras?.containsKey(Notification.EXTRA_MESSAGES) == true ||
+            extras?.containsKey(Notification.EXTRA_HISTORIC_MESSAGES) == true
+        val bundledLines = if (!isMessaging) extras?.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)
+            ?.take(12)?.joinToString("\n") { it.toString() }.orEmpty() else ""
         return RawNotificationEvent(
             kind = kind,
             packageName = sbn.packageName,
             key = sbn.key ?: (sbn.packageName + ":" + sbn.id),
             title = title,
             // Expanded text is preferred; ordinary text is the fallback for short notifications.
-            text = listOf(bigText, text).firstOrNull { it.isNotBlank() }.orEmpty(),
+            text = listOf(bigText, text, bundledLines).firstOrNull { it.isNotBlank() }.orEmpty().take(4000),
             postedAtMillis = sbn.postTime,
             isGroupSummary = (notification.flags and Notification.FLAG_GROUP_SUMMARY) != 0,
+            isMessaging = isMessaging,
             removeReason = reason,
         )
     }

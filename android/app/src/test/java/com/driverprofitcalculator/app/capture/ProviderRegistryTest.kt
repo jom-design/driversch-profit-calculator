@@ -15,6 +15,7 @@ class ProviderRegistryTest {
         val provider = ProviderRegistry.forPackage("com.ubercab.driver")!!
         assertTrue(ProviderRegistry.relevant(provider, "New trip request", "Pickup 2 km"))
         assertFalse(ProviderRegistry.relevant(provider, "Weekly summary", "Account settings updated"))
+        assertFalse(ProviderRegistry.relevant(provider, "Message from passenger", "Can you wait 2 minutes?"))
     }
     @Test fun payloadNormalizationRequiresKnownPackageAndRideText() {
         val payload = NotificationPayloadNormalizer.normalize(
@@ -22,6 +23,8 @@ class ProviderRegistryTest {
         )
         assertNotNull(payload)
         assertEquals("DiDi", payload?.appLabel)
+        assertEquals(120.0, payload?.offer?.fare?.value ?: -1.0, 0.001)
+        assertEquals("EGP", payload?.offer?.currency)
         assertNull(NotificationPayloadNormalizer.normalize("com.example.fake", "key", "طلب رحلة", "أجرة 120 جنيه", 1794500000000L))
         assertNull(NotificationPayloadNormalizer.normalize("com.didiglobal.driver", "key", "Summary", "Account updated", 1794500000000L))
     }

@@ -16,6 +16,18 @@ export interface FieldCandidate<T> {
   status: 'missing' | 'candidate' | 'needs-review'
 }
 
+export interface NativeProfitabilityPreview {
+  status: 'review'
+  netProfit: number
+  hourlyProfit: number
+  totalCost: number
+  requiredFare: number
+  decision: 'review' | 'accept' | 'reject'
+  calculatedDecision: 'review' | 'accept' | 'reject'
+  reason: string
+  assumptions: string[]
+}
+
 export interface RideOfferDraft {
   provider: RideProvider
   providerConfidence: number
@@ -24,6 +36,7 @@ export interface RideOfferDraft {
   sourceAppPackage?: string
   sourceAppLabel?: string
   sourceTimestamp?: string
+  nativeAnalysis?: NativeProfitabilityPreview
   fields: {
     fare: FieldCandidate<number>
     distanceKm: FieldCandidate<number>

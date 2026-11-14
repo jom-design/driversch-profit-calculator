@@ -168,6 +168,16 @@ export default function AssistantInbox({ items, onChange, onTransfer, locale }: 
               onChange={event => setProvider(selected, event.target.value as RideProvider)}>
               <option value="unknown">{t('غير محدد — اختر يدويًا', locale)}</option><option value="uber">Uber</option><option value="didi">DiDi</option><option value="indrive">inDrive</option>
             </select></label>
+            {selected.draft.nativeAnalysis && <section className="inbox-native-analysis" aria-live="polite">
+              <strong>{t('تقدير مبدئي من محرك الربحية', locale)}</strong>
+              <p>{t('مراجعة مطلوبة: التقدير لا يشمل مسافة العودة أو المصروفات الإضافية، وتأكد من نسبة العمولة.', locale)}</p>
+              <div className="inbox-native-analysis-grid">
+                <span>{t('صافي الربح التقديري', locale)}<b>{selected.draft.nativeAnalysis.netProfit.toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-EG', { maximumFractionDigits: 2 })} {t('جنيه', locale)}</b></span>
+                <span>{t('الربح بالساعة', locale)}<b>{selected.draft.nativeAnalysis.hourlyProfit.toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-EG', { maximumFractionDigits: 2 })} {t('جنيه', locale)}</b></span>
+                <span>{t('التكلفة التشغيلية', locale)}<b>{selected.draft.nativeAnalysis.totalCost.toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-EG', { maximumFractionDigits: 2 })} {t('جنيه', locale)}</b></span>
+                <span>{t('الأجرة المطلوبة', locale)}<b>{selected.draft.nativeAnalysis.requiredFare.toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-EG', { maximumFractionDigits: 2 })} {t('جنيه', locale)}</b></span>
+              </div>
+            </section>}
             <div className="inbox-fields">
               {(['fare', 'pickupDistanceKm', 'distanceKm', 'durationMinutes'] as const).map(field => {
                 const candidate = selected.draft.fields[field]

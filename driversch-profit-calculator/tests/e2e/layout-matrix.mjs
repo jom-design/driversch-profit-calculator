@@ -7,7 +7,9 @@ import { chromium } from 'playwright'
 // Full browser visual matrix: six screens × six viewports × two locales × two themes.
 const require = createRequire(import.meta.url)
 const axePath = require.resolve('axe-core')
-const port = 5176
+// Use a per-process high port so stale preview servers cannot make the readiness probe
+// pass against the wrong process while the test server itself fails to bind.
+const port = Number(process.env.LAYOUT_PORT ?? (18000 + (process.pid % 10000)))
 const baseUrl = 'http://127.0.0.1:' + port
 const outDir = process.env.LAYOUT_SCREENSHOT_DIR ?? 'test-results/layout'
 const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { stdio: 'ignore' })
