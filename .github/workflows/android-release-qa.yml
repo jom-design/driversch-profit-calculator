@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -34,9 +35,6 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.sha }}
       - uses: android-actions/setup-android@v3
       - name: Install Android build tools
         run: sdkmanager "build-tools;35.0.0"
