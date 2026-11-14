@@ -4,6 +4,7 @@ import { calculateTrip } from './lib/calculator'
 import AssistantInbox from './assistant/AssistantInbox'
 import type { InboxItem } from './assistant/types'
 import { toCalculatorTripInput } from './assistant/calculatorTransfer'
+import { ocrDraftToInboxItem } from './assistant/ocrAdapter'
 import { deleteTrip, getSettings, getTrips, replaceAllTrips, saveSettings, saveTrip } from './lib/db'
 import { readTripImage, type OcrDraft } from './lib/ocr'
 import { DEFAULT_SETTINGS, EMPTY_TRIP, type AppName, type FareMode, type SavedTrip, type Settings, type TripInput } from './types'
@@ -58,10 +59,11 @@ export default function App() {
   }
   const useDraft=()=>{
     if(!draft)return
-    setTrip(t=>({...t,app:draft.app,fare:draft.fare??t.fare,fareMode:draft.fareMode,
-      pickupKm:draft.pickupKm??t.pickupKm,passengerKm:draft.passengerKm??t.passengerKm,
-      totalMinutes:draft.totalMinutes??t.totalMinutes}))
-    setPage('calculator');setDraft(null)
+    const item=ocrDraftToInboxItem(draft,crypto.randomUUID())
+    setInbox(items=>[item,...items])
+    setPage('inbox')
+    setDraft(null)
+    setToast('تمت إضافة الصورة لصندوق المراجعة. راجع كل الحقول وأكدها قبل الحساب.')
   }
   const transferConfirmedOffer=(item:InboxItem)=>{
     const nextTrip=toCalculatorTripInput(item)
@@ -159,7 +161,7 @@ export default function App() {
           </div>
           {draft.warnings.map(w=><div className="inline-alert">{w}</div>)}
           <details><summary>عرض نص OCR للمراجعة فقط</summary><pre>{draft.rawText}</pre></details>
-          <button className="primary-btn" onClick={useDraft}><Check size={17}/> نقل البيانات للحاسبة</button>
+          <button className="primary-btn" onClick={useDraft}><Check size={17}/> إضافة لصندوق المراجعة</button>
           <button className="subtle-btn" onClick={()=>setDraft(null)}><X size={16}/> إلغاء</button>
         </div>}
       </section>}
