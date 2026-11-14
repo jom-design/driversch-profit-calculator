@@ -102,7 +102,7 @@ try {
             runOnly: { type: 'rule', values: ['color-contrast'] }
           }))
           const contrastFailures = contrast.violations.flatMap(v => v.nodes.map(n => ({ id: v.id, target: n.target, summary: n.failureSummary })))
-          check(`${vp.name}/${locale}/${theme} ${screen.name}: no color contrast violations (${JSON.stringify(contrastFailures).slice(0, 500)})`, contrastFailures.length === 0)
+          check(`${vp.name}/${locale}/${theme} ${screen.name}: no color contrast violations (${JSON.stringify(contrastFailures)})`, contrastFailures.length === 0)
           await page.screenshot({ path: `${outDir}/${vp.name}-${screen.name}-${locale}-${theme}.png`, fullPage: true })
           if (screen.name !== 'calculator') {
             await page.getByRole('button', { name: /Trip Calculator|حاسبة المشوار/ }).click()
