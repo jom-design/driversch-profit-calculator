@@ -24,3 +24,17 @@ PR #1 changes core calculation, persistence, and app files. This branch intentio
 - Keep assistant parsing tests independent from calculator regression tests.
 - Confirm all imported legacy trips remain visible; mark unverifiable records rather than silently dropping them.
 - Confirm import/export is atomic across trips and settings before enabling assistant persistence.
+
+## Inbox UI integration (feature branch)
+
+The inbox is exposed through the existing navigation using a narrowly scoped change in `src/App.tsx`. The new UI lives in `src/assistant/AssistantInbox.tsx` with isolated styles. Screenshot OCR is adapted by `src/assistant/ocrAdapter.ts` and enters `needs-review`; it no longer bypasses review to reach the calculator.
+
+The calculator hand-off is isolated in `src/assistant/calculatorTransfer.ts`. It returns a `TripInput` only when the inbox item is `confirmed` and fare, pickup distance, passenger distance, and duration are present. It never calls `saveTrip`, `calculateTrip`, or IndexedDB. The existing calculator remains responsible for calculations; fare mode is set to `unknown` so the driver must choose the correct interpretation before relying on the decision.
+
+## Native notification contract
+
+A future Android `NotificationListenerService` should obtain explicit user-granted notification access, identify the source package, normalize notification ID/title/text/post time, and deliver a payload matching `NativeNotificationPayload` in `src/assistant/notificationBridge.ts`. The bridge validates required fields and deduplicates by notification ID before invoking the existing parser. This is a receiver contract only: the current browser app does not subscribe to or read Android notifications.
+
+## Persistence boundary
+
+Inbox state is currently held in React application memory for this phase. It is intentionally not written to the trip-history IndexedDB, and it is lost when the page is reloaded. If persistent inbox storage is added later, it must use a separate versioned store/database and an explicit privacy/retention policy; do not alter the existing trip-history database as a side effect.
