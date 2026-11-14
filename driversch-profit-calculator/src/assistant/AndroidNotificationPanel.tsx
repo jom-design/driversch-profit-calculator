@@ -11,6 +11,7 @@ interface NativeBridge {
   openNotificationAccessSettings: () => boolean
   startSpeechRecognition: (languageTag: string) => boolean
   setVoiceLanguage: (languageTag: string) => boolean
+  setSystemTheme: (theme: string) => boolean
   stopSpeechRecognition: () => boolean
   speakText: (text: string) => boolean
   stopSpeaking: () => boolean
