@@ -303,3 +303,18 @@ html[data-theme="light"] .nav{
 }
 html[data-theme="light"] .nav button{color:#526780}
 html[data-theme="light"] .nav button.active{background:#e4f2ff;color:#0759a5;border-color:#b9d9f5}
+
+
+/* Light decision/result surfaces retain strong text contrast on pale backgrounds. */
+html[data-theme="light"] .decision.good{background:#e3f7ed;border-color:#9bd9bb;color:#155b43}
+html[data-theme="light"] .decision.warn{background:#fff4dc;border-color:#e8c77f;color:#77500d}
+html[data-theme="light"] .decision.bad{background:#ffeaed;border-color:#e7a7b1;color:#922d40}
+html[data-theme="light"] .decision p{color:#425a70}
+html[data-theme="light"] .decision-mark{background:#ffffffa8;color:inherit}
+html[data-theme="light"] .profit-highlight{background:#fff;border-color:#cbdbea}
+html[data-theme="light"] .profit-highlight small,html[data-theme="light"] .profit-highlight span{color:#526780}
+html[data-theme="light"] .positive{color:#14784e!important}
+html[data-theme="light"] .negative{color:#b4233a!important}
+html[data-theme="light"] .required-fare{background:#f0f5fb;border-color:#d1deec;color:#203752}
+html[data-theme="light"] .required-fare span{color:#526780}
+html[data-theme="light"] .formula-note{color:#526780}
