@@ -298,7 +298,7 @@ const INTERPOLATED: Array<[RegExp,(match:RegExpMatchArray)=>string]> = [
   [/^آخر إشعار مؤهل: (.+)$/, m => `Last eligible notification: ${m[1]}`],
   [/^عدد العروض (\d+)$/, m => `Offers (${m[1]})`],
   [/^عندك (\d+) عرض غير مؤكد$/, m => `You have ${m[1]} unconfirmed offers`],
-  [/^عمولة (.+)$/, m => `Commission ${m[1]}`],
+  [/^عمولة (.+)$/, m => `${m[1]} commission`],
   [/^(.+) كم$/, m => `${m[1]} km`],
   [/^(.+) دقيقة$/, m => `${m[1]} min`],
   [/^(.+) جنيه$/, m => `EGP ${m[1]}`],
