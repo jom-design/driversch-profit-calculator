@@ -19,12 +19,7 @@ interface SpeechRecognitionLike {
   abort(): void
 }
 type SpeechRecognitionCtor = new () => SpeechRecognitionLike
-interface NativeVoiceBridge {
-  startSpeechRecognition: () => boolean
-  stopSpeechRecognition: () => boolean
-}
 interface NativeVoiceEventDetail { type: string; value?: string }
-declare global { interface Window { DriverAndroid?: NativeVoiceBridge } }
 
 function getRecognitionCtor(): SpeechRecognitionCtor | null {
   const w = window as unknown as { SpeechRecognition?: SpeechRecognitionCtor; webkitSpeechRecognition?: SpeechRecognitionCtor }
