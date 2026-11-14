@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { AlertCircle, Archive, Check, ChevronDown, CircleHelp, ClipboardPaste, ShieldAlert, Trash2, X } from 'lucide-react'
-import { createInboxItem, markInboxParsed, requestInboxReview, updateInboxDraft, confirmInboxItem, rejectInboxItem, hasRequiredReviewData, deleteInboxItem } from './inbox'
+import { createInboxItem, markInboxParsed, requestInboxReview, updateInboxDraft, confirmInboxItem, rejectInboxItem, hasRequiredReviewData, deleteInboxItem, setInboxFieldReviewed } from './inbox'
 import { parseRideOffer } from './parser'
 import type { InboxItem, RideOfferDraft, RideProvider } from './types'
 import { detectBrowserCapabilities, type BrowserRuntimeLike } from '../platform/browserCapabilities'
@@ -35,7 +35,6 @@ export default function AssistantInbox({ items, onChange, onTransfer }: Props) {
   const [sourceText, setSourceText] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [error, setError] = useState('')
-  const [reviewed, setReviewed] = useState<Record<string, string[]>>({})
   const capabilities = detectBrowserCapabilities(window as unknown as BrowserRuntimeLike)
   const selected = useMemo(() => items.find(item => item.id === selectedId) ?? null, [items, selectedId])
   const active = items.filter(item => item.status !== 'dismissed' && item.status !== 'rejected' && item.status !== 'transferred')
@@ -62,7 +61,7 @@ export default function AssistantInbox({ items, onChange, onTransfer }: Props) {
           },
           warnings: ['تعذر تحليل النص. يمكنك إدخال البيانات يدويًا.'], createdAt: now.toISOString()
         },
-        createdAt: now.toISOString(), updatedAt: now.toISOString()
+        createdAt: now.toISOString(), updatedAt: now.toISOString(), reviewedFields: []
       }
       onChange([failed, ...items]); setSelectedId(failed.id); setError('')
     }
@@ -73,7 +72,6 @@ export default function AssistantInbox({ items, onChange, onTransfer }: Props) {
     const value = raw === '' ? null : Number(raw)
     if (value !== null && (!Number.isFinite(value) || value < 0)) return
     const evidence = value === null ? [] : [{ text: 'تم الإدخال أو التصحيح يدويًا', start: 0, end: 0 }]
-    setReviewed(current => ({ ...current, [item.id]: (current[item.id] ?? []).filter(name => name !== field) }))
     const draft: RideOfferDraft = {
       ...item.draft,
       fields: { ...item.draft.fields, [field]: {
@@ -81,12 +79,15 @@ export default function AssistantInbox({ items, onChange, onTransfer }: Props) {
         status: value === null ? 'missing' : 'candidate'
       }}
     }
-    update(item, draft)
+    const corrected = updateInboxDraft(item, draft)
+    onChange(items.map(current => current.id === item.id ? setInboxFieldReviewed(corrected, field, false) : current))
   }
   const setProvider = (item: InboxItem, provider: RideProvider) =>
     update(item, { ...item.draft, provider, providerConfidence: provider === 'unknown' ? 0 : 1 })
+  const setFieldReviewed = (item: InboxItem, field: 'fare' | 'pickupDistanceKm' | 'distanceKm' | 'durationMinutes', checked: boolean) =>
+    onChange(items.map(current => current.id === item.id ? setInboxFieldReviewed(current, field, checked) : current))
   const confirm = (item: InboxItem) => {
-    const next = confirmInboxItem(item, (reviewed[item.id] ?? []) as Array<'fare' | 'pickupDistanceKm' | 'distanceKm' | 'durationMinutes'>)
+    const next = confirmInboxItem(item, item.reviewedFields ?? [])
     if (next.status !== 'confirmed') { setError('لا يمكن التأكيد قبل إدخال الأجرة والمسافة والمدة ومراجعتها.'); return }
     onChange(items.map(current => current.id === item.id ? next : current))
     setError('')
@@ -160,7 +161,7 @@ export default function AssistantInbox({ items, onChange, onTransfer }: Props) {
                     disabled={selected.status === 'confirmed' || selected.status === 'rejected' || selected.status === 'transferred'}
                     onChange={event => setManualField(selected, field, event.target.value)} placeholder="أدخل القيمة"/>
                     <small>{field === 'fare' ? 'جنيه' : field === 'durationMinutes' ? 'دقيقة' : 'كم'}</small></div>
-                  <label className="inbox-reviewed"><input type="checkbox" checked={(reviewed[selected.id] ?? []).includes(field)} disabled={selected.status === 'confirmed' || selected.status === 'rejected' || selected.status === 'transferred'} onChange={event => setReviewed(current => ({ ...current, [selected.id]: event.target.checked ? [...(current[selected.id] ?? []), field] : (current[selected.id] ?? []).filter(value => value !== field) }))}/> راجعت هذه القيمة وأؤكدها</label>
+                  <label className="inbox-reviewed"><input type="checkbox" checked={(selected.reviewedFields ?? []).includes(field)} disabled={selected.status === 'confirmed' || selected.status === 'rejected' || selected.status === 'transferred'} onChange={event => setFieldReviewed(selected, field, event.target.checked)}/> راجعت هذه القيمة وأؤكدها</label>
                   <small className="inbox-confidence">الثقة: {Math.round(candidate.confidence * 100)}% · {candidate.evidence.length ? 'الدليل: ' + candidate.evidence.map(e => e.text).join('، ') : 'لا يوجد دليل مستخرج'}</small>
                 </div>
               })}
@@ -172,7 +173,7 @@ export default function AssistantInbox({ items, onChange, onTransfer }: Props) {
             </div>
             {selected.draft.warnings.map((warning, index) => <p className="inbox-warning" key={index}><ShieldAlert size={15}/>{warning}</p>)}
             {selected.status !== 'confirmed' && selected.status !== 'rejected' && selected.status !== 'transferred' && <div className="inbox-actions">
-              <button className="primary-btn" type="button" onClick={() => confirm(selected)} disabled={!hasRequiredReviewData(selected) || (reviewed[selected.id] ?? []).length < 4}><Check size={16}/> تأكيد العرض بعد المراجعة</button>
+              <button className="primary-btn" type="button" onClick={() => confirm(selected)} disabled={!hasRequiredReviewData(selected) || (selected.reviewedFields ?? []).length < 4}><Check size={16}/> تأكيد العرض بعد المراجعة</button>
               <button className="subtle-btn" type="button" onClick={() => reject(selected)}><X size={16}/> رفض</button>
               <button className="inbox-delete" type="button" onClick={() => remove(selected)}><Trash2 size={16}/> حذف</button>
             </div>}

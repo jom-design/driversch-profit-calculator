@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Activity, Archive, Calculator, CarFront, Check, ChevronDown, Download, FileImage, Gauge, History, LayoutDashboard, Mic, MicOff, RotateCcw, Save, Settings as SettingsIcon, ShieldCheck, Trash2, Upload, Wallet, X } from 'lucide-react'
 import { calculateTrip } from './lib/calculator'
 import AssistantInbox from './assistant/AssistantInbox'
@@ -6,6 +6,7 @@ import type { InboxItem } from './assistant/types'
 import { toCalculatorTripInput } from './assistant/calculatorTransfer'
 import { ocrDraftToInboxItem } from './assistant/ocrAdapter'
 import { markInboxParseError, markInboxTransferred } from './assistant/inbox'
+import { getInboxStorageErrorMessage, loadInboxItems, saveInboxChanges } from './assistant/inboxStorage'
 import { deleteTrip, getSettings, getTrips, replaceAllTrips, saveSettings, saveTrip } from './lib/db'
 import { readTripImage, type OcrDraft } from './lib/ocr'
 import { DEFAULT_SETTINGS, EMPTY_TRIP, type AppName, type FareMode, type SavedTrip, type Settings, type TripInput } from './types'
@@ -32,6 +33,12 @@ export default function App() {
   const [trip,setTrip]=useState<TripInput>(EMPTY_TRIP)
   const [trips,setTrips]=useState<SavedTrip[]>([])
   const [inbox,setInbox]=useState<InboxItem[]>([])
+  const [inboxReady,setInboxReady]=useState(false)
+  const [inboxStorageMessage,setInboxStorageMessage]=useState('')
+  const [inboxSaveFailed,setInboxSaveFailed]=useState(false)
+  const invalidInboxCountRef=useRef(0)
+  const persistedInboxRef=useRef<InboxItem[]>([])
+  const inboxWriteQueueRef=useRef<Promise<void>>(Promise.resolve())
   const [draft,setDraft]=useState<OcrDraft|null>(null)
   const [busy,setBusy]=useState(false)
   const [progress,setProgress]=useState(0)
@@ -39,7 +46,37 @@ export default function App() {
   const [speaking,setSpeaking]=useState(false)
   const result=useMemo(()=>calculateTrip(trip,settings),[trip,settings])
   useEffect(()=>{(async()=>{setSettings(await getSettings());setTrips(await getTrips())})()},[])
+  useEffect(()=>{
+    let active=true
+    void loadInboxItems().then(({items,invalidCount})=>{
+      if(!active)return
+      persistedInboxRef.current=items
+      setInbox(items)
+      invalidInboxCountRef.current=invalidCount
+      if(invalidCount>0)setInboxStorageMessage(`تم تجاهل ${invalidCount} سجل غير صالح داخل مخزن الإنبوكس. لم يتم حذف السجلات التالفة.`)
+    }).catch(error=>{if(active){setInboxStorageMessage(getInboxStorageErrorMessage(error));setInboxSaveFailed(true)}})
+      .finally(()=>{if(active)setInboxReady(true)})
+    return ()=>{active=false}
+  },[])
   useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(''),3200);return()=>clearTimeout(t)},[toast])
+  const commitInbox=(next:InboxItem[]):Promise<boolean>=>{
+    setInbox(next)
+    const operation=inboxWriteQueueRef.current.then(async()=>{
+      await saveInboxChanges(persistedInboxRef.current,next)
+      persistedInboxRef.current=next
+      setInboxStorageMessage(invalidInboxCountRef.current>0?`تم تجاهل ${invalidInboxCountRef.current} سجل غير صالح داخل مخزن الإنبوكس. لم يتم حذف السجلات التالفة.`:'')
+      setInboxSaveFailed(false)
+      return true
+    }).catch(error=>{
+      const message=getInboxStorageErrorMessage(error)
+      setInboxStorageMessage(message)
+      setInboxSaveFailed(true)
+      setToast(message)
+      return false
+    })
+    inboxWriteQueueRef.current=operation.then(()=>undefined)
+    return operation
+  }
   const patch=(key:keyof TripInput,value:any)=>setTrip(t=>({...t,[key]:value}))
   const updateSettings=(key:keyof Settings,value:number)=>setSettings(s=>({...s,[key]:value}))
   const persistSettings=async()=>{await saveSettings(settings);setToast('تم حفظ الإعدادات محليًا')}
@@ -53,24 +90,29 @@ export default function App() {
   const removeTrip=async(id:string)=>{await deleteTrip(id);setTrips(await getTrips())}
   const uploadImage=async(file?:File)=>{
     if(!file)return
+    if(!inboxReady){setToast('انتظر استعادة صندوق الرحلات قبل معالجة صورة جديدة.');return}
     setBusy(true);setProgress(0);setDraft(null)
     try{setDraft(await readTripImage(file,setProgress));setToast('انتهت قراءة الصورة؛ راجع البيانات قبل اعتمادها')}
-    catch(e){const failed=markInboxParseError(crypto.randomUUID(),'screenshot','');setInbox(items=>[failed,...items]);setPage('inbox');setToast('تعذرت قراءة الصورة؛ أضف البيانات يدويًا في عنصر الخطأ داخل صندوق المراجعة.')}
+    catch(e){const failed=markInboxParseError(crypto.randomUUID(),'screenshot','');await commitInbox([failed,...inbox]);setPage('inbox');setToast('تعذرت قراءة الصورة؛ أضف البيانات يدويًا في عنصر الخطأ داخل صندوق المراجعة.')}
     finally{setBusy(false)}
   }
-  const useDraft=()=>{
+  const useDraft=async()=>{
     if(!draft)return
+    if(!inboxReady){setToast('انتظر استعادة صندوق الرحلات قبل إضافة العرض.');return}
     const item=ocrDraftToInboxItem(draft,crypto.randomUUID())
-    setInbox(items=>[item,...items])
+    await commitInbox([item,...inbox])
     setPage('inbox')
     setDraft(null)
     setToast('تمت إضافة الصورة لصندوق المراجعة. راجع كل الحقول وأكدها قبل الحساب.')
   }
-  const transferConfirmedOffer=(item:InboxItem)=>{
-    const nextTrip=toCalculatorTripInput(item)
+  const transferConfirmedOffer=async(item:InboxItem)=>{
+    const current=inbox.find(entry=>entry.id===item.id)
+    const nextTrip=current?.status==='confirmed'?toCalculatorTripInput(current):null
     if(!nextTrip){setToast('لا يمكن نقل عرض غير مؤكد أو ناقص البيانات');return}
+    const nextInbox=inbox.map(entry=>entry.id===item.id?markInboxTransferred(entry):entry)
+    const persisted=await commitInbox(nextInbox)
+    if(!persisted){setInbox(inbox);setToast('تعذر تثبيت حالة النقل محليًا؛ لم يتم إرسال العرض للحاسبة.');return}
     setTrip(current=>({...current,...nextTrip}))
-    setInbox(items=>items.map(current=>current.id===item.id?markInboxTransferred(current):current))
     setPage('calculator')
     setToast('تم نقل العرض المؤكد للحاسبة. لم يتم حفظه في سجل الرحلات.')
   }
@@ -110,6 +152,7 @@ export default function App() {
     </header>
     <nav className="nav">{nav.map(n=><button key={n.id} className={page===n.id?'active':''} onClick={()=>setPage(n.id)}><n.icon size={17}/>{n.label}{n.id==='inbox'&&inbox.filter(item=>item.status!=='rejected'&&item.status!=='dismissed'&&item.status!=='transferred').length>0?<b>{inbox.filter(item=>item.status!=='rejected'&&item.status!=='dismissed'&&item.status!=='transferred').length}</b>:null}</button>)}</nav>
     <main className="main">
+      {inboxStorageMessage&&<div className="inbox-storage-alert" role="alert"><span>{inboxStorageMessage}</span>{inboxSaveFailed&&<button type="button" onClick={()=>void commitInbox(inbox)}>إعادة محاولة الحفظ</button>}</div>}
       {page==='calculator'&&<><section className="hero"><div><span className="eyebrow">قرار أذكى • ربح أوضح</span><h1>احسبها قبل ما تقبل المشوار</h1><p>اعرف تكلفة الرحلة وصافي ربحك الحقيقي في ثوانٍ.</p></div><div className="hero-stat"><Gauge size={26}/><span>القرار بيتحسب تلقائيًا</span></div></section>
         <section className="templates"><div className="section-head"><h2>نماذج جاهزة للاختبار السريع</h2><span>اضغط لملء الحقول</span></div><div className="template-grid">{templates.map(t=><button className="template" key={t.name} onClick={()=>loadTemplate(t.trip)}><strong>{t.name}</strong><small>{t.desc}</small></button>)}</div></section>
         <div className="work-grid"><section className="panel form-panel"><div className="panel-head"><div><span className="eyebrow">بيانات العرض</span><h2><CarFront/> بيانات المشوار المقترح</h2></div><button className="subtle-btn" onClick={()=>setTrip(EMPTY_TRIP)}><RotateCcw size={15}/> تفريغ الحقول</button></div>
@@ -167,7 +210,8 @@ export default function App() {
           <button className="subtle-btn" onClick={()=>setDraft(null)}><X size={16}/> إلغاء</button>
         </div>}
       </section>}
-      {page==='inbox'&&<AssistantInbox items={inbox} onChange={setInbox} onTransfer={transferConfirmedOffer}/>}
+      {page==='inbox'&&!inboxReady&&<section className="panel" role="status">جارٍ استعادة صندوق الرحلات المحفوظ على هذا الجهاز…</section>}
+      {page==='inbox'&&inboxReady&&<AssistantInbox items={inbox} onChange={commitInbox} onTransfer={transferConfirmedOffer}/>}
       {page==='history'&&<section className="panel"><div className="panel-head"><div><span className="eyebrow">بيانات محفوظة على جهازك</span><h2><History/> سجل الرحلات</h2></div><button className="subtle-btn" onClick={exportCsv}><Download size={16}/> تصدير CSV</button></div>
         {trips.length===0?<Empty title="لسه مفيش رحلات محفوظة" text="احسب أول مشوار واحفظه علشان يظهر هنا."/>:<div className="table-wrap"><table><thead><tr><th>التاريخ</th><th>التطبيق</th><th>الأجرة</th><th>المسافة</th><th>صافي الربح</th><th>القرار</th><th></th></tr></thead><tbody>{trips.map(t=><tr key={t.id}><td>{new Date(t.createdAt).toLocaleString('ar-EG')}</td><td>{t.app}</td><td>{money(t.fare)}</td><td>{t.totalKm.toFixed(1)} كم</td><td className={t.netProfit>=0?'positive':'negative'}>{money(t.netProfit)}</td><td><span className={`pill ${decisionClass[t.decision]}`}>{decisionLabel[t.decision]}</span></td><td><button className="danger-icon" onClick={()=>removeTrip(t.id)} title="حذف"><Trash2 size={16}/></button></td></tr>)}</tbody></table></div>}
       </section>}

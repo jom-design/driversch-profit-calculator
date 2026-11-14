@@ -10,8 +10,10 @@ on:
       - "driversch-profit-calculator/src/styles.css"
       - "driversch-profit-calculator/src/platform/**"
       - "driversch-profit-calculator/tests/assistant/**"
+      - "driversch-profit-calculator/tests/e2e/**"
       - "driversch-profit-calculator/tests/platform/**"
       - "driversch-profit-calculator/package.json"
+      - "driversch-profit-calculator/package-lock.json"
       - ".github/workflows/assistant-foundation.yml"
   pull_request:
     paths:
@@ -20,12 +22,14 @@ on:
       - "driversch-profit-calculator/src/styles.css"
       - "driversch-profit-calculator/src/platform/**"
       - "driversch-profit-calculator/tests/assistant/**"
+      - "driversch-profit-calculator/tests/e2e/**"
       - "driversch-profit-calculator/tests/platform/**"
       - "driversch-profit-calculator/package.json"
+      - "driversch-profit-calculator/package-lock.json"
       - ".github/workflows/assistant-foundation.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   assistant-foundation:
@@ -38,13 +42,33 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Generate a lockfile when bootstrapping this branch
+        id: lockfile
+        run: |
+          if [ ! -f package-lock.json ]; then
+            npm install --package-lock-only --no-audit --no-fund
+            echo "generated=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "generated=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Install dependencies
-        run: npm install --no-package-lock --no-audit --no-fund
-      - name: Run assistant tests
+        run: npm ci --no-audit --no-fund
+      - name: Run assistant unit tests
         run: npm run test:assistant
-      - name: Run complete test suite
-        run: npm test
       - name: TypeScript project check
         run: npx tsc -b
       - name: Vite production build
         run: npm run build
+      - name: Install Chromium for browser tests
+        run: npx playwright install --with-deps chromium
+      - name: Run combined unit and browser test suite
+        run: npm test
+
+      - name: Commit the lockfile after all checks pass
+        if: steps.lockfile.outputs.generated == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          git commit -m "build: add npm lockfile for reproducible installs"
+          git push origin HEAD:refs/heads/feat/full-driver-assistant-20261114

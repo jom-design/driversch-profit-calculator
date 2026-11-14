@@ -14,3 +14,11 @@
 
 .assistant-inbox .status-transferred{background:#173a34;color:#a7e7d2}
 .assistant-inbox .inbox-success{border:1px solid #2c6555;background:#102d29;color:#a7e7d2;border-radius:10px;padding:12px;line-height:1.7}
+
+.inbox-reviewed{display:flex;align-items:center;gap:9px;color:#b8c8dc;font-size:12px;cursor:pointer;min-height:44px;padding-block:6px}
+.inbox-reviewed input{width:20px;height:20px;accent-color:#12a982;flex:none}
+.inbox-storage-alert{max-width:1180px;margin:0 auto 14px;padding:12px 14px;border:1px solid #8b5a2b;border-radius:10px;background:#3a2817;color:#ffe0b2;line-height:1.7;font-size:13px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.inbox-storage-alert button{border:1px solid #d59b50;border-radius:8px;padding:8px 12px;background:transparent;color:#ffe0b2;font:inherit;cursor:pointer;min-height:40px}
+.inbox-storage-alert button:focus-visible{outline:2px solid #ffe0b2;outline-offset:2px}
+.assistant-inbox .status-transferred{background:#173a34;color:#a7e7d2}
+.assistant-inbox .inbox-success{border:1px solid #2c6555;background:#102d29;color:#a7e7d2;border-radius:10px;padding:12px;line-height:1.7}

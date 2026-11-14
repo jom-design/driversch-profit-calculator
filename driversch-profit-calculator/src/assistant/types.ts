@@ -35,6 +35,8 @@ export interface RideOfferDraft {
   createdAt: string
 }
 
+export type InboxReviewField = 'fare' | 'pickupDistanceKm' | 'distanceKm' | 'durationMinutes'
+
 export type InboxStatus = 'received' | 'parsed' | 'needs-review' | 'confirmed' | 'rejected' | 'dismissed' | 'parse-error' | 'transferred'
 
 export interface InboxItem {
@@ -43,4 +45,5 @@ export interface InboxItem {
   draft: RideOfferDraft
   createdAt: string
   updatedAt: string
+  reviewedFields: InboxReviewField[]
 }

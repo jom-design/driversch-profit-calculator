@@ -1,4 +1,4 @@
-import type { InboxItem, RideOfferDraft } from './types'
+import type { InboxItem, InboxReviewField, RideOfferDraft } from './types'
 
 export function createInboxItem(draft: RideOfferDraft, id: string, now = new Date()): InboxItem {
   return {
@@ -6,7 +6,8 @@ export function createInboxItem(draft: RideOfferDraft, id: string, now = new Dat
     status: 'received',
     draft,
     createdAt: now.toISOString(),
-    updatedAt: now.toISOString()
+    updatedAt: now.toISOString(),
+    reviewedFields: []
   }
 }
 
@@ -75,7 +76,7 @@ export function markInboxParseError(
     warnings: ['تعذر تحليل العرض؛ أدخل البيانات يدويًا أو احذف العنصر.'],
     createdAt: now.toISOString()
   }
-  return { id, status: 'parse-error', draft, createdAt: now.toISOString(), updatedAt: now.toISOString() }
+  return { id, status: 'parse-error', draft, createdAt: now.toISOString(), updatedAt: now.toISOString(), reviewedFields: [] }
 }
 
 export function hasRequiredReviewData(item: InboxItem): boolean {
@@ -88,6 +89,14 @@ export function deleteInboxItem(items: InboxItem[], id: string): InboxItem[] {
   return items.filter(item => item.id !== id)
 }
 
+
+export function setInboxFieldReviewed(item: InboxItem, field: InboxReviewField, reviewed: boolean, now = new Date()): InboxItem {
+  if (item.status !== 'needs-review') return item
+  const fields = new Set(item.reviewedFields ?? [])
+  if (reviewed) fields.add(field)
+  else fields.delete(field)
+  return { ...item, reviewedFields: [...fields], updatedAt: now.toISOString() }
+}
 
 export function markInboxTransferred(item: InboxItem, now = new Date()): InboxItem {
   if (item.status !== 'confirmed') return item
