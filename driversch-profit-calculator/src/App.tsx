@@ -43,7 +43,7 @@ export default function App() {
     if(!result.isValid){setToast(result.decisionReason || 'راجع بيانات الرحلة قبل الحفظ');return}
     if(trip.fareMode==='unknown'){setToast('حدد هل الأجرة صافية أم إجمالية أولًا');return}
     const saved:SavedTrip={...trip,...result,id:crypto.randomUUID(),createdAt:new Date().toISOString()}
-    await saveTrip(saved);setTrips(await getTrips());setToast('تم حفظ الرحلة على جهازك')
+    await saveTrip(saved,settings);setTrips(await getTrips());setToast('تم حفظ الرحلة على جهازك')
   }
   const removeTrip=async(id:string)=>{await deleteTrip(id);setTrips(await getTrips())}
   const uploadImage=async(file?:File)=>{
@@ -77,7 +77,7 @@ export default function App() {
       const data=JSON.parse(await file.text())
       if(data.schemaVersion!==1||!Array.isArray(data.trips)||!data.settings)throw new Error('invalid')
       if(!confirm(`سيتم استيراد ${data.trips.length} رحلة واستبدال السجل الحالي. هل تريد المتابعة؟`))return
-      await replaceAllTrips(data.trips);await saveSettings(data.settings);setTrips(await getTrips());setSettings(await getSettings());setToast('تم استيراد النسخة الاحتياطية')
+      await replaceAllTrips(data.trips,data.settings);await saveSettings(data.settings);setTrips(await getTrips());setSettings(await getSettings());setToast('تم استيراد النسخة الاحتياطية')
     }catch{setToast('ملف النسخة الاحتياطية غير صالح أو غير متوافق')}
   }
   const exportCsv=()=>{
