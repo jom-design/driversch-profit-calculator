@@ -83,3 +83,32 @@ Result: **13 passed, 0 failed, 0 skipped** (exit code 0).
 ## Remaining limitations
 
 Vitest and the full Vite production build remain unverified. The available local snapshot is not a complete checkout of the remote review branch; the GitHub API was used to independently inspect the actual branch tree and confirm the app entry points/configuration exist. Direct Git transport also fails in this environment because `github.com` DNS resolution fails. The Node.js harness and strict TypeScript check for calculator/types passed locally. GitHub Actions and the deployment provider must be checked against the final pushed commit after publication.
+
+
+## Follow-up correction — allow valid 30-second trips and guard arithmetic range
+
+The one-minute minimum was not a documented product requirement and has been removed. A positive duration such as 30 seconds is now eligible for calculation when all input and derived values remain within the safe currency range.
+
+The calculator no longer substitutes invalid input fields or short durations with zero before calculation. It validates the original values first, returns an invalid REVIEW result for invalid input, and checks every primary derived result for finiteness and the safe currency range before rounding or making a decision. Subnormal durations such as `Number.MIN_VALUE` are rejected as outside the safe numeric range; positive durations whose hourly-profit result exceeds the safe currency range are also invalidated.
+
+The UI hides numeric placeholders for invalid calculations and blocks saving an invalid result. Regression tests were added for:
+- 30-second valid trip and expected hourly profit.
+- Zero and negative durations.
+- `Number.MIN_VALUE`.
+- A positive duration that causes an out-of-range hourly-profit result.
+
+**Execution status for this correction:** source and regression tests have been updated on the review branch. The current environment has no complete local checkout and DNS resolution for GitHub/npm is failing; these new tests, Vitest, TypeScript, and the production build must not be described as executed or passed until run in a complete environment.
+
+
+## Follow-up execution — numeric-range correction
+
+The unsupported one-minute business rule has been removed. The revised calculator accepts a valid 30-second trip (0.5 minutes) and validates the original duration without substituting a fallback duration. It invalidates zero/negative durations, subnormal values such as `Number.MIN_VALUE`, and any derived monetary result outside the safe currency range before issuing a decision.
+
+The application now hides numeric placeholders whenever `isValid` is false and blocks saving invalid calculations.
+
+A temporary isolated calculator harness was executed after this correction:
+- Node built-in tests: **15 passed, 0 failed, 0 skipped**.
+- TypeScript strict check for the calculator and shared types: **passed**.
+- This isolated run is not a complete repository checkout and does not constitute a full application build or Vitest run.
+
+Vitest and the full production build remain **NOT VERIFIED**. The local environment still cannot resolve GitHub/npm DNS, there is no complete local checkout, and the repository contains no dependency lockfile. No dependency versions or lockfiles were changed.

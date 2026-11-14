@@ -1,6 +1,7 @@
 import type { Calculation, Settings, TripInput } from '../types'
 
-// Monetary rounding is centralized so every consumer sees the same result.
+const MAX_SAFE_CURRENCY = Number.MAX_SAFE_INTEGER / 100
+const MIN_NORMAL_DURATION_MINUTES = 2.2250738585072014e-308
 const money = (value: number): number => Math.round((value + Number.EPSILON) * 100) / 100
 const finite = (value: number): boolean => Number.isFinite(value)
 
@@ -33,7 +34,11 @@ function validate(input: TripInput, settings: Settings): string[] {
     if (!finite(value)) errors.push(`${label}: أدخل رقمًا صالحًا.`)
     else if (value < 0) errors.push(`${label}: لا يمكن أن تكون القيمة سالبة.`)
   }
-  if (finite(input.totalMinutes) && input.totalMinutes < 1) errors.push('مدة الرحلة يجب ألا تقل عن دقيقة واحدة.')
+  if (finite(input.totalMinutes) && input.totalMinutes <= 0) {
+    errors.push('مدة الرحلة يجب أن تكون أكبر من صفر.')
+  } else if (finite(input.totalMinutes) && input.totalMinutes < MIN_NORMAL_DURATION_MINUTES) {
+    errors.push('مدة الرحلة خارج النطاق العددي الآمن للحساب.')
+  }
   if (finite(input.totalMinutes) && input.totalMinutes > 24 * 60) errors.push('مدة الرحلة تتجاوز 24 ساعة؛ راجع الإدخال.')
   if (finite(input.fare) && input.fare > 1_000_000) errors.push('الأجرة تتجاوز الحد المعقول للتحقق؛ راجع الإدخال.')
   if (finite(input.extraExpenses) && input.extraExpenses > 1_000_000) errors.push('المصروفات الإضافية تتجاوز الحد المعقول للتحقق؛ راجع الإدخال.')
@@ -51,59 +56,92 @@ function validate(input: TripInput, settings: Settings): string[] {
   return [...new Set(errors)]
 }
 
+// Numeric fields are display placeholders only when isValid=false; the UI must not present them as calculated results.
+function invalidCalculation(validationErrors: string[]): Calculation {
+  return {
+    totalKm: 0,
+    fuelCost: 0,
+    maintenanceCost: 0,
+    totalCost: 0,
+    netFare: 0,
+    netProfit: 0,
+    hourlyProfit: 0,
+    requiredFare: 0,
+    fareGap: 0,
+    decision: 'review',
+    decisionReason: validationErrors[0] ?? 'تعذر التحقق من بيانات الرحلة.',
+    isValid: false,
+    validationErrors
+  }
+}
+
 export function calculateTrip(input: TripInput, settings: Settings): Calculation {
   const validationErrors = validate(input, settings)
-  const trip = input && typeof input === 'object' ? input : {} as TripInput
-  const config = settings && typeof settings === 'object' ? settings : {} as Settings
-  const validNumber = (value: number, maximum = 1_000_000): number =>
-    finite(value) && value >= 0 && value <= maximum ? value : 0
-  const pickupKm = validNumber(trip.pickupKm, 1000)
-  const passengerKm = validNumber(trip.passengerKm, 1000)
-  const returnKm = validNumber(trip.returnKm, 1000)
-  const suppliedMinutes = validNumber(trip.totalMinutes, 24 * 60)
-  // Sub-minute values can inflate hourly profit to Infinity; use a safe fallback after validation.
-  const totalMinutes = suppliedMinutes >= 1 ? suppliedMinutes : 0
-  const fare = validNumber(trip.fare)
-  const extraExpenses = validNumber(trip.extraExpenses)
-  const fuelPrice = validNumber(config.fuelPrice, 1000)
-  const consumption = validNumber(config.consumptionPer100, 100)
-  const maintenanceRate = validNumber(config.maintenancePerKm, 1000)
-  const minimumProfit = validNumber(config.minNetProfit)
-  const hourlyTarget = validNumber(config.hourlyTarget)
-  const commission = finite(trip.commissionRate) && trip.commissionRate >= 0 && trip.commissionRate < 100
-    ? trip.commissionRate : 0
+  if (validationErrors.length > 0) return invalidCalculation(validationErrors)
 
-  const totalKm = pickupKm + passengerKm + returnKm
-  const fuelCost = money(totalKm * fuelPrice * consumption / 100)
-  const maintenanceCost = money(totalKm * maintenanceRate)
-  const totalCost = money(fuelCost + maintenanceCost + extraExpenses)
-  const netFare = money(trip.fareMode === 'gross' ? fare * (1 - commission / 100) : fare)
-  const netProfit = money(netFare - totalCost)
-  const hourlyProfit = totalMinutes > 0 ? money(netProfit * 60 / totalMinutes) : 0
-  const targetByTrip = totalCost + minimumProfit
-  const targetByHour = totalMinutes > 0 ? totalCost + hourlyTarget * totalMinutes / 60 : targetByTrip
-  const requiredNetFare = money(Math.max(targetByTrip, targetByHour))
-  const requiredFare = money(trip.fareMode === 'gross' ? requiredNetFare / (1 - commission / 100) : requiredNetFare)
-  const fareGap = money(requiredFare - fare)
+  const trip = input
+  const config = settings
+  const totalKmRaw = trip.pickupKm + trip.passengerKm + trip.returnKm
+  const fuelCostRaw = totalKmRaw * config.consumptionPer100 * config.fuelPrice / 100
+  const maintenanceCostRaw = totalKmRaw * config.maintenancePerKm
+  const totalCostRaw = fuelCostRaw + maintenanceCostRaw + trip.extraExpenses
+  const netFareRaw = trip.fareMode === 'gross'
+    ? trip.fare * (1 - trip.commissionRate / 100)
+    : trip.fare
+  const netProfitRaw = netFareRaw - totalCostRaw
+  const hourlyProfitRaw = netProfitRaw * 60 / trip.totalMinutes
+  const targetByTripRaw = totalCostRaw + config.minNetProfit
+  const targetByHourRaw = totalCostRaw + config.hourlyTarget * trip.totalMinutes / 60
+  const requiredNetFareRaw = Math.max(targetByTripRaw, targetByHourRaw)
+  const requiredFareRaw = trip.fareMode === 'gross'
+    ? requiredNetFareRaw / (1 - trip.commissionRate / 100)
+    : requiredNetFareRaw
+  const fareGapRaw = requiredFareRaw - trip.fare
+
+  const derivedValues: Array<[string, number, number]> = [
+    ['إجمالي المسافة', totalKmRaw, Number.MAX_SAFE_INTEGER],
+    ['تكلفة الوقود', fuelCostRaw, MAX_SAFE_CURRENCY],
+    ['تكلفة الصيانة', maintenanceCostRaw, MAX_SAFE_CURRENCY],
+    ['إجمالي تكلفة التشغيل', totalCostRaw, MAX_SAFE_CURRENCY],
+    ['صافي الأجرة', netFareRaw, MAX_SAFE_CURRENCY],
+    ['صافي الربح', netProfitRaw, MAX_SAFE_CURRENCY],
+    ['الربح بالساعة', hourlyProfitRaw, MAX_SAFE_CURRENCY],
+    ['الحد الأدنى للأجرة', requiredFareRaw, MAX_SAFE_CURRENCY],
+    ['فرق الأجرة', fareGapRaw, MAX_SAFE_CURRENCY]
+  ]
+  const arithmeticErrors = derivedValues
+    .filter(([, value, maximum]) => !finite(value) || Math.abs(value) > maximum)
+    .map(([label]) => `${label}: نتيجة الحساب خارج النطاق العددي الآمن؛ لا يمكن إصدار قرار موثوق.`)
+  if (arithmeticErrors.length > 0) return invalidCalculation(arithmeticErrors)
+
+  const totalKm = money(totalKmRaw)
+  const fuelCost = money(fuelCostRaw)
+  const maintenanceCost = money(maintenanceCostRaw)
+  const totalCost = money(totalCostRaw)
+  const netFare = money(netFareRaw)
+  const netProfit = money(netProfitRaw)
+  const hourlyProfit = money(hourlyProfitRaw)
+  const requiredFare = money(requiredFareRaw)
+  const fareGap = money(fareGapRaw)
 
   let decision: Calculation['decision'] = 'review'
-  let decisionReason = validationErrors[0] ?? ''
-  if (validationErrors.length === 0 && trip.fareMode === 'unknown') {
+  let decisionReason = ''
+  if (trip.fareMode === 'unknown') {
     decisionReason = 'أكد أولًا هل الأجرة صافية أم إجمالية قبل اعتماد قرار الربحية.'
-  } else if (validationErrors.length === 0 && netProfit < minimumProfit) {
+  } else if (netProfit < config.minNetProfit) {
     decision = 'reject'
-    decisionReason = `صافي الربح أقل من الحد الأدنى ${minimumProfit.toFixed(2)} ج.م.`
-  } else if (validationErrors.length === 0 && hourlyProfit < hourlyTarget) {
+    decisionReason = `صافي الربح أقل من الحد الأدنى ${config.minNetProfit.toFixed(2)} ج.م.`
+  } else if (hourlyProfit < config.hourlyTarget) {
     decision = 'review'
-    decisionReason = `الربح لا يحقق هدف الساعة ${hourlyTarget.toFixed(2)} ج.م.`
-  } else if (validationErrors.length === 0) {
+    decisionReason = `الربح لا يحقق هدف الساعة ${config.hourlyTarget.toFixed(2)} ج.م.`
+  } else {
     decision = 'accept'
     decisionReason = 'الرحلة تحقق الحد الأدنى لصافي الربح وهدف الربح بالساعة.'
   }
 
   return {
-    totalKm: money(totalKm), fuelCost, maintenanceCost, totalCost, netFare,
+    totalKm, fuelCost, maintenanceCost, totalCost, netFare,
     netProfit, hourlyProfit, requiredFare, fareGap, decision,
-    decisionReason, isValid: validationErrors.length === 0, validationErrors
+    decisionReason, isValid: true, validationErrors: []
   }
 }

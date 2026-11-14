@@ -22,7 +22,7 @@ describe('calculateTrip', () => {
     expect(calculate({ fare: 130 })).toMatchObject({ netProfit: 26.05, requiredFare: 153.95, fareGap: 23.95, decision: 'reject' })
   })
   it.each([
-    { pickupKm: -1 }, { fare: Number.NaN }, { returnKm: Number.POSITIVE_INFINITY }, { fare: Number.MAX_VALUE }, { totalMinutes: 0 }
+    { pickupKm: -1 }, { fare: Number.NaN }, { returnKm: Number.POSITIVE_INFINITY }, { fare: Number.MAX_VALUE }, { totalMinutes: 0 }, { totalMinutes: -1 }
   ])('does not issue ACCEPT for invalid input %#', patch => {
     const result = calculate(patch)
     expect(result.decision).toBe('review')
@@ -48,14 +48,24 @@ describe('calculateTrip', () => {
       expect(Object.values(result).filter(value => typeof value === 'number').every(Number.isFinite)).toBe(true)
     }
   })
-  it('rejects sub-minute durations without non-finite calculated values', () => {
-    for (const duration of [0, 0.5, Number.MIN_VALUE]) {
-      const result = calculate({ totalMinutes: duration })
-      expect(result.isValid).toBe(false)
-      expect(result.decision).toBe('review')
-      expect(result.validationErrors.length).toBeGreaterThan(0)
-      expect(Object.values(result).filter(value => typeof value === 'number').every(Number.isFinite)).toBe(true)
-    }
+  it('accepts a valid 30-second trip and calculates a finite hourly profit', () => {
+    const result = calculate({ totalMinutes: 0.5 })
+    expect(result.isValid).toBe(true)
+    expect(result.hourlyProfit).toBe(7326)
+    expect(result.decision).toBe('accept')
+    expect(Object.values(result).filter(value => typeof value === 'number').every(Number.isFinite)).toBe(true)
+  })
+  it.each([0, -1, Number.MIN_VALUE])('invalidates non-positive or numerically unsafe durations: %s', duration => {
+    const result = calculate({ totalMinutes: duration })
+    expect(result.isValid).toBe(false)
+    expect(result.decision).toBe('review')
+    expect(result.validationErrors.length).toBeGreaterThan(0)
+  })
+  it('invalidates a positive duration when hourly-profit arithmetic exceeds the safe currency range', () => {
+    const result = calculate({ totalMinutes: 1e-300 })
+    expect(result.isValid).toBe(false)
+    expect(result.decision).toBe('review')
+    expect(result.validationErrors.some(error => error.includes('النطاق العددي الآمن'))).toBe(true)
   })
   it('treats exact minimum-profit and hourly-target boundaries as inclusive', () => {
     const settings = { ...DEFAULT_SETTINGS, minNetProfit: 50, hourlyTarget: 50 }

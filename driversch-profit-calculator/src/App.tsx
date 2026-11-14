@@ -40,7 +40,7 @@ export default function App() {
   const persistSettings=async()=>{await saveSettings(settings);setToast('تم حفظ الإعدادات محليًا')}
   const loadTemplate=(t:TripInput)=>{setTrip({...t});setPage('calculator')}
   const saveCurrent=async()=> {
-    if(trip.totalMinutes<=0 || trip.fare<0 || [trip.pickupKm,trip.passengerKm,trip.returnKm,trip.extraExpenses].some(v=>v<0)){setToast('راجع بيانات الرحلة قبل الحفظ');return}
+    if(!result.isValid){setToast(result.decisionReason || 'راجع بيانات الرحلة قبل الحفظ');return}
     if(trip.fareMode==='unknown'){setToast('حدد هل الأجرة صافية أم إجمالية أولًا');return}
     const saved:SavedTrip={...trip,...result,id:crypto.randomUUID(),createdAt:new Date().toISOString()}
     await saveTrip(saved);setTrips(await getTrips());setToast('تم حفظ الرحلة على جهازك')
@@ -63,7 +63,7 @@ export default function App() {
   const speak=()=>{
     if(!('speechSynthesis'in window)){setToast('ميزة الصوت غير مدعومة في هذا المتصفح');return}
     if(speaking){speechSynthesis.cancel();setSpeaking(false);return}
-    const text=result.decision==='accept'?`اقبل الرحلة. صافي الربح ${result.netProfit.toFixed(2)} جنيه`:
+    const text=!result.isValid?`راجع بيانات الرحلة. ${result.decisionReason}`:result.decision==='accept'?`اقبل الرحلة. صافي الربح ${result.netProfit.toFixed(2)} جنيه`:
       result.decision==='review'?`راجع الرحلة. ${result.decisionReason}`:`ارفض الرحلة. صافي الربح ${result.netProfit.toFixed(2)} جنيه`
     const utter=new SpeechSynthesisUtterance(text);utter.lang='ar-EG';utter.onend=()=>setSpeaking(false);speechSynthesis.speak(utter);setSpeaking(true)
   }
@@ -120,17 +120,17 @@ export default function App() {
         </section>
         <section className="panel result-panel"><div className="panel-head"><div><span className="eyebrow">التحليل المالي</span><h2><Activity/> قرار الرحلة النهائي</h2></div><button className="icon-btn" onClick={speak} title="نطق القرار">{speaking?<MicOff/>:<Mic/>}</button></div>
           <div className={`decision ${decisionClass[result.decision]}`}><div className="decision-mark">{result.decision==='accept'?'✓':result.decision==='review'?'!':'×'}</div><div><strong>{decisionLabel[result.decision]}</strong><p>{result.decisionReason}</p></div></div>
-          <div className="profit-highlight"><small>{trip.fareMode==='unknown'?'ربح تقديري — أكد نوع الأجرة أولًا':'صافي ربحك المتوقع'}</small><strong className={result.netProfit>=0?'positive':'negative'}>{money(result.netProfit)}</strong><span>بعد الوقود والصيانة والمصروفات</span></div>
+          <div className="profit-highlight"><small>{trip.fareMode==='unknown'?'ربح تقديري — أكد نوع الأجرة أولًا':'صافي ربحك المتوقع'}</small><strong className={result.isValid&&result.netProfit>=0?'positive':'negative'}>{result.isValid?money(result.netProfit):'—'}</strong><span>بعد الوقود والصيانة والمصروفات</span></div>
           <div className="metric-grid">
-            <Metric label="إجمالي المسافة" value={`${result.totalKm.toFixed(2)} كم`}/>
-            <Metric label="تكلفة الوقود" value={money(result.fuelCost)}/>
-            <Metric label="الصيانة والإهلاك" value={money(result.maintenanceCost)}/>
-            <Metric label="إجمالي تكلفة التشغيل" value={money(result.totalCost)}/>
-            <Metric label="صافي الأجرة" value={money(result.netFare)}/>
-            <Metric label="الربح في الساعة" value={money(result.hourlyProfit)}/>
+            <Metric label="إجمالي المسافة" value={result.isValid?`${result.totalKm.toFixed(2)} كم`:'—'}/>
+            <Metric label="تكلفة الوقود" value={result.isValid?money(result.fuelCost):'—'}/>
+            <Metric label="الصيانة والإهلاك" value={result.isValid?money(result.maintenanceCost):'—'}/>
+            <Metric label="إجمالي تكلفة التشغيل" value={result.isValid?money(result.totalCost):'—'}/>
+            <Metric label="صافي الأجرة" value={result.isValid?money(result.netFare):'—'}/>
+            <Metric label="الربح في الساعة" value={result.isValid?money(result.hourlyProfit):'—'}/>
           </div>
-          <div className="required-fare"><div><span>الحد الأدنى للأجرة المطلوبة</span><strong>{money(result.requiredFare)}</strong></div><div><span>الفرق عن الأجرة الحالية</span><strong className={result.fareGap<=0?'positive':'negative'}>{result.fareGap<=0?'+'+money(Math.abs(result.fareGap)):'-'+money(result.fareGap)}</strong></div></div>
-          <p className="formula-note">{trip.fareMode==='unknown'?'الأرقام المعروضة تقديرية مؤقتًا بافتراض أن الأجرة صافية؛ لا تعتمد القرار ولا تحفظ الرحلة قبل تحديد نوع الأجرة.':'الحساب يفترض أن كل المسافات المدخلة فعلية، وأن الأجرة الصافية لا تُخصم منها عمولة مرة ثانية.'}</p>
+          <div className="required-fare"><div><span>الحد الأدنى للأجرة المطلوبة</span><strong>{result.isValid?money(result.requiredFare):'—'}</strong></div><div><span>الفرق عن الأجرة الحالية</span><strong className={result.isValid&&result.fareGap<=0?'positive':'negative'}>{result.isValid?(result.fareGap<=0?'+'+money(Math.abs(result.fareGap)):'-'+money(result.fareGap)):'—'}</strong></div></div>
+          <p className="formula-note">{!result.isValid?'لا يمكن عرض نتائج مالية موثوقة قبل تصحيح بيانات الرحلة.':trip.fareMode==='unknown'?'الأرقام المعروضة تقديرية مؤقتًا بافتراض أن الأجرة صافية؛ لا تعتمد القرار ولا تحفظ الرحلة قبل تحديد نوع الأجرة.':'الحساب يفترض أن كل المسافات المدخلة فعلية، وأن الأجرة الصافية لا تُخصم منها عمولة مرة ثانية.'}</p>
         </section></div>
       </>}
       {page==='assistant'&&<section className="panel assistant-panel"><div className="panel-head"><div><span className="eyebrow">قراءة بموافقتك</span><h2><FileImage/> المساعد الذكي لالتقاط الرحلات</h2><p>ارفع Screenshot واضحة من شاشة العرض. راجع القيم قبل إرسالها للحاسبة.</p></div></div>

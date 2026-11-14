@@ -47,7 +47,7 @@ test('rejects negative, non-finite and zero-duration inputs without NaN output',
   for (const patch of [
     { pickupKm: -1 }, { fare: -1 }, { extraExpenses: -1 },
     { fare: Number.NaN }, { returnKm: Infinity }, { passengerKm: -Infinity },
-    { fare: Number.MAX_VALUE }, { totalMinutes: 0 }
+    { fare: Number.MAX_VALUE }, { totalMinutes: 0 }, { totalMinutes: -1 }
   ]) {
     const r = calc(patch)
     assert.equal(r.isValid, false)
@@ -58,16 +58,30 @@ test('rejects negative, non-finite and zero-duration inputs without NaN output',
   }
 })
 
-test('rejects sub-minute durations and keeps all calculated values finite', () => {
-  for (const duration of [0, 0.5, Number.MIN_VALUE]) {
+test('accepts a valid 30-second trip and calculates a finite hourly profit', () => {
+  const r = calc({ totalMinutes: 0.5 })
+  assert.equal(r.isValid, true)
+  assert.equal(r.hourlyProfit, 7326)
+  assert.equal(r.decision, 'accept')
+  for (const key of ['totalKm','fuelCost','maintenanceCost','totalCost','netFare','netProfit','hourlyProfit','requiredFare','fareGap']) {
+    assert.equal(Number.isFinite(r[key]), true, `${key} must be finite`)
+  }
+})
+
+test('invalidates zero, negative and subnormal durations without ACCEPT', () => {
+  for (const duration of [0, -1, Number.MIN_VALUE]) {
     const r = calc({ totalMinutes: duration })
     assert.equal(r.isValid, false)
     assert.equal(r.decision, 'review')
     assert.ok(r.validationErrors.length > 0)
-    for (const key of ['totalKm','fuelCost','maintenanceCost','totalCost','netFare','netProfit','hourlyProfit','requiredFare','fareGap']) {
-      assert.equal(Number.isFinite(r[key]), true, `${key} must be finite for duration ${duration}`)
-    }
   }
+})
+
+test('invalidates a positive duration when hourly-profit arithmetic exceeds the safe currency range', () => {
+  const r = calc({ totalMinutes: 1e-300 })
+  assert.equal(r.isValid, false)
+  assert.equal(r.decision, 'review')
+  assert.ok(r.validationErrors.some(error => error.includes('النطاق العددي الآمن')))
 })
 
 test('minimum-profit and hourly-target boundaries are inclusive', () => {
