@@ -57,7 +57,8 @@ export default function NumericInput({ value, onValueChange, allowNegative = fal
     else if (parsed.kind === 'empty') onValueChange(allowEmpty ? null : 0)
   }
 
-  const incomplete = parseNumericDraft(draft).kind === 'incomplete'
+  const state = parseNumericDraft(draft)
+  const notReady = state.kind === 'incomplete' || state.kind === 'invalid'
   return (
     <input
       {...rest}
@@ -67,8 +68,9 @@ export default function NumericInput({ value, onValueChange, allowNegative = fal
       dir="ltr"
       autoComplete="off"
       spellCheck={false}
-      className={[className, 'numeric-input'].filter(Boolean).join(' ')}
-      aria-invalid={incomplete || undefined}
+      className={[className, 'numeric-input', notReady ? 'is-invalid' : ''].filter(Boolean).join(' ')}
+      aria-invalid={notReady || undefined}
+      data-error={state.kind === 'invalid' ? state.reason : undefined}
       value={draft}
       onChange={handleChange}
     />

@@ -2,6 +2,7 @@ package com.driverprofitcalculator.app
 
 import android.app.Activity
 import android.content.Intent
+import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.webkit.WebResourceRequest
@@ -9,6 +10,9 @@ import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.webkit.WebViewAssetLoader
 
 class MainActivity : Activity() {
@@ -20,7 +24,18 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
         loader = WebViewAssetLoader.Builder().setDomain(ASSET_DOMAIN)
             .addPathHandler("/", WebViewAssetLoader.AssetsPathHandler(this)).build()
+        // Edge-to-edge is enforced from Android 15 (targetSdk 35). The app draws behind the bars, so the
+        // WebView is padded with the real system bar, display cutout and keyboard insets. Content never
+        // starts under the status bar or ends under the navigation bar, and the keyboard pushes the page up.
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         web = WebView(this)
+        web.setBackgroundColor(Color.parseColor("#080E20"))
+        ViewCompat.setOnApplyWindowInsetsListener(web) { view, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+            view.setPadding(bars.left, bars.top, bars.right, maxOf(bars.bottom, ime.bottom))
+            WindowInsetsCompat.CONSUMED
+        }
         web.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true

@@ -217,7 +217,7 @@ export default function App() {
       {page==='calculator'&&<><section className="hero"><div><span className="eyebrow">قرار أذكى • ربح أوضح</span><h1>احسبها قبل ما تقبل المشوار</h1><p>اعرف تكلفة الرحلة وصافي ربحك الحقيقي في ثوانٍ.</p></div><div className="hero-stat"><Gauge size={26}/><span>القرار بيتحسب تلقائيًا</span></div></section>
         <section className="templates"><div className="section-head"><h2>نماذج جاهزة للاختبار السريع</h2><span>اضغط لملء الحقول</span></div><div className="template-grid">{templates.map(t=><button className="template" key={t.name} onClick={()=>loadTemplate(t.trip)}><strong>{t.name}</strong><small>{t.desc}</small></button>)}</div></section>
         <div className="work-grid"><section className="panel form-panel"><div className="panel-head"><div><span className="eyebrow">بيانات العرض</span><h2><CarFront/> بيانات المشوار المقترح</h2></div><button className="subtle-btn" onClick={()=>setTrip(EMPTY_TRIP)}><RotateCcw size={15}/> تفريغ الحقول</button></div>
-          <div className="app-select">{(['Uber','DiDi','inDrive','أخرى'] as AppName[]).map(a=><button key={a} className={trip.app===a?'selected':''} onClick={()=>{patch('app',a);patch('commissionRate',settings.commission[a as 'inDrive'|'DiDi'|'أخرى']??0);patch('fareMode',a==='Uber'?'net':'unknown')}}>{a}</button>)}</div>
+          <div className="app-select">{(['Uber','DiDi','inDrive','أخرى'] as AppName[]).map(a=><button key={a} className={trip.app===a?'selected':''} onClick={()=>{patch('app',a);patch('commissionRate',settings.commission[a]??0);patch('fareMode',a==='Uber'?'net':'unknown')}}>{a}</button>)}</div>
           <Field label="الأجرة المعروضة" value={trip.fare} onChange={v=>patch('fare',v??0)} unit="ج.م"/>
           <div className="field"><span>نوع الأجرة</span><div className="choice-row">
             <button className={trip.fareMode==='net'?'chosen':''} onClick={()=>patch('fareMode','net')}>صافي للسائق</button>
@@ -288,8 +288,8 @@ export default function App() {
           <Field label="الحد الأدنى لصافي الرحلة" value={settings.minNetProfit} onChange={v=>updateSettings('minNetProfit',v??0)} unit="ج.م"/>
           <Field label="هدف الربح في الساعة" value={settings.hourlyTarget} onChange={v=>updateSettings('hourlyTarget',v??0)} unit="ج.م"/>
         </div>
-        <div className="section-head"><h3>عمولة التطبيقات (اختيارية)</h3><span>تستخدم عند اختيار أجرة إجمالية</span></div>
-        <div className="field-grid">{(['inDrive','DiDi','أخرى'] as const).map(a=><Field label={`عمولة ${a}`} value={settings.commission[a]} onChange={v=>setSettings(s=>({...s,commission:{...s.commission,[a]:v??0}}))} unit="%"/>)}</div>
+        <div className="section-head"><h3>عمولة التطبيقات (اختيارية)</h3><span>كل تطبيق له نسبته المستقلة. القيمة 0% افتراضية حتى تُدخل نسبتك، وتُستخدم عند اختيار أجرة إجمالية</span></div>
+        <div className="field-grid">{(['Uber','inDrive','DiDi','أخرى'] as const).map(a=><Field label={`عمولة ${a}`} value={settings.commission[a]} onChange={v=>setSettings(s=>({...s,commission:{...s.commission,[a]:v??0}}))} unit="%"/>)}</div>
         <div className="backup-actions"><button className="subtle-btn" onClick={exportBackup}><Download size={16}/> تصدير نسخة احتياطية</button><label className="subtle-btn file-button"><Upload size={16}/> استيراد نسخة احتياطية<input type="file" accept="application/json" onChange={e=>importBackup(e.target.files?.[0])}/></label><button className="subtle-btn" onClick={()=>{if(confirm('إعادة الإعدادات الافتراضية؟'))setSettings(DEFAULT_SETTINGS)}}><RotateCcw size={16}/> استعادة الافتراضي</button></div>
         <p className="formula-note">البيانات محفوظة محليًا في هذا المتصفح باستخدام IndexedDB. مسح بيانات المتصفح قد يؤدي إلى حذفها؛ صدّر نسخة احتياطية بانتظام.</p>
       </section>}

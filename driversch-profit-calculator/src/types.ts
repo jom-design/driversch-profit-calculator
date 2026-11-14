@@ -1,5 +1,7 @@
 export type AppName = 'Uber' | 'DiDi' | 'inDrive' | 'أخرى'
 export type FareMode = 'net' | 'gross' | 'unknown'
+// Each platform has its own commission. Values are user settings: no real-world rate is assumed.
+export type CommissionApp = 'Uber' | 'inDrive' | 'DiDi' | 'أخرى'
 export type Decision = 'accept' | 'review' | 'reject'
 export interface Settings {
   fuelPrice: number
@@ -7,7 +9,7 @@ export interface Settings {
   maintenancePerKm: number
   minNetProfit: number
   hourlyTarget: number
-  commission: Record<'inDrive' | 'DiDi' | 'أخرى', number>
+  commission: Record<CommissionApp, number>
 }
 export interface TripInput {
   app: AppName
@@ -44,7 +46,8 @@ export const DEFAULT_SETTINGS: Settings = {
   maintenancePerKm: 2.5,
   minNetProfit: 50,
   hourlyTarget: 75,
-  commission: { inDrive: 0, DiDi: 0, 'أخرى': 0 }
+  // 0% is a placeholder until the driver enters the rate that applies to them.
+  commission: { Uber: 0, inDrive: 0, DiDi: 0, 'أخرى': 0 }
 }
 export const EMPTY_TRIP: TripInput = {
   app: 'Uber', fare: 165, fareMode: 'net', commissionRate: 0,

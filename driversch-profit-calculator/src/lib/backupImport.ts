@@ -10,7 +10,9 @@ import type { AppName, Decision, FareMode, SavedTrip, Settings } from '../types.
 export type ImportResult<T> = { ok: true; value: T } | { ok: false; reason: string }
 
 const SETTING_KEYS = ['fuelPrice', 'consumptionPer100', 'maintenancePerKm', 'minNetProfit', 'hourlyTarget'] as const
-const COMMISSION_KEYS = ['inDrive', 'DiDi', 'أخرى'] as const
+// Every platform keeps its own commission. A backup from before Uber had a field simply has no 'Uber' key,
+// and the defaults supply 0 for it. Nothing is copied from 'أخرى' into 'Uber'.
+const COMMISSION_KEYS = ['Uber', 'inDrive', 'DiDi', 'أخرى'] as const
 // Inputs the driver types. They can never be negative.
 const TRIP_INPUT_KEYS = ['fare', 'commissionRate', 'pickupKm', 'passengerKm', 'returnKm', 'totalMinutes', 'extraExpenses'] as const
 // Results can be negative (a losing trip, or a fare below the required fare).
@@ -48,7 +50,7 @@ export function normalizeSettings(raw: unknown, defaults: Settings): ImportResul
     for (const app of COMMISSION_KEYS) {
       if (raw.commission[app] === undefined) continue
       const value = readBackupNumber(raw.commission[app], { allowNegative: false })
-      if (value === null) return { ok: false, reason: `عمولة ${app} في الإعدادات ليست رقمًا صحيحًا` }
+      if (value === null || value > 100) return { ok: false, reason: `عمولة ${app} في الإعدادات ليست نسبة صحيحة من 0 إلى 100` }
       next.commission[app] = value
     }
   }

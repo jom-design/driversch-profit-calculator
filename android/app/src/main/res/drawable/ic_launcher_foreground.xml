@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Speedometer with profit needle. All content sits inside the 66dp adaptive safe-zone circle (center 54,54). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <path android:strokeColor="#FFFFFF" android:strokeWidth="5" android:strokeLineCap="round"
+        android:pathData="M34.95,69 A22,22 0 1 1 73.05,69" />
+    <path android:strokeColor="#3FD8FF" android:strokeWidth="5" android:strokeLineCap="round"
+        android:pathData="M73.05,69 A22,22 0 0 0 66,45.6" />
+    <path android:strokeColor="#3FD8FF" android:strokeWidth="4" android:strokeLineCap="round"
+        android:pathData="M54,58 L62,44.1" />
+    <path android:fillColor="#FFFFFF" android:pathData="M54,54.5 A3.5,3.5 0 1 1 54,61.5 A3.5,3.5 0 1 1 54,54.5 Z" />
+</vector>

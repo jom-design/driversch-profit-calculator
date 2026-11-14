@@ -1,6 +1,6 @@
 import { openDB } from 'idb'
 import type { SavedTrip, Settings } from '../types'
-import { DEFAULT_SETTINGS } from '../types'
+import { mergeStoredSettings } from './settingsMerge.ts'
 
 const DB_NAME = 'driver-profit-calculator'
 const DB_VERSION = 1
@@ -27,7 +27,7 @@ export async function deleteTrip(id: string) {
 }
 export async function getSettings(): Promise<Settings> {
   const db = await dbPromise
-  return { ...DEFAULT_SETTINGS, ...(await db.get('settings', 'main') || {}) }
+  return mergeStoredSettings(await db.get('settings', 'main'))
 }
 export async function saveSettings(settings: Settings) {
   const db = await dbPromise

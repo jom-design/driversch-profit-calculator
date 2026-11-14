@@ -127,6 +127,23 @@ try {
   await page.locator('.toast', { hasText: 'fuelPrice' }).waitFor()
   check('broken backup is refused and the stored fuel price is kept', await page.getByLabel('سعر لتر البنزين').inputValue() === '21.75')
 
+  // ---- Uber commission: its own field, applied only when Uber is selected ----
+  await page.getByRole('button', { name: 'الإعدادات' }).click()
+  await page.getByLabel('عمولة Uber').fill('١٠')
+  await page.getByLabel('عمولة DiDi').fill('٢٠')
+  await page.getByRole('button', { name: /حفظ الإعدادات/ }).click()
+  await page.getByRole('button', { name: 'حاسبة المشوار' }).click()
+  await page.getByRole('button', { name: 'DiDi', exact: true }).click()
+  await page.getByRole('button', { name: 'إجمالي قبل العمولة' }).click()
+  check('selecting DiDi uses the DiDi commission (20%)', await page.getByLabel('نسبة عمولة التطبيق').inputValue() === '20')
+  await page.getByRole('button', { name: 'Uber', exact: true }).click()
+  await page.getByRole('button', { name: 'إجمالي قبل العمولة' }).click()
+  check('selecting Uber uses the Uber commission (10%), not DiDi', await page.getByLabel('نسبة عمولة التطبيق').inputValue() === '10')
+  await fare.fill('١٠٠')
+  const uberNet = await page.locator('.metric', { hasText: 'صافي الأجرة' }).locator('strong').innerText()
+  check('100 EGP fare with 10% Uber commission leaves 90.00', uberNet.includes('90.00'))
+  await page.getByRole('button', { name: 'صافي للسائق' }).click()
+
   const bodyText = await page.locator('body').innerText()
   check('no NaN is shown anywhere', !bodyText.includes('NaN'))
   check('no page errors', pageErrors.length === 0)
