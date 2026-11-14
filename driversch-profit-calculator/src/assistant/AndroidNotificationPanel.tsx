@@ -9,6 +9,10 @@ interface NativeBridge {
   acknowledgeNotification: (id: string) => boolean
   setProviderEnabled: (id: string, enabled: boolean) => boolean
   openNotificationAccessSettings: () => boolean
+  startSpeechRecognition: () => boolean
+  stopSpeechRecognition: () => boolean
+  speakText: (text: string) => boolean
+  stopSpeaking: () => boolean
 }
 declare global {
   interface Window { DriverAndroid?: NativeBridge }
