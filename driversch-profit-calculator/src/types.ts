@@ -33,6 +33,8 @@ export interface Calculation {
   fareGap: number
   decision: Decision
   decisionReason: string
+  isValid: boolean
+  validationErrors: string[]
 }
 export interface SavedTrip extends TripInput, Calculation {
   id: string
