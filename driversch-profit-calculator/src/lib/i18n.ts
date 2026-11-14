@@ -301,6 +301,13 @@ export const AR_TO_EN = {
   "جارٍ استعادة صندوق الرحلات المحفوظ على هذا الجهاز…": "Restoring the trip inbox saved on this device…",
   "التبديل للوضع الفاتح": "Switch to light mode",
   "التبديل إلى الإنجليزية": "Switch to English",
+  "الصيانة والإهلاك": "Maintenance and depreciation",
+  "مسافة الرحلة": "Trip distance",
+  "مسافة الوصول": "Pickup distance",
+  "ج.م": "EGP",
+  "كم": "km",
+  "دقيقة": "min",
+  "جنيه": "EGP",
 } as const
 export type TranslationKey = keyof typeof AR_TO_EN
 const EN_TO_AR: Readonly<Record<string,string>> = Object.fromEntries(
