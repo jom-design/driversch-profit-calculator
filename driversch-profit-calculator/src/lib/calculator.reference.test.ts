@@ -1,8 +1,8 @@
+import { describe, expect, it } from 'vitest'
 import { calculateTrip } from './calculator'
 import { DEFAULT_SETTINGS, EMPTY_TRIP } from '../types'
 
-// Manual reference test: run by importing calculateTrip in the browser console
-// or wire this file to Vitest if a test runner is added.
+// Shared reference calculation, now included in the actual Vitest suite.
 export function verifyReferenceCase() {
   const result = calculateTrip(EMPTY_TRIP, DEFAULT_SETTINGS)
   const expected = {
@@ -28,3 +28,17 @@ export function verifyReferenceCase() {
   }
   return actual
 }
+
+describe('calculator reference case', () => {
+  it('matches the documented reference values', () => {
+    expect(verifyReferenceCase()).toEqual({
+      fuelCost: 48.95,
+      maintenanceCost: 55,
+      totalCost: 103.95,
+      netProfit: 61.05,
+      hourlyProfit: 91.58,
+      requiredFare: 153.95,
+      decision: 'accept'
+    })
+  })
+})
