@@ -289,6 +289,13 @@ export const AR_TO_EN = {
   "أكد أولًا هل الأجرة صافية أم إجمالية قبل اعتماد قرار الربحية.": "First confirm whether the fare is net or gross before relying on the profitability decision.",
   "أدخل وقتًا صحيحًا للرحلة قبل اتخاذ القرار.": "Enter a valid trip duration before making a decision.",
   "الرحلة تحقق الحد الأدنى لصافي الربح وهدف الربح بالساعة.": "The trip meets your minimum net profit and hourly profit target.",
+  "تأكد أن المبلغ هو الموجود بجوار «القبول مقابل» وليس أحد أزرار الاقتراح.": "Make sure the amount is next to “accept for”, not one of the suggested fare buttons.",
+  "تم العثور على أكثر من مسافة؛ راجع مسافة الوصول ومسافة الرحلة يدويًا.": "More than one distance was found. Review pickup and passenger-trip distances manually.",
+  "تم استخراج مسافة واحدة فقط؛ أكمل باقي المسافات يدويًا.": "Only one distance was extracted. Enter the remaining distances manually.",
+  "جودة القراءة منخفضة. الأفضل رفع Screenshot أصلية بدل تصوير الشاشة بالكاميرا.": "OCR confidence is low. Upload an original screenshot instead of a camera photo.",
+  "إعدادات النسخة غير صالحة": "Backup settings are invalid",
+  "خريطة عمولات التطبيقات في النسخة غير صالحة": "The backup platform commission map is invalid",
+  "ملف النسخة الاحتياطية غير متوافق": "Backup file is incompatible",
 } as const
 export type TranslationKey = keyof typeof AR_TO_EN
 const EN_TO_AR: Readonly<Record<string,string>> = Object.fromEntries(
@@ -306,10 +313,10 @@ const INTERPOLATED: Array<[RegExp,(match:RegExpMatchArray)=>string]> = [
   [/^(.+) دقيقة$/, m => `${m[1]} min`],
   [/^(.+) جنيه$/, m => `EGP ${m[1]}`],
   [/^صافي الربح (.+)$/, m => `Net profit ${m[1]}`],
-  [/^صافي الربح أقل من الحد الأدنى (.+) ج\\.م\\.$/, m => `Net profit is below the minimum target of EGP ${m[1]}.`],
-  [/^الربح إيجابي، لكن العائد بالساعة أقل من هدفك (.+) ج\\.م\\.$/, m => `Profit is positive, but hourly return is below your target of EGP ${m[1]}.`],
-  [/^ثقة OCR: (\\d+)%$/, m => `OCR confidence: ${m[1]}%`],
-  [/^جاري قراءة الصورة (\\d+)%$/, m => `Reading image ${m[1]}%`],
+  [/^صافي الربح أقل من الحد الأدنى (.+) ج\.م\.$/, m => `Net profit is below the minimum target of EGP ${m[1]}.`],
+  [/^الربح إيجابي، لكن العائد بالساعة أقل من هدفك (.+) ج\.م\.$/, m => `Profit is positive, but hourly return is below your target of EGP ${m[1]}.`],
+  [/^ثقة OCR: (\d+)%$/, m => `OCR confidence: ${m[1]}%`],
+  [/^جاري قراءة الصورة (\d+)%$/, m => `Reading image ${m[1]}%`],
   [/^معرّف التطبيق: (.+)$/, m => `App package: ${m[1]}`],
   [/^وقت الإشعار: (.+)$/, m => `Notification time: ${m[1]}`],
   [/^التعرف الصوتي: (.+)$/, m => `Speech recognition: ${m[1] === 'مدعوم' ? 'Supported' : 'Not supported'}`],
