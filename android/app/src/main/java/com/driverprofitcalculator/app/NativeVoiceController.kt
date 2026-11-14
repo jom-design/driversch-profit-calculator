@@ -72,8 +72,8 @@ class NativeVoiceController(
             })
             val request = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE, LANGUAGE_TAG)
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, LANGUAGE_TAG)
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, NativeVoiceTextPolicy.LANGUAGE_TAG)
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, NativeVoiceTextPolicy.LANGUAGE_TAG)
                 putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
                 putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
                 putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
@@ -102,7 +102,7 @@ class NativeVoiceController(
     }
 
     fun speak(text: String) {
-        val safeText = text.trim().take(MAX_SPEECH_CHARS)
+        val safeText = NativeVoiceTextPolicy.sanitizeForSpeech(text)
         if (safeText.isBlank()) return
         main.post {
             if (!ttsReady) { pendingSpeech = safeText; return@post }
@@ -170,8 +170,6 @@ class NativeVoiceController(
 
     companion object {
         const val REQUEST_AUDIO_PERMISSION = 4207
-        const val LANGUAGE_TAG = "ar-EG"
-        const val MAX_SPEECH_CHARS = 600
         private const val UTTERANCE_ID = "driver-profit-result"
     }
 }
