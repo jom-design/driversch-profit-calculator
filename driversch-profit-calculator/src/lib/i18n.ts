@@ -316,7 +316,7 @@ export const AR_TO_EN = {
   "تم استيراد إشعارات": "Imported notifications",
   "استيراد الإشعارات": "Import notifications",
   "إشعار إلى صندوق المراجعة": "notification(s) to the review inbox",
-  "تعذر فك تشفير قائمة الإشعارات المحلية. تم إيقاف الاستيراد لحماية البيانات؛ لا تحذف بيانات التطبيق قبل تصدير ما يلزم.": "Could not decrypt the local notification queue. Import was stopped to protect your data; export anything needed before clearing app data.",
+  "التنقل الرئيسي": "Primary navigation",
 } as const
 export type TranslationKey = keyof typeof AR_TO_EN
 
@@ -328,6 +328,11 @@ const EN_TO_AR: Readonly<Record<string,string>> = Object.fromEntries(
   Object.entries(AR_TO_EN).map(([ar,en]) => [en,ar])
 )
 const INTERPOLATED: Array<[RegExp,(match:RegExpMatchArray)=>string]> = [
+  [/^تم تجاهل (\\d+) سجل غير صالح داخل مخزن الإنبوكس\\. لم يتم حذف السجلات التالفة\\.$/, m => `Ignored ${m[1]} invalid inbox records. Corrupted records were not deleted.`],
+  [/^تم استيراد النسخة\\. تم تجاهل (\\d+) رحلة تالفة$/, m => `Backup imported. ${m[1]} corrupted trips were skipped.`],
+  [/^سيتم استيراد (\\d+) رحلة واستبدال السجل الحالي\\. هل تريد المتابعة\\؟$/, m => `Import ${m[1]} trips and replace the current history. Continue?`],
+  [/^آخر رحلة: (.+) · صافي الربح (.+)$/, m => `Last trip: ${m[1]} · Net profit ${m[2]}`],
+  [/^(اقبل الرحلة|ارفض الرحلة)\\. صافي الربح (.+)$/, m => `${m[1] === 'اقبل الرحلة' ? 'Accept the trip' : 'Reject the trip'}. Net profit ${m[2]}`],
   [/^تم استيراد (\d+) إشعار إلى صندوق المراجعة\.$/, m => `Imported ${m[1]} notifications into the review inbox.`],
   [/^استيراد الإشعارات \((\d+)\)$/, m => `Import notifications (${m[1]})`],
   [/^آخر إشعار مؤهل: (.+)$/, m => `Last eligible notification: ${m[1]}`],

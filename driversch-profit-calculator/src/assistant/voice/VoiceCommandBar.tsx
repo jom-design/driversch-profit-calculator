@@ -158,7 +158,7 @@ export default function VoiceCommandBar({ onCommand, locale }: Props) {
           <button type="button" className="subtle-btn" onClick={dismiss}><X size={16} /> {t('تجاهل', locale)}</button>
         </div>
       )}
-      {phase === 'error' && <p className="inline-alert" role="alert">{t(message, locale)}</p>}
+      {phase === 'error' && <p className="inline-alert" role="alert">{message ? t(message, locale) : ''}</p>}
       <p className="voice-note">
         {nativeSupported
           ? t('التعرف الصوتي الأصلي يبدأ فقط عند ضغطك على الزر. يطلب التطبيق إذن الميكروفون وقت الاستخدام ولا يحفظ التسجيل. يطلب وضع عدم الاتصال من خدمة Android، لكن توفره يعتمد على محرك الجهاز وقد تُعالج الخدمة الصوت خارجيًا.' as TranslationKey, locale)

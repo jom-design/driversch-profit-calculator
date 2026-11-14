@@ -8,7 +8,7 @@ import AndroidNotificationPanel from './AndroidNotificationPanel'
 import NumericInput from '../components/NumericInput'
 import { acceptNativeNotification, type NativeNotificationPayload } from './notificationBridge'
 import './assistant-inbox.css'
-import { t, type TranslationKey } from '../lib/i18n'
+import { t, translateMessage, type TranslationKey } from '../lib/i18n'
 
 interface Props {
   locale: 'ar' | 'en'
@@ -188,14 +188,14 @@ export default function AssistantInbox({ items, onChange, onTransfer, locale }: 
               {selected.draft.sourceTimestamp && <span>{t('وقت الإشعار:', locale)} {new Date(selected.draft.sourceTimestamp).toLocaleString(locale==='ar'?'ar-EG':'en-EG')}</span>}
               <details><summary>{t('عرض النص الأصلي للمراجعة', locale)}</summary><pre>{selected.draft.rawText}</pre></details>
             </div>
-            {selected.draft.warnings.map((warning, index) => <p className="inbox-warning" key={index}><ShieldAlert size={15}/>{warning}</p>)}
+            {selected.draft.warnings.map((warning, index) => <p className="inbox-warning" key={index}><ShieldAlert size={15}/>{translateMessage(warning, locale)}</p>)}
             {selected.status !== 'confirmed' && selected.status !== 'rejected' && selected.status !== 'transferred' && <div className="inbox-actions">
               <button className="primary-btn" type="button" onClick={() => confirm(selected)} disabled={!hasRequiredReviewData(selected) || (selected.reviewedFields ?? []).length < 4}><Check size={16}/> {t('تأكيد العرض بعد المراجعة', locale)}</button>
               <button className="subtle-btn" type="button" onClick={() => reject(selected)}><X size={16}/> {t('رفض', locale)}</button>
               <button className="inbox-delete" type="button" onClick={() => remove(selected)}><Trash2 size={16}/> {t('حذف', locale)}</button>
             </div>}
             {selected.status === 'confirmed' && <div className="inbox-actions"><button className="primary-btn" type="button" onClick={() => transfer(selected)}><ChevronDown size={16}/> {t('نقل العرض المؤكد للحاسبة', locale)}</button>
-              <button className="inbox-delete" type="button" onClick={() => remove(selected)}><Trash2 size={16}/> حذف</button></div>}
+              <button className="inbox-delete" type="button" onClick={() => remove(selected)}><Trash2 size={16}/> {t('حذف', locale)}</button></div>}
             {selected.status === 'rejected' && <div className="inbox-actions"><button className="inbox-delete" type="button" onClick={() => remove(selected)}><Trash2 size={16}/> {t('حذف نهائي', locale)}</button></div>}
             {selected.status === 'transferred' && <p className="inbox-success" role="status">{t('تم نقل هذا العرض للحاسبة بالفعل. لن يظهر زر النقل مرة أخرى.', locale)}</p>}
           </div>}

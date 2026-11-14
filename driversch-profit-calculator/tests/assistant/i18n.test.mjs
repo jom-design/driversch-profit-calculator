@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { AR_TO_EN, t, translateText } from '../../src/lib/i18n.ts'
+import { AR_TO_EN, t, translateMessage } from '../../src/lib/i18n.ts'
 
 test('typed translation keys resolve in both locales', () => {
   assert.equal(t('اقبل الرحلة', 'ar'), 'اقبل الرحلة')
@@ -9,10 +9,10 @@ test('typed translation keys resolve in both locales', () => {
 })
 
 test('navigation and key product areas translate in both directions', () => {
-  assert.equal(translateText('حاسبة المشوار', 'en'), 'Trip Calculator')
-  assert.equal(translateText('Trip Calculator', 'ar'), 'حاسبة المشوار')
-  assert.equal(translateText('صندوق الرحلات', 'en'), 'Trip inbox')
-  assert.equal(translateText('Settings', 'ar'), 'الإعدادات')
+  assert.equal(translateMessage('حاسبة المشوار', 'en'), 'Trip Calculator')
+  assert.equal(translateMessage('Trip Calculator', 'ar'), 'حاسبة المشوار')
+  assert.equal(translateMessage('صندوق الرحلات', 'en'), 'Trip inbox')
+  assert.equal(translateMessage('Settings', 'ar'), 'الإعدادات')
 })
 
 test('assistant, voice, OCR, notification and backup messages have translations', () => {
@@ -61,34 +61,38 @@ test('assistant, voice, OCR, notification and backup messages have translations'
 })
 
 test('dynamic status messages translate without losing variable values', () => {
-  assert.equal(translateText('عندك 3 عرض غير مؤكد', 'en'), 'You have 3 unconfirmed offers')
-  assert.equal(translateText('آخر إشعار مؤهل: 10:30', 'en'), 'Last eligible notification: 10:30')
+  assert.equal(translateMessage('عندك 3 عرض غير مؤكد', 'en'), 'You have 3 unconfirmed offers')
+  assert.equal(translateMessage('آخر إشعار مؤهل: 10:30', 'en'), 'Last eligible notification: 10:30')
 })
 
 test('financial decision and OCR interpolations translate without losing numbers', () => {
-  assert.equal(translateText('صافي الربح أقل من الحد الأدنى 50.00 ج.م.', 'en'), 'Net profit is below the minimum target of EGP 50.00.')
-  assert.equal(translateText('ثقة OCR: 87%', 'en'), 'OCR confidence: 87%')
-  assert.equal(translateText('جاري قراءة الصورة 42%', 'en'), 'Reading image 42%')
-  assert.equal(translateText('القيمة fuelPrice في الإعدادات ليست رقمًا صحيحًا', 'en'), 'Setting value fuelPrice is not a valid number.')
-  assert.equal(translateText('عمولة Uber في الإعدادات ليست نسبة صحيحة من 0 إلى 100', 'en'), 'Uber commission in settings must be between 0 and 100.')
-  assert.equal(translateText('بيانات الرحلة رقم 2 تالفة أو نتائجها المالية لا تطابق مدخلاتها؛ لم يتم استيراد أي بيانات.', 'en'), 'Trip #2 is corrupted or its financial results do not match its inputs; no data was imported.')
-  assert.equal(translateText('الثقة: 100% · الدليل: تم الإدخال أو التصحيح يدويًا', 'en'), 'Confidence: 100% · Evidence: تم الإدخال أو التصحيح يدويًا')
+  assert.equal(translateMessage('صافي الربح أقل من الحد الأدنى 50.00 ج.م.', 'en'), 'Net profit is below the minimum target of EGP 50.00.')
+  assert.equal(translateMessage('ثقة OCR: 87%', 'en'), 'OCR confidence: 87%')
+  assert.equal(translateMessage('جاري قراءة الصورة 42%', 'en'), 'Reading image 42%')
+  assert.equal(translateMessage('القيمة fuelPrice في الإعدادات ليست رقمًا صحيحًا', 'en'), 'Setting value fuelPrice is not a valid number.')
+  assert.equal(translateMessage('عمولة Uber في الإعدادات ليست نسبة صحيحة من 0 إلى 100', 'en'), 'Uber commission in settings must be between 0 and 100.')
+  assert.equal(translateMessage('بيانات الرحلة رقم 2 تالفة أو نتائجها المالية لا تطابق مدخلاتها؛ لم يتم استيراد أي بيانات.', 'en'), 'Trip #2 is corrupted or its financial results do not match its inputs; no data was imported.')
+  assert.equal(translateMessage('الثقة: 100% · الدليل: تم الإدخال أو التصحيح يدويًا', 'en'), 'Confidence: 100% · Evidence: تم الإدخال أو التصحيح يدويًا')
 })
 
 test('unknown user content and mixed platform names remain unchanged', () => {
-  assert.equal(translateText('Uber commission ١٥٪', 'en'), 'Uber commission ١٥٪')
-  assert.equal(translateText('ملاحظة كتبها المستخدم', 'en'), 'ملاحظة كتبها المستخدم')
+  assert.equal(translateMessage('Uber commission ١٥٪', 'en'), 'Uber commission ١٥٪')
+  assert.equal(translateMessage('ملاحظة كتبها المستخدم', 'en'), 'ملاحظة كتبها المستخدم')
 })
 
 test('translation preserves surrounding whitespace and reversible exact keys', () => {
-  assert.equal(translateText('  الإعدادات  ', 'en'), '  Settings  ')
-  assert.equal(translateText('  Settings  ', 'ar'), '  الإعدادات  ')
+  assert.equal(translateMessage('  الإعدادات  ', 'en'), '  Settings  ')
+  assert.equal(translateMessage('  Settings  ', 'ar'), '  الإعدادات  ')
 })
 
-test('all dictionary entries have non-empty English values', () => {
+test('all dictionary entries have non-empty values in both locales', () => {
   const values = Object.values(AR_TO_EN)
   assert.ok(Object.keys(AR_TO_EN).length >= 150)
   assert.ok(values.every(value => value.trim().length > 0))
+  for (const key of Object.keys(AR_TO_EN)) {
+    assert.equal(t(key, 'ar'), key)
+    assert.equal(t(key, 'en'), AR_TO_EN[key])
+  }
   assert.ok(values.length >= 150)
 })
 
@@ -111,4 +115,20 @@ test('visible Arabic JSX copy in primary screens and assistant components has di
     }
   }
   assert.deepEqual([...new Set(missing)], [])
+})
+
+test('production source cannot reintroduce DOM-based translation', () => {
+  const sources = [
+    new URL('../../src/App.tsx', import.meta.url),
+    new URL('../../src/lib/i18n.ts', import.meta.url),
+    new URL('../../src/assistant/AssistantInbox.tsx', import.meta.url),
+    new URL('../../src/assistant/AndroidNotificationPanel.tsx', import.meta.url),
+    new URL('../../src/assistant/voice/VoiceCommandBar.tsx', import.meta.url)
+  ]
+  for (const url of sources) {
+    const source = readFileSync(url, 'utf8')
+    assert.doesNotMatch(source, /\bMutationObserver\b/)
+    assert.doesNotMatch(source, /\bapplyLocale\b/)
+    assert.doesNotMatch(source, /\btranslateText\b/)
+  }
 })
