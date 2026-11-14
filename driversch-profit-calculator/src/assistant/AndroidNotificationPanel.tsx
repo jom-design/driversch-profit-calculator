@@ -27,6 +27,7 @@ interface Status {
   queueHealthy: boolean
 }
 interface Props {
+  locale: 'ar' | 'en'
   onImport: (payloads: NativeNotificationPayload[]) => Promise<boolean>
 }
 const providers = [
@@ -48,7 +49,7 @@ function isPayload(value: unknown): value is NativeNotificationPayload {
     typeof item.text === 'string' && item.text.trim().length > 0 && item.text.length <= 4000 &&
     typeof item.postedAt === 'string' && Number.isFinite(new Date(item.postedAt).getTime())
 }
-export default function AndroidNotificationPanel({ onImport }: Props) {
+export default function AndroidNotificationPanel({ onImport, locale }: Props) {
   const bridge = typeof window === 'undefined' ? undefined : window.DriverAndroid
   const [status, setStatus] = useState<Status | null>(null)
   const [pendingCount, setPendingCount] = useState(0)
@@ -98,7 +99,7 @@ export default function AndroidNotificationPanel({ onImport }: Props) {
       for (const payload of payloads) {
         if (bridge.acknowledgeNotification(payload.notificationId)) acknowledged += 1
       }
-      setMessage('تم استيراد ' + acknowledged.toLocaleString('ar-EG') + ' إشعار إلى صندوق المراجعة.')
+      setMessage('تم استيراد ' + acknowledged.toLocaleString(locale==='ar'?'ar-EG':'en-EG') + ' إشعار إلى صندوق المراجعة.')
       refresh()
     } catch {
       setMessage('تعذر استيراد الإشعارات. لم يتم حذف قائمة الانتظار الأصلية.')
@@ -135,7 +136,7 @@ export default function AndroidNotificationPanel({ onImport }: Props) {
         onClick={importPending}><BellRing size={15}/> {busy ? 'جارٍ الاستيراد…' : 'استيراد الإشعارات (' + pendingCount + ')'}</button>
     </div>
     {!status?.queueHealthy && <p className="android-capture-message" role="alert">تعذر فك تشفير قائمة الإشعارات المحلية. تم إيقاف الاستيراد لحماية البيانات؛ لا تحذف بيانات التطبيق قبل تصدير ما يلزم.</p>}
-    {status?.lastReceivedAt && <small>آخر إشعار مؤهل: {new Date(status.lastReceivedAt).toLocaleString('ar-EG')}</small>}
+    {status?.lastReceivedAt && <small>آخر إشعار مؤهل: {new Date(status.lastReceivedAt).toLocaleString(locale==='ar'?'ar-EG':'en-EG')}</small>}
     <p className="android-capture-note">الإشعارات المؤهلة تُحفظ مؤقتًا مشفّرة على الجهاز، ثم تُحذف من قائمة الانتظار بعد نجاح حفظها في IndexedDB. لا يوجد إرسال إلى خادم.</p>
     {message && <p className="android-capture-message" role="status">{message}</p>}
   </section>
