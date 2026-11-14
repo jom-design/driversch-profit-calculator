@@ -53,7 +53,7 @@ try {
   await fare.fill('۱۲۳٫۴۵')
   check('Persian digits with Arabic decimal separator parse exactly', await fare.inputValue() === '123.45')
   await fare.fill('1,234.56')
-  check('mixed thousands and decimal separators parse without ambiguity', await fare.inputValue() === '1234.56')
+  check('mixed thousands and decimal separators are accepted without silent rewriting', await fare.inputValue() === '1,234.56' && await fare.getAttribute('aria-invalid') !== 'true')
   await fare.fill('1.000')
   check('ambiguous single dot thousands value remains visible and invalid', await fare.inputValue() === '1.000' && await fare.getAttribute('aria-invalid') === 'true')
   await fare.fill('1234567890123456')
