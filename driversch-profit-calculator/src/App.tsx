@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { applyLocale, type AppLocale } from './lib/i18n'
 import { Activity, Archive, Calculator, CarFront, Check, ChevronDown, Download, FileImage, Gauge, History, LayoutDashboard, Mic, MicOff, RotateCcw, Save, Settings as SettingsIcon, ShieldCheck, Trash2, Upload, Wallet, X } from 'lucide-react'
 import { calculateTrip } from './lib/calculator'
 import NumericInput from './components/NumericInput'
@@ -33,6 +34,8 @@ function Field({label,value,onChange,unit='',allowEmpty=false}:{label:string;val
 }
 export default function App() {
   const [page,setPage]=useState<Page>('calculator')
+  const [locale,setLocale]=useState<AppLocale>(()=>{try{return localStorage.getItem('driver.locale')==='en'?'en':'ar'}catch{return 'ar'}})
+  const [theme,setTheme]=useState<'light'|'dark'>(()=>{try{const saved=localStorage.getItem('driver.theme');if(saved==='light'||saved==='dark')return saved;return window.matchMedia?.('(prefers-color-scheme: light)').matches?'light':'dark'}catch{return 'dark'}})
   const [settings,setSettings]=useState<Settings>(DEFAULT_SETTINGS)
   const [trip,setTrip]=useState<TripInput>(EMPTY_TRIP)
   const [trips,setTrips]=useState<SavedTrip[]>([])
@@ -49,6 +52,9 @@ export default function App() {
   const [toast,setToast]=useState('')
   const [speaking,setSpeaking]=useState(false)
   const result=useMemo(()=>calculateTrip(trip,settings),[trip,settings])
+  useEffect(()=>{applyLocale(document.getElementById('root')??document.body,locale);try{localStorage.setItem('driver.locale',locale)}catch{}},[locale])
+  useEffect(()=>{document.documentElement.dataset.theme=theme;try{localStorage.setItem('driver.theme',theme)}catch{}},[theme])
+  useEffect(()=>{const root=document.getElementById('root');if(!root)return;const observer=new MutationObserver(()=>applyLocale(root,locale));observer.observe(root,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['placeholder','title','aria-label']});return()=>observer.disconnect()},[locale])
   useEffect(()=>{(async()=>{setSettings(await getSettings());setTrips(await getTrips())})()},[])
   useEffect(()=>{
     let active=true
@@ -208,7 +214,7 @@ export default function App() {
   return <div className="app-shell">
     <header className="topbar">
       <div className="brand"><div className="brand-icon"><ScaleIcon/></div><div><strong>حاسبة عدالة المشاوير</strong><small>DRIVER PROFIT CALCULATOR</small></div></div>
-      <div className="top-actions"><span className="free-tag"><ShieldCheck size={14}/> مجاني 100%</span><span className="local-tag"><span/> حفظ محلي</span></div>
+      <div className="top-actions"><button type="button" className="utility-btn" onClick={()=>setLocale(v=>v==="ar"?"en":"ar")} aria-label={locale==="ar"?"Switch to English":"التبديل إلى العربية"}>{locale==="ar"?"English":"العربية"}</button><button type="button" className="utility-btn" onClick={()=>setTheme(v=>v==="dark"?"light":"dark")} aria-label={theme==="dark"?"Switch to light mode":"التبديل للوضع الداكن"}>{theme==="dark"?(locale==="ar"?"الوضع الفاتح":"Light mode"):(locale==="ar"?"الوضع الداكن":"Dark mode")}</button><span className="free-tag"><ShieldCheck size={14}/> مجاني 100%</span><span className="local-tag"><span/> حفظ محلي</span></div>
     </header>
     <nav className="nav">{nav.map(n=><button key={n.id} className={page===n.id?'active':''} onClick={()=>setPage(n.id)}><n.icon size={17}/>{n.label}{n.id==='inbox'&&inbox.filter(item=>item.status!=='rejected'&&item.status!=='dismissed'&&item.status!=='transferred').length>0?<b>{inbox.filter(item=>item.status!=='rejected'&&item.status!=='dismissed'&&item.status!=='transferred').length}</b>:null}</button>)}</nav>
     <main className="main">
