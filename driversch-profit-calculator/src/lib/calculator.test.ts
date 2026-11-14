@@ -79,3 +79,10 @@ describe('calculateTrip', () => {
     expect(result.requiredFare).toBe(192.44)
   })
 })
+
+  it.each([59 / 60, 1])('accepts a valid trip lasting %s minutes', totalMinutes => {
+    const result = calculate({ totalMinutes })
+    expect(result.isValid).toBe(true)
+    expect(result.decision).toBe('accept')
+    expect(Number.isFinite(result.hourlyProfit)).toBe(true)
+  })
