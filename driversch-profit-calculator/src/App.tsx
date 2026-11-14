@@ -34,8 +34,8 @@ function Field({label,value,onChange,unit='',allowEmpty=false}:{label:string;val
 }
 export default function App() {
   const [page,setPage]=useState<Page>('calculator')
-  const tr=(key:string)=>t(key as TranslationKey,locale)
   const [locale,setLocale]=useState<AppLocale>(()=>{try{return localStorage.getItem('driver.locale')==='en'?'en':'ar'}catch{return 'ar'}})
+  const tr=(key:string)=>t(key as TranslationKey,locale)
   const [theme,setTheme]=useState<'light'|'dark'>(()=>{try{const saved=localStorage.getItem('driver.theme');if(saved==='light'||saved==='dark')return saved;return window.matchMedia?.('(prefers-color-scheme: light)').matches?'light':'dark'}catch{return 'dark'}})
   const [settings,setSettings]=useState<Settings>(DEFAULT_SETTINGS)
   const [trip,setTrip]=useState<TripInput>(EMPTY_TRIP)
@@ -175,7 +175,8 @@ export default function App() {
     const csv=[headers,...rows].map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n')
     downloadFile('\ufeff'+csv,'driver-trips.csv','text/csv;charset=utf-8')
   }
-  const decisionLabel={accept:tr('اقبل الرحلة'),review:tr('راجع الرحلة'),reject:tr('ارفض الرحلة')}
+  const decisionKey={accept:'اقبل الرحلة',review:'راجع الرحلة',reject:'ارفض الرحلة'} as const
+  const decisionLabel={accept:tr(decisionKey.accept),review:tr(decisionKey.review),reject:tr(decisionKey.reject)}
   const decisionClass={accept:'good',review:'warn',reject:'bad'}
   const savedProfit=trips.reduce((s,t)=>s+t.netProfit,0)
   // Voice commands only navigate or report. They never accept, reject, move or delete a trip.
@@ -183,13 +184,13 @@ export default function App() {
     switch(intent){
       case 'calculate':
         setPage('calculator')
-        setToast(`${decisionLabel[result.decision]} · صافي الربح ${moneyText(result.netProfit)}`)
+        setToast(`${decisionKey[result.decision]}. صافي الربح ${moneyText(result.netProfit)}`)
         break
       case 'last-trip': {
         if(trips.length===0){setToast('لا توجد رحلات محفوظة بعد');break}
         const last=[...trips].sort((a,b)=>b.createdAt.localeCompare(a.createdAt))[0]
         setPage('history')
-        setToast(`آخر رحلة: ${decisionLabel[last.decision]} · صافي الربح ${moneyText(last.netProfit)}`)
+        setToast(`آخر رحلة: ${decisionKey[last.decision]} · صافي الربح ${moneyText(last.netProfit)}`)
         break
       }
       case 'open-inbox':
@@ -224,9 +225,9 @@ export default function App() {
       {inboxStorageMessage&&<div className="inbox-storage-alert" role="alert"><span>{translateMessage(inboxStorageMessage,locale)}</span>{inboxSaveFailed&&<button type="button" onClick={()=>void commitInbox(inbox)}>{tr('إعادة محاولة الحفظ')}</button>}</div>}
       <VoiceCommandBar onCommand={runVoiceCommand} locale={locale}/>
       {page==='calculator'&&<><section className="hero"><div><span className="eyebrow">{tr('قرار أذكى • ربح أوضح')}</span><h1>{tr('احسبها قبل ما تقبل المشوار')}</h1><p>{tr('اعرف تكلفة الرحلة وصافي ربحك الحقيقي في ثوانٍ.')}</p></div><div className="hero-stat"><Gauge size={26}/><span>{tr('القرار بيتحسب تلقائيًا')}</span></div></section>
-        <section className="templates"><div className="section-head"><h2>{tr('نماذج جاهزة للاختبار السريع')}</h2><span>{tr('اضغط لملء الحقول')}</span></div><div className="template-grid">{templates.map(t=><button className="template" key={t.name} onClick={()=>loadTemplate(t.trip)}><strong>{tr(t.name)}</strong><small>{tr(t.desc)</small></button>)}</div></section>
+        <section className="templates"><div className="section-head"><h2>{tr('نماذج جاهزة للاختبار السريع')}</h2><span>{tr('اضغط لملء الحقول')}</span></div><div className="template-grid">{templates.map(t=><button className="template" key={t.name} onClick={()=>loadTemplate(t.trip)}><strong>{tr(t.name)}</strong><small>{tr(t.desc)}</small></button>)}</div></section>
         <div className="work-grid"><section className="panel form-panel"><div className="panel-head"><div><span className="eyebrow">{tr('بيانات العرض')}</span><h2><CarFront/> {tr('بيانات المشوار المقترح')}</h2></div><button className="subtle-btn" onClick={()=>setTrip(EMPTY_TRIP)}><RotateCcw size={15}/> {tr('تفريغ الحقول')}</button></div>
-          <div className="app-select">{(['Uber','DiDi','inDrive','أخرى'] as AppName[]).map(a=><button key={a} className={trip.app===a?'selected':''} aria-pressed={trip.app===a} onClick={()=>{patch('app',a);patch('commissionRate',settings.commission[a]??0);patch('fareMode',a==='Uber'?'net':'unknown')}}>{a}</button>)}</div>
+          <div className="app-select">{(['Uber','DiDi','inDrive','أخرى'] as AppName[]).map(a=><button key={a} className={trip.app===a?'selected':''} aria-pressed={trip.app===a} onClick={()=>{patch('app',a);patch('commissionRate',settings.commission[a]??0);patch('fareMode',a==='Uber'?'net':'unknown')}}>{a==='أخرى'?tr('أخرى'):a}</button>)}</div>
           <Field label={tr('الأجرة المعروضة')} value={trip.fare} onChange={v=>patch('fare',v??0)} unit="ج.م"/>
           <div className="field"><span>{tr('نوع الأجرة')}</span><div className="choice-row">
             <button className={trip.fareMode==='net'?'chosen':''} aria-pressed={trip.fareMode==='net'} onClick={()=>patch('fareMode','net')}>{tr('صافي للسائق')}</button>
@@ -247,7 +248,7 @@ export default function App() {
         </section>
         <section className="panel result-panel"><div className="panel-head"><div><span className="eyebrow">{tr('التحليل المالي')}</span><h2><Activity/> {tr('قرار الرحلة النهائي')}</h2></div><button className="icon-btn" onClick={speak} title={tr('نطق القرار')}>{speaking?<MicOff/>:<Mic/>}</button></div>
           <div className={`decision ${decisionClass[result.decision]}`}><div className="decision-mark">{result.decision==='accept'?'✓':result.decision==='review'?'!':'×'}</div><div><strong>{decisionLabel[result.decision]}</strong><p>{translateMessage(result.decisionReason,locale)}</p></div></div>
-          <div className="profit-highlight"><small>{trip.fareMode==='unknown'?'ربح تقديري — أكد نوع الأجرة أولًا':'صافي ربحك المتوقع'}</small><strong className={result.netProfit>=0?'positive':'negative'}>{moneyText(result.netProfit)}</strong><span>{tr('بعد الوقود والصيانة والمصروفات')}</span></div>
+          <div className="profit-highlight"><small>{trip.fareMode==='unknown'?tr('ربح تقديري — أكد نوع الأجرة أولًا'):tr('صافي ربحك المتوقع')}</small><strong className={result.netProfit>=0?'positive':'negative'}>{moneyText(result.netProfit)}</strong><span>{tr('بعد الوقود والصيانة والمصروفات')}</span></div>
           <div className="metric-grid">
             <Metric label={tr('إجمالي المسافة')} value={`${result.totalKm.toFixed(2)} كم`}/>
             <Metric label={tr('تكلفة الوقود')} value={moneyText(result.fuelCost)}/>
@@ -257,7 +258,7 @@ export default function App() {
             <Metric label={tr('الربح في الساعة')} value={moneyText(result.hourlyProfit)}/>
           </div>
           <div className="required-fare"><div><span>{tr('الحد الأدنى للأجرة المطلوبة')}</span><strong>{moneyText(result.requiredFare)}</strong></div><div><span>{tr('الفرق عن الأجرة الحالية')}</span><strong className={result.fareGap<=0?'positive':'negative'}>{result.fareGap<=0?'+'+moneyText(Math.abs(result.fareGap)):'-'+moneyText(result.fareGap)}</strong></div></div>
-          <p className="formula-note">{trip.fareMode==='unknown'?'الأرقام المعروضة تقديرية مؤقتًا بافتراض أن الأجرة صافية؛ لا تعتمد القرار ولا تحفظ الرحلة قبل تحديد نوع الأجرة.':'الحساب يفترض أن كل المسافات المدخلة فعلية، وأن الأجرة الصافية لا تُخصم منها عمولة مرة ثانية.'}</p>
+          <p className="formula-note">{trip.fareMode==='unknown'?tr('الأرقام المعروضة تقديرية مؤقتًا بافتراض أن الأجرة صافية؛ لا تعتمد القرار ولا تحفظ الرحلة قبل تحديد نوع الأجرة.'):tr('الحساب يفترض أن كل المسافات المدخلة فعلية، وأن الأجرة الصافية لا تُخصم منها عمولة مرة ثانية.')}</p>
         </section></div>
       </>}
       {page==='assistant'&&<section className="panel assistant-panel"><div className="panel-head"><div><span className="eyebrow">{tr('قراءة بموافقتك')}</span><h2><FileImage/> {tr('المساعد الذكي لالتقاط الرحلات')}</h2><p>{tr('ارفع Screenshot واضحة من شاشة العرض. راجع القيم قبل إرسالها للحاسبة.')}</p></div></div>
@@ -265,16 +266,16 @@ export default function App() {
         <label className="upload-zone"><Upload size={32}/><strong>{tr('اختر Screenshot من جهازك')}</strong><span>{tr('PNG أو JPG — يفضل لقطة شاشة أصلية وليست صورة بالكاميرا')}</span><input type="file" accept="image/*" onChange={e=>uploadImage(e.target.files?.[0])}/></label>
         {busy&&<div className="progress-wrap"><span>جاري قراءة الصورة {progress}%</span><div><i style={{width:`${progress}%`}}/></div></div>}
         <div className="capture-warning"><strong>{tr('تنبيه بخصوص Android')}</strong><p>{tr('التقاط شاشة التطبيقات الأخرى مباشرة غير متاح بشكل موثوق من صفحة ويب عادية. لذلك نوفر رفع الصورة كحل يعمل على المتصفح. الالتقاط المباشر يحتاج تطبيق Android أصلي وصلاحية MediaProjection بموافقة النظام.')}</p></div>
-        {draft&&<div className="ocr-review"><div className="section-head"><h3>{tr('راجع البيانات المستخرجة')}</h3><span>ثقة OCR: {Math.round(draft.confidence)}%</span></div>
+        {draft&&<div className="ocr-review"><div className="section-head"><h3>{tr('راجع البيانات المستخرجة')}</h3><span>{tr('ثقة OCR:')} {Math.round(draft.confidence)}%</span></div>
           <div className="field-grid">
-            <div className="field"><span>{tr('التطبيق')}</span><select value={draft.app} onChange={e=>setDraft({...draft,app:e.target.value as AppName})}>{['Uber','DiDi','inDrive','أخرى'].map(x=><option>{x}</option>)}</select></div>
+            <div className="field"><span>{tr('التطبيق')}</span><select value={draft.app} onChange={e=>setDraft({...draft,app:e.target.value as AppName})}>{['Uber','DiDi','inDrive','أخرى'].map(x=><option key={x}>{x==='أخرى'?tr('أخرى'):x}</option>)}</select></div>
             <Field label={tr('الأجرة')} allowEmpty value={draft.fare} onChange={v=>setDraft({...draft,fare:v})} unit="ج.م"/>
             <div className="field"><span>{tr('نوع الأجرة')}</span><select value={draft.fareMode} onChange={e=>setDraft({...draft,fareMode:e.target.value as FareMode})}><option value="unknown">{tr('غير متأكد')}</option><option value="net">{tr('صافي')}</option><option value="gross">{tr('إجمالي')}</option></select></div>
             <Field label={tr('مسافة الوصول')} allowEmpty value={draft.pickupKm} onChange={v=>setDraft({...draft,pickupKm:v})} unit="كم"/>
             <Field label={tr('مسافة الرحلة')} allowEmpty value={draft.passengerKm} onChange={v=>setDraft({...draft,passengerKm:v})} unit="كم"/>
             <Field label={tr('الوقت')} allowEmpty value={draft.totalMinutes} onChange={v=>setDraft({...draft,totalMinutes:v})} unit="دقيقة"/>
           </div>
-          {draft.warnings.map(w=><div className="inline-alert">{w}</div>)}
+          {draft.warnings.map((w,index)=><div className="inline-alert" key={index}>{translateMessage(w,locale)}</div>)}
           <details><summary>{tr('عرض نص OCR للمراجعة فقط')}</summary><pre>{draft.rawText}</pre></details>
           <button className="primary-btn" onClick={useDraft}><Check size={17}/> {tr('إضافة لصندوق المراجعة')}</button>
           <button className="subtle-btn" onClick={()=>setDraft(null)}><X size={16}/> {tr('إلغاء')}</button>
@@ -287,7 +288,7 @@ export default function App() {
       </section>}
       {page==='reports'&&<section className="panel"><div className="panel-head"><div><span className="eyebrow">{tr('ملخص السجل المحفوظ')}</span><h2><LayoutDashboard/> {tr('التقارير والإحصائيات')}</h2></div></div>
         <div className="report-grid"><Metric label={tr('عدد الرحلات')} value={String(trips.length)}/><Metric label={tr('إجمالي الأجرة الصافية')} value={moneyText(trips.reduce((s,t)=>s+t.netFare,0))}/><Metric label={tr('إجمالي التشغيل')} value={moneyText(trips.reduce((s,t)=>s+t.totalCost,0))}/><Metric label={tr('صافي الربح')} value={moneyText(savedProfit)}/><Metric label={tr('إجمالي المسافات')} value={`${trips.reduce((s,t)=>s+t.totalKm,0).toFixed(1)} كم`}/><Metric label={tr('إجمالي الوقت')} value={`${trips.reduce((s,t)=>s+t.totalMinutes,0)} دقيقة`}/></div>
-        <div className="section-head"><h3>{tr('مقارنة حسب التطبيق')}</h3></div><div className="table-wrap"><table><thead><tr><th>{tr('التطبيق')}</th><th>{tr('عدد الرحلات')}</th><th>{tr('صافي الربح')}</th><th>{tr('متوسط الربح')}</th></tr></thead><tbody>{(['Uber','DiDi','inDrive','أخرى'] as AppName[]).map(a=>{const list=trips.filter(t=>t.app===a);const sum=list.reduce((s,t)=>s+t.netProfit,0);return <tr key={a}><td>{a}</td><td>{list.length}</td><td>{moneyText(sum)}</td><td>{moneyText(list.length?sum/list.length:0)}</td></tr>})}</tbody></table></div>
+        <div className="section-head"><h3>{tr('مقارنة حسب التطبيق')}</h3></div><div className="table-wrap"><table><thead><tr><th>{tr('التطبيق')}</th><th>{tr('عدد الرحلات')}</th><th>{tr('صافي الربح')}</th><th>{tr('متوسط الربح')}</th></tr></thead><tbody>{(['Uber','DiDi','inDrive','أخرى'] as AppName[]).map(a=>{const list=trips.filter(t=>t.app===a);const sum=list.reduce((s,t)=>s+t.netProfit,0);return <tr key={a}><td>{a==='أخرى'?tr('أخرى'):a}</td><td>{list.length}</td><td>{moneyText(sum)}</td><td>{moneyText(list.length?sum/list.length:0)}</td></tr>})}</tbody></table></div>
       </section>}
       {page==='settings'&&<section className="panel"><div className="panel-head"><div><span className="eyebrow">{tr('تحكم في افتراضات الحساب')}</span><h2><SettingsIcon/> {tr('الإعدادات')}</h2></div><button className="primary-btn" onClick={persistSettings}><Save size={16}/> {tr('حفظ الإعدادات')}</button></div>
         <div className="field-grid settings-grid">
@@ -299,7 +300,7 @@ export default function App() {
         </div>
         <div className="section-head"><h3>{tr('عمولة التطبيقات (اختيارية)')}</h3><span>{tr('كل تطبيق له نسبته المستقلة. القيمة 0% افتراضية حتى تُدخل نسبتك، وتُستخدم عند اختيار أجرة إجمالية')}</span></div>
         <div className="field-grid">{(['Uber','inDrive','DiDi','أخرى'] as const).map(a=><Field label={translateMessage(`عمولة ${a}`,locale)} value={settings.commission[a]} onChange={v=>setSettings(s=>({...s,commission:{...s.commission,[a]:v??0}}))} unit="%"/>)}</div>
-        <div className="backup-actions"><button className="subtle-btn" onClick={exportBackup}><Download size={16}/> {tr('تصدير نسخة احتياطية')}</button><label className="subtle-btn file-button"><Upload size={16}/> {tr('استيراد نسخة احتياطية')}<input type="file" accept="application/json" onChange={e=>importBackup(e.target.files?.[0])}/></label><button className="subtle-btn" onClick={()=>{if(confirm('إعادة الإعدادات الافتراضية؟'))setSettings(DEFAULT_SETTINGS)}}><RotateCcw size={16}/> {tr('استعادة الافتراضي')}</button></div>
+        <div className="backup-actions"><button className="subtle-btn" onClick={exportBackup}><Download size={16}/> {tr('تصدير نسخة احتياطية')}</button><label className="subtle-btn file-button"><Upload size={16}/> {tr('استيراد نسخة احتياطية')}<input type="file" accept="application/json" onChange={e=>importBackup(e.target.files?.[0])}/></label><button className="subtle-btn" onClick={()=>{if(confirm(tr('إعادة الإعدادات الافتراضية؟')))setSettings(DEFAULT_SETTINGS)}}><RotateCcw size={16}/> {tr('استعادة الافتراضي')}</button></div>
         <p className="formula-note">{tr('البيانات محفوظة محليًا في هذا المتصفح باستخدام IndexedDB. مسح بيانات المتصفح قد يؤدي إلى حذفها؛ صدّر نسخة احتياطية بانتظام.')}</p>
       </section>}
     </main>
