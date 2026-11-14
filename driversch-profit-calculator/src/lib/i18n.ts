@@ -135,6 +135,7 @@ export const AR_TO_EN = {
   "الصيانة والإهلاك لكل كم": "Maintenance and depreciation per km",
   "الحد الأدنى لصافي الرحلة": "Minimum net profit per trip",
   "هدف الربح في الساعة": "Hourly profit target",
+  "عمولة": "Commission",
   "عمولة التطبيقات (اختيارية)": "Platform commissions (optional)",
   "نسبة عمولة التطبيق": "Platform commission rate",
   "كل تطبيق له نسبته المستقلة. القيمة 0% افتراضية حتى تُدخل نسبتك، وتُستخدم عند اختيار أجرة إجمالية": "Each platform has its own rate. The default is 0% until you enter your rate, and it applies when gross fare is selected.",
