@@ -54,7 +54,7 @@ export default function App() {
   const [speaking,setSpeaking]=useState(false)
   const result=useMemo(()=>calculateTrip(trip,settings),[trip,settings])
   const moneyText=(value:number)=>money(value,locale)
-  useEffect(()=>{document.documentElement.lang=locale;document.documentElement.dir=locale==='ar'?'rtl':'ltr';document.documentElement.dataset.locale=locale;document.title=tr('حاسبة عدالة المشاوير');try{localStorage.setItem('driver.locale',locale)}catch{}},[locale])
+  useEffect(()=>{document.documentElement.lang=locale;document.documentElement.dir=locale==='ar'?'rtl':'ltr';document.documentElement.dataset.locale=locale;document.title=tr('حاسبة عدالة المشاوير');document.querySelector('meta[name="description"]')?.setAttribute('content',tr('حاسبة مجانية لمساعدة سائقي تطبيقات النقل على حساب صافي ربح الرحلات.'));try{localStorage.setItem('driver.locale',locale)}catch{}},[locale])
   useEffect(()=>{document.documentElement.dataset.theme=theme;document.querySelector('meta[name="theme-color"]')?.setAttribute('content',theme==='light'?'#f3f7fc':'#080e20');try{localStorage.setItem('driver.theme',theme)}catch{}},[theme])
   useEffect(()=>{const bridge=(window as Window & {DriverAndroid?:{setVoiceLanguage?:(tag:string)=>boolean;setSystemTheme?:(theme:string)=>boolean}}).DriverAndroid;bridge?.setVoiceLanguage?.(locale==='ar'?'ar-EG':'en-US');bridge?.setSystemTheme?.(theme)},[locale])
   useEffect(()=>{(async()=>{setSettings(await getSettings());setTrips(await getTrips())})()},[])

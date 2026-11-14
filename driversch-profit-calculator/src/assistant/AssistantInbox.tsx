@@ -45,7 +45,7 @@ export default function AssistantInbox({ items, onChange, onTransfer, locale }: 
   const active = items.filter(item => item.status !== 'dismissed' && item.status !== 'rejected' && item.status !== 'transferred')
   const addOffer = () => {
     const text = sourceText.trim()
-    if (!text) { setError(t('الصق نص إشعار أو تفاصيل العرض أولًا.', locale)); return }
+    if (!text) { setError('الصق نص إشعار أو تفاصيل العرض أولًا.' as TranslationKey); return }
     try {
       const draft = parseRideOffer({ text, source: 'manual' })
       const now = new Date()
@@ -75,7 +75,7 @@ export default function AssistantInbox({ items, onChange, onTransfer, locale }: 
     onChange(items.map(current => current.id === item.id ? updateInboxDraft(current, draft) : current))
   const setManualField = (item: InboxItem, field: 'fare' | 'distanceKm' | 'pickupDistanceKm' | 'durationMinutes', value: number | null) => {
     if (value !== null && (!Number.isFinite(value) || value < 0)) return
-    const evidence = value === null ? [] : [{ text: t('تم الإدخال أو التصحيح يدويًا', locale), start: 0, end: 0 }]
+    const evidence = value === null ? [] : [{ text: 'تم الإدخال أو التصحيح يدويًا', start: 0, end: 0 }]
     const draft: RideOfferDraft = {
       ...item.draft,
       fields: { ...item.draft.fields, [field]: {
@@ -92,7 +92,7 @@ export default function AssistantInbox({ items, onChange, onTransfer, locale }: 
     onChange(items.map(current => current.id === item.id ? setInboxFieldReviewed(current, field, checked) : current))
   const confirm = (item: InboxItem) => {
     const next = confirmInboxItem(item, item.reviewedFields ?? [])
-    if (next.status !== 'confirmed') { setError(t('لا يمكن التأكيد قبل إدخال الأجرة والمسافة والمدة ومراجعتها.', locale)); return }
+    if (next.status !== 'confirmed') { setError('لا يمكن التأكيد قبل إدخال الأجرة والمسافة والمدة ومراجعتها.' as TranslationKey); return }
     onChange(items.map(current => current.id === item.id ? next : current))
     setError('')
   }
@@ -118,7 +118,7 @@ export default function AssistantInbox({ items, onChange, onTransfer, locale }: 
     return saved !== false
   }
   const transfer = (item: InboxItem) => {
-    if (item.status !== 'confirmed') { setError(t('أكد العرض بعد مراجعته قبل نقله للحاسبة.', locale)); return }
+    if (item.status !== 'confirmed') { setError('أكد العرض بعد مراجعته قبل نقله للحاسبة.' as TranslationKey); return }
     onTransfer(item)
   }
 
@@ -144,7 +144,7 @@ export default function AssistantInbox({ items, onChange, onTransfer, locale }: 
         placeholder={t('الصق نص العرض هنا… مثال: inDrive — القبول مقابل 165 جنيه — 22 كم — 40 دقيقة', locale)} />
       <div className="inbox-capture-actions"><small>{t('المتصفح لا يستطيع قراءة إشعارات تطبيقات Android الأخرى تلقائيًا.', locale)}</small>
         <button className="primary-btn" type="button" onClick={addOffer}><ClipboardPaste size={16}/> {t('تحليل وإضافة للإنبوكس', locale)}</button></div>
-      {error && <p className="inbox-error" role="alert"><AlertCircle size={15}/>{error}</p>}
+      {error && <p className="inbox-error" role="alert"><AlertCircle size={15}/>{error ? t(error as TranslationKey, locale) : ''}</p>}
     </div>
 
     <div className="inbox-layout">
@@ -179,7 +179,7 @@ export default function AssistantInbox({ items, onChange, onTransfer, locale }: 
                     onValueChange={value => setManualField(selected, field, value)} placeholder={t('أدخل القيمة', locale)}/>
                     <small>{field === 'fare' ? t('جنيه', locale) : field === 'durationMinutes' ? t('دقيقة', locale) : t('كم', locale)}</small></div>
                   <label className="inbox-reviewed"><input type="checkbox" checked={(selected.reviewedFields ?? []).includes(field)} disabled={selected.status === 'confirmed' || selected.status === 'rejected' || selected.status === 'transferred'} onChange={event => setFieldReviewed(selected, field, event.target.checked)}/> {t('راجعت هذه القيمة وأؤكدها', locale)}</label>
-                  <small className="inbox-confidence">{t('الثقة:', locale)} {Math.round(candidate.confidence * 100)}% · {candidate.evidence.length ? t('الدليل:', locale) + ' ' + candidate.evidence.map(e => e.text).join('، ') : t('لا يوجد دليل مستخرج', locale)}</small>
+                  <small className="inbox-confidence">{t('الثقة:', locale)} {Math.round(candidate.confidence * 100)}% · {candidate.evidence.length ? t('الدليل:', locale) + ' ' + candidate.evidence.map(e => translateMessage(e.text, locale)).join('، ') : t('لا يوجد دليل مستخرج', locale)}</small>
                 </div>
               })}
             </div>

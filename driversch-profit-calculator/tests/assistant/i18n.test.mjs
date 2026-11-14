@@ -104,12 +104,12 @@ test('visible Arabic JSX copy across the source tree has dictionary coverage', (
   const collect = directory => readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
     const path = join(directory, entry.name)
     if (entry.isDirectory()) return collect(path)
-    return /\\.(tsx|jsx)$/.test(entry.name) ? [path] : []
+    return /\.(tsx|jsx)$/.test(entry.name) ? [path] : []
   })
   const missing = []
   for (const path of collect(root)) {
     const source = readFileSync(path, 'utf8')
-    for (const match of source.matchAll(/>([^<>]*[\\u0600-\\u06FF][^<>]*)</g)) {
+    for (const match of source.matchAll(/>([^<>]*[\u0600-\u06FF][^<>]*)</g)) {
       const copy = match[1].trim()
       if (!copy || copy.length > 220 || copy.startsWith('=') || copy.includes('{') || copy.includes('=>') || copy.includes(').join(')) continue
       if (/^(Uber|DiDi|inDrive|Android|Chrome|API|OCR|PNG|JPG)$/.test(copy)) continue
@@ -124,12 +124,12 @@ test('every explicit React t() call references a real bilingual dictionary key',
   const collect = directory => readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
     const path = join(directory, entry.name)
     if (entry.isDirectory()) return collect(path)
-    return /\\.(tsx?|jsx?)$/.test(entry.name) ? [path] : []
+    return /\.(tsx?|jsx?)$/.test(entry.name) ? [path] : []
   })
   const missing = []
   for (const path of collect(root)) {
     const source = readFileSync(path, 'utf8')
-    for (const match of source.matchAll(/\\bt\\('([^']+)'/g)) {
+    for (const match of source.matchAll(/\bt\('([^']+)'/g)) {
       if (!Object.hasOwn(AR_TO_EN, match[1])) missing.push({ path, key: match[1] })
     }
   }
@@ -141,12 +141,12 @@ test('no production source can reintroduce DOM-based translation', () => {
   const collect = directory => readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
     const path = join(directory, entry.name)
     if (entry.isDirectory()) return collect(path)
-    return /\\.(tsx?|jsx?)$/.test(entry.name) ? [path] : []
+    return /\.(tsx?|jsx?)$/.test(entry.name) ? [path] : []
   })
   for (const path of collect(root)) {
     const source = readFileSync(path, 'utf8')
-    assert.doesNotMatch(source, /\\bMutationObserver\\b/, path)
-    assert.doesNotMatch(source, /\\bapplyLocale\\b/, path)
-    assert.doesNotMatch(source, /\\btranslateText\\b/, path)
+    assert.doesNotMatch(source, /\bMutationObserver\b/, path)
+    assert.doesNotMatch(source, /\bapplyLocale\b/, path)
+    assert.doesNotMatch(source, /\btranslateText\b/, path)
   }
 })
