@@ -314,7 +314,7 @@ const INTERPOLATED: Array<[RegExp,(match:RegExpMatchArray)=>string]> = [
 ]
 export function translateText(value:string, locale:AppLocale):string {
   const trimmed=value.trim()
-  const table=locale==='en'?AR_TO_EN:EN_TO_AR
+  const table: Readonly<Record<string,string>>=locale==='en'?AR_TO_EN:EN_TO_AR
   const direct=table[trimmed]
   if(direct) return value.replace(trimmed,direct)
   if(locale==='en') {
