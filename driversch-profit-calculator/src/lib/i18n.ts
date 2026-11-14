@@ -327,6 +327,7 @@ const INTERPOLATED: Array<[RegExp,(match:RegExpMatchArray)=>string]> = [
   [/^صافي الربح أقل من الحد الأدنى (.+) ج\.م\.$/, m => `Net profit is below the minimum target of EGP ${m[1]}.`],
   [/^الربح إيجابي، لكن العائد بالساعة أقل من هدفك (.+) ج\.م\.$/, m => `Profit is positive, but hourly return is below your target of EGP ${m[1]}.`],
   [/^ثقة OCR: (\d+)%$/, m => `OCR confidence: ${m[1]}%`],
+  [/^الثقة: (\d+)% · الدليل: (.+)$/, m => `Confidence: ${m[1]}% · Evidence: ${m[2]}`],
   [/^جاري قراءة الصورة (\d+)%$/, m => `Reading image ${m[1]}%`],
   [/^معرّف التطبيق: (.+)$/, m => `App package: ${m[1]}`],
   [/^وقت الإشعار: (.+)$/, m => `Notification time: ${m[1]}`],
