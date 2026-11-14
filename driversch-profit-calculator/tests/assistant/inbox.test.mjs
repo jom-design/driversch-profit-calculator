@@ -4,7 +4,7 @@ import { parseRideOffer } from '../../src/assistant/parser.ts'
 import {
   createInboxItem, markInboxParsed, requestInboxReview, confirmInboxItem,
   rejectInboxItem, dismissInboxItem, updateInboxDraft, markInboxParseError,
-  hasRequiredReviewData, deleteInboxItem
+  hasRequiredReviewData, deleteInboxItem, markInboxTransferred
 } from '../../src/assistant/inbox.ts'
 import { acceptNativeNotification } from '../../src/assistant/notificationBridge.ts'
 import { toCalculatorTripInput } from '../../src/assistant/calculatorTransfer.ts'
@@ -133,4 +133,33 @@ test('screenshot OCR enters review inbox and is never sent directly to calculato
   assert.equal(item.draft.fields.fare.confidence, 0)
   assert.equal(item.draft.fields.pickupDistanceKm.value, 4)
   assert.equal(toCalculatorTripInput(item), null)
+})
+
+
+test('each required field is independently mandatory before confirmation', () => {
+  const complete = reviewableItem('each-required')
+  for (const field of required) {
+    const draft = { ...complete.draft, fields: { ...complete.draft.fields, [field]: { ...complete.draft.fields[field], value: null } } }
+    const missing = { ...complete, draft }
+    assert.equal(hasRequiredReviewData(missing), false, field)
+    assert.equal(confirmInboxItem(missing, required).status, 'needs-review', field)
+  }
+})
+
+test('OCR adapter rejects invalid runtime payloads instead of forwarding malformed values', () => {
+  const valid = { app: 'Uber', fare: 165, fareMode: 'net', pickupKm: 4, passengerKm: 22, totalMinutes: 40, rawText: 'Uber 165 EGP', confidence: 90, warnings: [] }
+  assert.throws(() => ocrDraftToInboxItem({ ...valid, fare: Number.NaN }, 'ocr-invalid'), /Invalid OCR draft payload/)
+  assert.throws(() => ocrDraftToInboxItem({ ...valid, pickupKm: -1 }, 'ocr-invalid'), /Invalid OCR draft payload/)
+  assert.throws(() => ocrDraftToInboxItem({ ...valid, confidence: 101 }, 'ocr-invalid'), /Invalid OCR draft payload/)
+  assert.throws(() => ocrDraftToInboxItem({ ...valid, warnings: [42] }, 'ocr-invalid'), /Invalid OCR draft payload/)
+})
+
+test('a confirmed offer can be transferred once and then becomes non-transferable', () => {
+  const pending = reviewableItem('transfer-once')
+  assert.equal(markInboxTransferred(pending).status, 'needs-review')
+  const confirmed = confirmInboxItem(pending, required)
+  const transferred = markInboxTransferred(confirmed)
+  assert.equal(transferred.status, 'transferred')
+  assert.equal(markInboxTransferred(transferred), transferred)
+  assert.equal(toCalculatorTripInput(transferred), null)
 })

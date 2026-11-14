@@ -87,3 +87,9 @@ export function hasRequiredReviewData(item: InboxItem): boolean {
 export function deleteInboxItem(items: InboxItem[], id: string): InboxItem[] {
   return items.filter(item => item.id !== id)
 }
+
+
+export function markInboxTransferred(item: InboxItem, now = new Date()): InboxItem {
+  if (item.status !== 'confirmed') return item
+  return { ...item, status: 'transferred', updatedAt: now.toISOString() }
+}

@@ -6,8 +6,11 @@
 @media(max-width:440px){.assistant-inbox{padding:13px}.assistant-inbox .panel-head{flex-direction:column;align-items:stretch}.inbox-list{grid-template-columns:1fr;max-height:220px}.inbox-fields{grid-template-columns:1fr}.inbox-detail{padding:12px}.inbox-actions{display:grid;grid-template-columns:1fr}.inbox-actions button{width:100%;justify-content:center}.inbox-review-head{align-items:flex-start}}
 @media(orientation:landscape) and (max-height:600px){.inbox-layout{grid-template-columns:minmax(210px,.65fr) minmax(0,1.5fr)}.inbox-list{max-height:55vh}.inbox-detail{padding:12px}}
 
-.inbox-reviewed{display:flex;align-items:center;gap:7px;color:#b8c8dc;font-size:11px;cursor:pointer;min-height:28px}.inbox-reviewed input{width:17px;height:17px;accent-color:#12a982;flex:none}
+.inbox-reviewed{display:flex;align-items:center;gap:9px;color:#b8c8dc;font-size:12px;cursor:pointer;min-height:44px;padding-block:6px}.inbox-reviewed input{width:20px;height:20px;accent-color:#12a982;flex:none}
 
 .inbox-capabilities{display:flex;flex-wrap:wrap;gap:7px;margin:-3px 0 14px}.inbox-capabilities span{border:1px solid #2c405b;background:#101f35;color:#b9c9de;border-radius:20px;padding:5px 9px;font-size:10px;line-height:1.5}
 
 .assistant-inbox button:focus-visible,.assistant-inbox input:focus-visible,.assistant-inbox select:focus-visible,.assistant-inbox textarea:focus-visible,.assistant-inbox summary:focus-visible{outline:2px solid #f1bd55;outline-offset:3px}
+
+.assistant-inbox .status-transferred{background:#173a34;color:#a7e7d2}
+.assistant-inbox .inbox-success{border:1px solid #2c6555;background:#102d29;color:#a7e7d2;border-radius:10px;padding:12px;line-height:1.7}

@@ -35,7 +35,8 @@ function parseNumber(raw: string): number | null {
       ? value.replace(/\./g, '').replace(',', '.')
       : value.replace(/,/g, '')
   } else if (value.includes(',')) {
-    const decimals = value.split(',').at(-1)?.length ?? 0
+    const parts = value.split(',')
+    const decimals = parts[parts.length - 1]?.length ?? 0
     value = decimals > 0 && decimals <= 2 ? value.replace(',', '.') : value.replace(/,/g, '')
   }
   const number = Number(value)
@@ -79,14 +80,14 @@ function genericDistanceMatches(text: string): Array<{ value: number; evidence: 
 
 function farePatterns(provider: RideProvider): Pattern[] {
   if (provider === 'indrive') return [
-    { regex: new RegExp('(?:القبول\\\\s*مقابل|قبول\\\\s*مقابل)\\\\s*' + MONEY + '\\\\s*(?:EGP|جنيه|ج\\\\.م)?', 'i'), group: 1, confidence: 0.96 },
-    { regex: new RegExp('(?:offer|your offer|المبلغ المقترح)\\\\s*[:：]?\\\\s*' + MONEY, 'i'), group: 1, confidence: 0.72 }
+    { regex: new RegExp('(?:القبول\\s*مقابل|قبول\\s*مقابل)\\s*' + MONEY + '\\s*(?:EGP|جنيه|ج\\.م)?', 'i'), group: 1, confidence: 0.96 },
+    { regex: new RegExp('(?:offer|your offer|المبلغ المقترح)\\s*[:：]?\\s*' + MONEY, 'i'), group: 1, confidence: 0.72 }
   ]
   if (provider === 'uber') return [
-    { regex: new RegExp('(?:صافي\\\\s*رسوم\\\\s*الخدمة|المبلغ المستحق|fare)\\\\s*[:：]?\\\\s*(?:EGP\\\\s*)?' + MONEY, 'i'), group: 1, confidence: 0.94 }
+    { regex: new RegExp('(?:صافي\\s*رسوم\\s*الخدمة|المبلغ المستحق|fare)\\s*[:：]?\\s*(?:EGP\\s*)?' + MONEY, 'i'), group: 1, confidence: 0.94 }
   ]
   return [
-    { regex: new RegExp('(?:الأجرة|السعر|المبلغ|fare|trip price)\\\\s*[:：]?\\\\s*(?:EGP\\\\s*)?' + MONEY, 'i'), group: 1, confidence: provider === 'didi' ? 0.78 : 0.55 }
+    { regex: new RegExp('(?:الأجرة|السعر|المبلغ|fare|trip price)\\s*[:：]?\\s*(?:EGP\\s*)?' + MONEY, 'i'), group: 1, confidence: provider === 'didi' ? 0.78 : 0.55 }
   ]
 }
 

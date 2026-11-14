@@ -17,7 +17,7 @@ const providerLabels: Record<RideProvider, string> = {
 }
 const statusLabels: Record<InboxItem['status'], string> = {
   received: 'وصل حديثًا', parsed: 'تم التحليل', 'needs-review': 'في انتظار المراجعة',
-  confirmed: 'تم التأكيد', rejected: 'مرفوض', dismissed: 'محذوف', 'parse-error': 'تعذر التحليل'
+  confirmed: 'تم التأكيد', rejected: 'مرفوض', dismissed: 'محذوف', 'parse-error': 'تعذر التحليل', transferred: 'تم النقل للحاسبة'
 }
 const fieldLabels: Record<'fare' | 'distanceKm' | 'pickupDistanceKm' | 'durationMinutes', string> = {
   fare: 'الأجرة المعروضة', distanceKm: 'مسافة الرحلة بالراكب',
@@ -38,7 +38,7 @@ export default function AssistantInbox({ items, onChange, onTransfer }: Props) {
   const [reviewed, setReviewed] = useState<Record<string, string[]>>({})
   const capabilities = detectBrowserCapabilities(window as unknown as BrowserRuntimeLike)
   const selected = useMemo(() => items.find(item => item.id === selectedId) ?? null, [items, selectedId])
-  const active = items.filter(item => item.status !== 'dismissed' && item.status !== 'rejected')
+  const active = items.filter(item => item.status !== 'dismissed' && item.status !== 'rejected' && item.status !== 'transferred')
   const addOffer = () => {
     const text = sourceText.trim()
     if (!text) { setError('الصق نص إشعار أو تفاصيل العرض أولًا.'); return }
@@ -146,7 +146,7 @@ export default function AssistantInbox({ items, onChange, onTransfer }: Props) {
           <div className="inbox-review">
             <div className="inbox-review-head"><div><span className="eyebrow">تفاصيل العرض</span><h3>{providerLabels[selected.draft.provider]}</h3></div>
               <span className={`inbox-status status-${selected.status}`}>{statusLabels[selected.status]}</span></div>
-            <label className="inbox-field"><span>تطبيق النقل</span><select value={selected.draft.provider} disabled={selected.status === 'confirmed' || selected.status === 'rejected'}
+            <label className="inbox-field"><span>تطبيق النقل</span><select value={selected.draft.provider} disabled={selected.status === 'confirmed' || selected.status === 'rejected' || selected.status === 'transferred'}
               onChange={event => setProvider(selected, event.target.value as RideProvider)}>
               <option value="unknown">غير محدد — اختر يدويًا</option><option value="uber">Uber</option><option value="didi">DiDi</option><option value="indrive">inDrive</option>
             </select></label>
@@ -157,10 +157,10 @@ export default function AssistantInbox({ items, onChange, onTransfer }: Props) {
                 return <div className={`inbox-field ${needsReview ? 'needs-review' : ''}`} key={field}>
                   <span id={`inbox-field-label-${selected.id}-${field}`}>{fieldLabels[field]} {needsReview && <b>مطلوب مراجعة</b>}</span>
                   <div className="inbox-input"><input type="number" min="0" step="any" inputMode="decimal" aria-labelledby={`inbox-field-label-${selected.id}-${field}`} value={candidate.value ?? ''}
-                    disabled={selected.status === 'confirmed' || selected.status === 'rejected'}
+                    disabled={selected.status === 'confirmed' || selected.status === 'rejected' || selected.status === 'transferred'}
                     onChange={event => setManualField(selected, field, event.target.value)} placeholder="أدخل القيمة"/>
                     <small>{field === 'fare' ? 'جنيه' : field === 'durationMinutes' ? 'دقيقة' : 'كم'}</small></div>
-                  <label className="inbox-reviewed"><input type="checkbox" checked={(reviewed[selected.id] ?? []).includes(field)} disabled={selected.status === 'confirmed' || selected.status === 'rejected'} onChange={event => setReviewed(current => ({ ...current, [selected.id]: event.target.checked ? [...(current[selected.id] ?? []), field] : (current[selected.id] ?? []).filter(value => value !== field) }))}/> راجعت هذه القيمة وأؤكدها</label>
+                  <label className="inbox-reviewed"><input type="checkbox" checked={(reviewed[selected.id] ?? []).includes(field)} disabled={selected.status === 'confirmed' || selected.status === 'rejected' || selected.status === 'transferred'} onChange={event => setReviewed(current => ({ ...current, [selected.id]: event.target.checked ? [...(current[selected.id] ?? []), field] : (current[selected.id] ?? []).filter(value => value !== field) }))}/> راجعت هذه القيمة وأؤكدها</label>
                   <small className="inbox-confidence">الثقة: {Math.round(candidate.confidence * 100)}% · {candidate.evidence.length ? 'الدليل: ' + candidate.evidence.map(e => e.text).join('، ') : 'لا يوجد دليل مستخرج'}</small>
                 </div>
               })}
@@ -171,7 +171,7 @@ export default function AssistantInbox({ items, onChange, onTransfer }: Props) {
               <details><summary>عرض النص الأصلي للمراجعة</summary><pre>{selected.draft.rawText}</pre></details>
             </div>
             {selected.draft.warnings.map((warning, index) => <p className="inbox-warning" key={index}><ShieldAlert size={15}/>{warning}</p>)}
-            {selected.status !== 'confirmed' && selected.status !== 'rejected' && <div className="inbox-actions">
+            {selected.status !== 'confirmed' && selected.status !== 'rejected' && selected.status !== 'transferred' && <div className="inbox-actions">
               <button className="primary-btn" type="button" onClick={() => confirm(selected)} disabled={!hasRequiredReviewData(selected) || (reviewed[selected.id] ?? []).length < 4}><Check size={16}/> تأكيد العرض بعد المراجعة</button>
               <button className="subtle-btn" type="button" onClick={() => reject(selected)}><X size={16}/> رفض</button>
               <button className="inbox-delete" type="button" onClick={() => remove(selected)}><Trash2 size={16}/> حذف</button>
@@ -179,6 +179,7 @@ export default function AssistantInbox({ items, onChange, onTransfer }: Props) {
             {selected.status === 'confirmed' && <div className="inbox-actions"><button className="primary-btn" type="button" onClick={() => transfer(selected)}><ChevronDown size={16}/> نقل العرض المؤكد للحاسبة</button>
               <button className="inbox-delete" type="button" onClick={() => remove(selected)}><Trash2 size={16}/> حذف</button></div>}
             {selected.status === 'rejected' && <div className="inbox-actions"><button className="inbox-delete" type="button" onClick={() => remove(selected)}><Trash2 size={16}/> حذف نهائي</button></div>}
+            {selected.status === 'transferred' && <p className="inbox-success" role="status">تم نقل هذا العرض للحاسبة بالفعل. لن يظهر زر النقل مرة أخرى.</p>}
           </div>}
       </div>
     </div>

@@ -5,7 +5,7 @@ import AssistantInbox from './assistant/AssistantInbox'
 import type { InboxItem } from './assistant/types'
 import { toCalculatorTripInput } from './assistant/calculatorTransfer'
 import { ocrDraftToInboxItem } from './assistant/ocrAdapter'
-import { markInboxParseError } from './assistant/inbox'
+import { markInboxParseError, markInboxTransferred } from './assistant/inbox'
 import { deleteTrip, getSettings, getTrips, replaceAllTrips, saveSettings, saveTrip } from './lib/db'
 import { readTripImage, type OcrDraft } from './lib/ocr'
 import { DEFAULT_SETTINGS, EMPTY_TRIP, type AppName, type FareMode, type SavedTrip, type Settings, type TripInput } from './types'
@@ -70,6 +70,7 @@ export default function App() {
     const nextTrip=toCalculatorTripInput(item)
     if(!nextTrip){setToast('لا يمكن نقل عرض غير مؤكد أو ناقص البيانات');return}
     setTrip(current=>({...current,...nextTrip}))
+    setInbox(items=>items.map(current=>current.id===item.id?markInboxTransferred(current):current))
     setPage('calculator')
     setToast('تم نقل العرض المؤكد للحاسبة. لم يتم حفظه في سجل الرحلات.')
   }
@@ -107,7 +108,7 @@ export default function App() {
       <div className="brand"><div className="brand-icon"><ScaleIcon/></div><div><strong>حاسبة عدالة المشاوير</strong><small>DRIVER PROFIT CALCULATOR</small></div></div>
       <div className="top-actions"><span className="free-tag"><ShieldCheck size={14}/> مجاني 100%</span><span className="local-tag"><span/> حفظ محلي</span></div>
     </header>
-    <nav className="nav">{nav.map(n=><button key={n.id} className={page===n.id?'active':''} onClick={()=>setPage(n.id)}><n.icon size={17}/>{n.label}{n.id==='inbox'&&inbox.filter(item=>item.status!=='rejected'&&item.status!=='dismissed').length>0?<b>{inbox.filter(item=>item.status!=='rejected'&&item.status!=='dismissed').length}</b>:null}</button>)}</nav>
+    <nav className="nav">{nav.map(n=><button key={n.id} className={page===n.id?'active':''} onClick={()=>setPage(n.id)}><n.icon size={17}/>{n.label}{n.id==='inbox'&&inbox.filter(item=>item.status!=='rejected'&&item.status!=='dismissed'&&item.status!=='transferred').length>0?<b>{inbox.filter(item=>item.status!=='rejected'&&item.status!=='dismissed'&&item.status!=='transferred').length}</b>:null}</button>)}</nav>
     <main className="main">
       {page==='calculator'&&<><section className="hero"><div><span className="eyebrow">قرار أذكى • ربح أوضح</span><h1>احسبها قبل ما تقبل المشوار</h1><p>اعرف تكلفة الرحلة وصافي ربحك الحقيقي في ثوانٍ.</p></div><div className="hero-stat"><Gauge size={26}/><span>القرار بيتحسب تلقائيًا</span></div></section>
         <section className="templates"><div className="section-head"><h2>نماذج جاهزة للاختبار السريع</h2><span>اضغط لملء الحقول</span></div><div className="template-grid">{templates.map(t=><button className="template" key={t.name} onClick={()=>loadTemplate(t.trip)}><strong>{t.name}</strong><small>{t.desc}</small></button>)}</div></section>
