@@ -18,6 +18,7 @@ interface Status {
   hasNotificationAccess: boolean
   enabledProviders: string[]
   lastReceivedAt: string
+  queueHealthy: boolean
 }
 interface Props {
   onImport: (payloads: NativeNotificationPayload[]) => Promise<boolean>
@@ -124,9 +125,10 @@ export default function AndroidNotificationPanel({ onImport }: Props) {
       <button type="button" className="subtle-btn" onClick={() => bridge.openNotificationAccessSettings()}>
         <ExternalLink size={15}/> فتح إعدادات إذن الإشعارات
       </button>
-      <button type="button" className="primary-btn" disabled={busy || !status?.hasNotificationAccess}
+      <button type="button" className="primary-btn" disabled={busy || !status?.hasNotificationAccess || !status?.queueHealthy}
         onClick={importPending}><BellRing size={15}/> {busy ? 'جارٍ الاستيراد…' : 'استيراد الإشعارات (' + pendingCount + ')'}</button>
     </div>
+    {!status?.queueHealthy && <p className="android-capture-message" role="alert">تعذر فك تشفير قائمة الإشعارات المحلية. تم إيقاف الاستيراد لحماية البيانات؛ لا تحذف بيانات التطبيق قبل تصدير ما يلزم.</p>}
     {status?.lastReceivedAt && <small>آخر إشعار مؤهل: {new Date(status.lastReceivedAt).toLocaleString('ar-EG')}</small>}
     <p className="android-capture-note">الإشعارات المؤهلة تُحفظ مؤقتًا مشفّرة على الجهاز، ثم تُحذف من قائمة الانتظار بعد نجاح حفظها في IndexedDB. لا يوجد إرسال إلى خادم.</p>
     {message && <p className="android-capture-message" role="status">{message}</p>}

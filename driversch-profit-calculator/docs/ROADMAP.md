@@ -27,8 +27,13 @@
 - [ ] عدم الادعاء بأن صفحة الويب تستطيع قراءة إشعارات تطبيقات أخرى.
 
 ## Phase 4 — Android native
-- [ ] إنشاء مشروع Android مستقل بعد حسم هيكل Gradle وSDK.
-- [ ] NotificationListenerService بموافقة المستخدم وإعدادات واضحة.
+- [x] إنشاء مشروع Android مستقل بهيكل Gradle وWebViewAssetLoader مع تحميل أصول Vite محليًا.
+- [x] NotificationListenerService بموافقة المستخدم وإعدادات واضحة.
+- [x] قائمة سماح صريحة لـUber Driver وDiDi Driver وinDrive مع تعطيل جميع المصادر افتراضيًا.
+- [x] طابور محلي مؤقت مشفر بـAES-GCM عبر Android Keystore، مع انتهاء صلاحية 6 ساعات وإقرار بعد نجاح IndexedDB.
+- [x] ربط الجسر الأصلي بصندوق IndexedDB الحالي مع التحقق من الحزمة والحمولة ومنع التكرار.
+- [ ] Gradle Wrapper committed؛ CI يستخدم Gradle 8.9 مثبتًا صراحةً مؤقتًا.
+- [ ] اختبار APK على Emulator وجهاز فعلي.
 - [ ] SpeechRecognizer وTextToSpeech الأصليان.
 - [ ] MediaProjection اختياري مع موافقة النظام لكل جلسة.
 - [ ] AccessibilityService غير افتراضي، ولا يُضاف إلا لضرورة مثبتة وموافقة صريحة.

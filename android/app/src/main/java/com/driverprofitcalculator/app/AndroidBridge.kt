@@ -18,7 +18,8 @@ class AndroidBridge(private val context: Context) {
         ProviderPreferences.enabledIds(context).forEach { enabled.put(it) }
         return JSONObject().put("isAndroid", true).put("hasNotificationAccess", hasAccess())
             .put("enabledProviders", enabled)
-            .put("lastReceivedAt", EncryptedNotificationStore(context).lastReceivedAt()).toString()
+            .put("lastReceivedAt", EncryptedNotificationStore(context).lastReceivedAt())
+            .put("queueHealthy", EncryptedNotificationStore(context).isHealthy()).toString()
     }
     @JavascriptInterface fun getPendingNotificationsJson(): String = EncryptedNotificationStore(context).pendingJson()
     @JavascriptInterface fun acknowledgeNotification(id: String): Boolean = EncryptedNotificationStore(context).acknowledge(id)

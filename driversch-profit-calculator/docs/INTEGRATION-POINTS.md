@@ -31,9 +31,16 @@ The inbox is exposed through the existing navigation using a narrowly scoped cha
 
 The calculator hand-off is isolated in `src/assistant/calculatorTransfer.ts`. It returns a `TripInput` only when the inbox item is `confirmed` and fare, pickup distance, passenger distance, and duration are present. It never calls `saveTrip`, `calculateTrip`, or IndexedDB. The existing calculator remains responsible for calculations; fare mode is set to `unknown` so the driver must choose the correct interpretation before relying on the decision.
 
-## Native notification contract
+## Native notification integration
 
-A future Android `NotificationListenerService` should obtain explicit user-granted notification access, identify the source package, normalize notification ID/title/text/post time, and deliver a payload matching `NativeNotificationPayload` in `src/assistant/notificationBridge.ts`. The bridge validates required fields and deduplicates by notification ID before invoking the existing parser. This is a receiver contract only: the current browser app does not subscribe to or read Android notifications.
+The Android host is in `android/`. It loads the Vite build from packaged local assets through AndroidX WebViewAssetLoader and exposes only the narrow `DriverAndroid` JavaScript interface. The native `NotificationListenerService` requires the Android system notification-listener grant and reads only enabled exact package IDs:
+- Uber Driver: `com.ubercab.driver`
+- DiDi Driver: `com.didiglobal.driver`
+- inDrive: `sinet.startup.inDriver`
+
+Provider toggles default to off. A provider-specific keyword gate filters obvious non-ride notifications; the bridge then validates package IDs, payload lengths, timestamps, and notification identity before the existing parser and Inbox. A short-lived AES-GCM encrypted queue (Android Keystore) holds pending notification text for up to six hours; the web Inbox acknowledges each item only after IndexedDB save succeeds. The queue is bounded to 50 pending notifications and remembers the last 200 acknowledged IDs to prevent notification updates from reappearing. The PWA has no native bridge and retains manual paste/screenshot paths.
+
+This implementation is a native source integration; emulator/physical-device behavior must be confirmed by Android CI and device testing before claiming release readiness.
 
 ## Persistence boundary
 

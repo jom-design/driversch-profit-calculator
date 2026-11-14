@@ -16,6 +16,7 @@ on:
       - "driversch-profit-calculator/package-lock.json"
       - ".github/workflows/assistant-foundation.yml"
       - "android/**"
+      - "android/**"
   pull_request:
     paths:
       - "driversch-profit-calculator/src/assistant/**"
@@ -28,6 +29,7 @@ on:
       - "driversch-profit-calculator/package.json"
       - "driversch-profit-calculator/package-lock.json"
       - ".github/workflows/assistant-foundation.yml"
+      - "android/**"
 
 permissions:
   contents: read

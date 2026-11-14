@@ -68,6 +68,7 @@ class EncryptedNotificationStore(context: Context) {
     }
 
     @Synchronized fun lastReceivedAt(): String = read()?.optString("lastReceivedAt", "").orEmpty()
+    @Synchronized fun isHealthy(): Boolean = read() != null
     private fun expired(item: JSONObject): Boolean {
         val time = try { java.time.Instant.parse(item.optString("postedAt")).toEpochMilli() } catch (_: Exception) { 0L }
         return time <= 0L || System.currentTimeMillis() - time > 6 * 60 * 60 * 1000L
