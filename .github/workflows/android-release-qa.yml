@@ -7,6 +7,8 @@ on:
     paths:
       - "android/**"
       - ".github/workflows/android-release-qa.yml"
+      - "driversch-profit-calculator/src/**"
+      - "driversch-profit-calculator/tests/**"
   workflow_dispatch:
 
 permissions:
@@ -70,7 +72,7 @@ jobs:
           disable-animations: true
           disable-spellchecker: true
           script: |
-            set -euo pipefail
+            set -eu
             mkdir -p android-qa-artifacts
             adb wait-for-device
             adb shell getprop sys.boot_completed | grep -q '^1$'

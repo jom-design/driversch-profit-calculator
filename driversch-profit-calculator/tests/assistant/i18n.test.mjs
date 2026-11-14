@@ -84,6 +84,8 @@ test('financial decision and OCR interpolations translate without losing numbers
 test('unknown user content and mixed platform names remain unchanged', () => {
   assert.equal(translateMessage('Uber commission ١٥٪', 'en'), 'Uber commission ١٥٪')
   assert.equal(translateMessage('ملاحظة كتبها المستخدم', 'en'), 'ملاحظة كتبها المستخدم')
+  const rawOcr = 'Uber 165 ج.م 22 كم 40 دقيقة'
+  assert.equal(translateMessage(rawOcr, 'en'), rawOcr)
 })
 
 test('translation preserves surrounding whitespace and reversible exact keys', () => {

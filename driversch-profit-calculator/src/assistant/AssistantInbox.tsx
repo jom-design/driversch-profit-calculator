@@ -75,7 +75,7 @@ export default function AssistantInbox({ items, onChange, onTransfer, locale }: 
     onChange(items.map(current => current.id === item.id ? updateInboxDraft(current, draft) : current))
   const setManualField = (item: InboxItem, field: 'fare' | 'distanceKm' | 'pickupDistanceKm' | 'durationMinutes', value: number | null) => {
     if (value !== null && (!Number.isFinite(value) || value < 0)) return
-    const evidence = value === null ? [] : [{ text: 'تم الإدخال أو التصحيح يدويًا', start: 0, end: 0 }]
+    const evidence = value === null ? [] : [{ text: '__manual_review__', start: 0, end: 0 }]
     const draft: RideOfferDraft = {
       ...item.draft,
       fields: { ...item.draft.fields, [field]: {
@@ -179,7 +179,7 @@ export default function AssistantInbox({ items, onChange, onTransfer, locale }: 
                     onValueChange={value => setManualField(selected, field, value)} placeholder={t('أدخل القيمة', locale)}/>
                     <small>{field === 'fare' ? t('جنيه', locale) : field === 'durationMinutes' ? t('دقيقة', locale) : t('كم', locale)}</small></div>
                   <label className="inbox-reviewed"><input type="checkbox" checked={(selected.reviewedFields ?? []).includes(field)} disabled={selected.status === 'confirmed' || selected.status === 'rejected' || selected.status === 'transferred'} onChange={event => setFieldReviewed(selected, field, event.target.checked)}/> {t('راجعت هذه القيمة وأؤكدها', locale)}</label>
-                  <small className="inbox-confidence">{t('الثقة:', locale)} {Math.round(candidate.confidence * 100)}% · {candidate.evidence.length ? t('الدليل:', locale) + ' ' + candidate.evidence.map(e => translateMessage(e.text, locale)).join('، ') : t('لا يوجد دليل مستخرج', locale)}</small>
+                  <small className="inbox-confidence">{t('الثقة:', locale)} {Math.round(candidate.confidence * 100)}% · {candidate.evidence.length ? t('الدليل:', locale) + ' ' + candidate.evidence.map(e => e.text === '__manual_review__' || e.text === 'تم الإدخال أو التصحيح يدويًا' ? t('تم الإدخال أو التصحيح يدويًا', locale) : e.text).join('، ') : t('لا يوجد دليل مستخرج', locale)}</small>
                 </div>
               })}
             </div>
