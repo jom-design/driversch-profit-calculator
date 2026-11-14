@@ -106,12 +106,12 @@ export default function AndroidNotificationPanel({ onImport }: Props) {
     }
   }
 
-  if (!bridge) return <section className="android-capture-panel" dir="rtl">
+  if (!bridge) return <section className="android-capture-panel">
     <div className="android-capture-heading"><BellRing/><div><strong>التقاط إشعارات Android</strong><p>الميزة متاحة داخل تطبيق Android الأصلي فقط. نسخة المتصفح لا تستطيع قراءة إشعارات التطبيقات الأخرى.</p></div></div>
     <p className="android-capture-note">يمكنك الاستمرار في لصق نص العرض أو رفع Screenshot من هنا.</p>
   </section>
 
-  return <section className="android-capture-panel" dir="rtl" aria-labelledby="android-capture-title">
+  return <section className="android-capture-panel" aria-labelledby="android-capture-title">
     <div className="android-capture-heading"><ShieldCheck/><div><strong id="android-capture-title">ربط إشعارات الرحلات</strong><p>لا تتم قراءة أي تطبيق إلا بعد تفعيله ومنح إذن Android صراحةً.</p></div></div>
     <div className="android-capture-status">
       <span className={status?.hasNotificationAccess && status.serviceConnected ? 'is-connected' : 'is-disconnected'}>
