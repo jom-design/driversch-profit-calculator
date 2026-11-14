@@ -50,6 +50,11 @@ test('a backup containing any corrupt trip is rejected as a whole', () => {
   assert.match(result.reason, /الرحلة رقم 2/)
 })
 
+test('legacy trip arithmetic is checked without assuming the current fuel settings were used historically', () => {
+  assert.ok(normalizeTrip(trip()))
+  assert.equal(normalizeTrip(trip({ netProfit: 9999 })), null)
+})
+
 test('a forged financial result is rejected when it does not match trip inputs', () => {
   const result = normalizeBackup(backup(DEFAULT_SETTINGS, [trip({ netProfit: 9999 })]), DEFAULT_SETTINGS)
   assert.equal(result.ok, false)
@@ -77,7 +82,7 @@ test('a negative trip result is allowed, a negative input is not', () => {
 test('export then import returns the same settings and trips', () => {
   const settings = { ...DEFAULT_SETTINGS, fuelPrice: 23.5, commission: { ...DEFAULT_SETTINGS.commission, DiDi: 12.5 } }
   const sourceTrip = trip()
-  const exportedTrip = { ...sourceTrip, ...calculateTrip(sourceTrip, settings) }
+  const exportedTrip = { ...sourceTrip, ...calculateTrip(sourceTrip, settings), calculationSettings: settings }
   const exported = JSON.parse(JSON.stringify(backup(settings, [exportedTrip])))
   const restored = normalizeBackup(exported, DEFAULT_SETTINGS)
   assert.equal(restored.ok, true)

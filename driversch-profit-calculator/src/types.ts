@@ -37,6 +37,8 @@ export interface Calculation {
   decisionReason: string
 }
 export interface SavedTrip extends TripInput, Calculation {
+  /** Snapshot of the cost thresholds and fuel assumptions used when this trip was calculated. */
+  calculationSettings?: Settings
   id: string
   createdAt: string
 }

@@ -96,7 +96,7 @@ export default function App() {
   const saveCurrent=async()=> {
     if(trip.totalMinutes<=0 || trip.fare<0 || [trip.pickupKm,trip.passengerKm,trip.returnKm,trip.extraExpenses].some(v=>v<0)){setToast('راجع بيانات الرحلة قبل الحفظ');return}
     if(trip.fareMode==='unknown'){setToast('حدد هل الأجرة صافية أم إجمالية أولًا');return}
-    const saved:SavedTrip={...trip,...result,id:crypto.randomUUID(),createdAt:new Date().toISOString()}
+    const saved:SavedTrip={...trip,...result,calculationSettings:{...settings,commission:{...settings.commission}},id:crypto.randomUUID(),createdAt:new Date().toISOString()}
     await saveTrip(saved);setTrips(await getTrips());setToast('تم حفظ الرحلة على جهازك')
   }
   const removeTrip=async(id:string)=>{await deleteTrip(id);setTrips(await getTrips())}

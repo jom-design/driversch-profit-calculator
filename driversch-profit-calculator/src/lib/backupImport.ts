@@ -1,5 +1,6 @@
 import { parseNumericDraft } from './numericInput.ts'
 import { calculateTrip } from './calculator.ts'
+import { DEFAULT_SETTINGS } from '../types.ts'
 import type { AppName, Decision, FareMode, SavedTrip, Settings } from '../types.ts'
 
 /**
@@ -60,7 +61,7 @@ export function normalizeSettings(raw: unknown, defaults: Settings): ImportResul
 }
 
 /** Returns a cleaned trip, or null when the record is too broken to keep. */
-export function normalizeTrip(raw: unknown, settings: Settings = DEFAULT_SETTINGS): SavedTrip | null {
+export function normalizeTrip(raw: unknown): SavedTrip | null {
   if (!isRecord(raw)) return null
   if (typeof raw.id !== 'string' || raw.id.length === 0) return null
   if (typeof raw.createdAt !== 'string' || Number.isNaN(Date.parse(raw.createdAt))) return null
@@ -79,13 +80,37 @@ export function normalizeTrip(raw: unknown, settings: Settings = DEFAULT_SETTING
     trip[key] = value
   }
   const normalized = trip as unknown as SavedTrip
-  const calculated = calculateTrip(normalized, settings)
-  for (const key of TRIP_RESULT_KEYS) {
-    const actual = normalized[key] as number
-    const expected = calculated[key]
-    if (Math.abs(actual - expected) > 0.011) return null
+  if (normalized.commissionRate > 100) return null
+  const nonNegativeResults: (keyof SavedTrip)[] = ['totalKm', 'fuelCost', 'maintenanceCost', 'totalCost', 'netFare', 'requiredFare']
+  if (nonNegativeResults.some(key => (normalized[key] as number) < 0)) return null
+
+  // New records carry the exact cost assumptions used at save time. Legacy records do not,
+  // so validate arithmetic invariants without reinterpreting them using today's changed settings.
+  if (raw.calculationSettings !== undefined) {
+    const snapshot = normalizeSettings(raw.calculationSettings, DEFAULT_SETTINGS)
+    if (!snapshot.ok) return null
+    normalized.calculationSettings = snapshot.value
+    const calculated = calculateTrip(normalized, snapshot.value)
+    for (const key of TRIP_RESULT_KEYS) {
+      const actual = normalized[key] as number
+      const expected = calculated[key]
+      if (Math.abs(actual - expected) > 0.011) return null
+    }
+    if (normalized.decision !== calculated.decision) return null
+  } else {
+    const close = (actual: number, expected: number) => Math.abs(actual - expected) <= 0.011
+    const expectedKm = normalized.pickupKm + normalized.passengerKm + normalized.returnKm
+    const rate = normalized.fareMode === 'gross' ? Math.min(100, normalized.commissionRate) : 0
+    const expectedNetFare = normalized.fare * (1 - rate / 100)
+    const expectedTotalCost = normalized.fuelCost + normalized.maintenanceCost + normalized.extraExpenses
+    const expectedHourly = normalized.totalMinutes > 0 ? normalized.netProfit * 60 / normalized.totalMinutes : 0
+    if (!close(normalized.totalKm, expectedKm) ||
+        !close(normalized.netFare, expectedNetFare) ||
+        !close(normalized.totalCost, expectedTotalCost) ||
+        !close(normalized.netProfit, normalized.netFare - normalized.totalCost) ||
+        !close(normalized.hourlyProfit, expectedHourly) ||
+        !close(normalized.fareGap, normalized.requiredFare - normalized.fare)) return null
   }
-  if (normalized.decision !== calculated.decision) return null
   return normalized
 }
 

@@ -58,6 +58,7 @@ export async function replaceAllData(trips: SavedTrip[], settings: Settings) {
     await tx.done
   } catch (error) {
     try { tx.abort() } catch { /* The transaction may already have aborted. */ }
+    await tx.done.catch(() => undefined)
     throw error
   }
 }
