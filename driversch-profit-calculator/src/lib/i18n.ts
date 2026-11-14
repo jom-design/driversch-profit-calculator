@@ -255,7 +255,7 @@ export const AR_TO_EN: Readonly<Record<string, string>> = {
   "القرار بيتحسب تلقائيًا": "Decision is calculated automatically",
   "المتصفح لا يستطيع قراءة إشعارات تطبيقات Android الأخرى تلقائيًا.": "The browser cannot automatically read notifications from other Android apps.",
   "المساعد الذكي لالتقاط الرحلات": "Smart trip capture assistant",
-  "المعالجة تتم داخل المتصفح. لا يتم حفظ صورة الرحلة أو نصها الخام في سجل الرحلات.": "Processing happens in your browser. The trip image and raw text are not saved in trip history.",
+  "المعالجة تتم داخل المتصفح. لا يتم حفظ صورة الرحلة أو نصها الخام في سجل الرحلات.": "Processing happens in your browser. The trip image and raw text are not saved to trip history.",
   "تحليل وإضافة للإنبوكس": "Analyze and add to inbox",
   "تفاصيل العرض": "Offer details",
   "تم نقل هذا العرض للحاسبة بالفعل. لن يظهر زر النقل مرة أخرى.": "This offer has already been transferred to the calculator. The transfer button will not appear again.",
@@ -282,6 +282,10 @@ export const AR_TO_EN: Readonly<Record<string, string>> = {
   "التعرف الصوتي": "Speech recognition",
   "الميكروفون": "Microphone",
   "مشاركة الشاشة": "Screen sharing",
+  "تنبيه بخصوص Android": "Android notice",
+  "وقت الإشعار:": "Notification time:",
+  "معرّف التطبيق:": "App package:",
+  "ثقة OCR:": "OCR confidence:",
 }
 const EN_TO_AR: Readonly<Record<string,string>> = Object.fromEntries(
   Object.entries(AR_TO_EN).map(([ar,en]) => [en,ar])
