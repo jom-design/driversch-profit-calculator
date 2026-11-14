@@ -325,3 +325,6 @@ html[data-theme="light"] .upload-zone span{color:#526780}
 html[data-theme="light"] .upload-zone svg{color:#1675b8}
 html[data-theme="light"] .progress-wrap{background:#edf4fb;border-color:#d2dfec;color:#24415f}
 html[data-theme="light"] .progress-wrap>span{color:#425a74}
+
+html[data-theme="light"] .input-wrap small{color:#526780}
+html[data-theme="light"] .field small,html[data-theme="light"] .field-hint{color:#526780}
