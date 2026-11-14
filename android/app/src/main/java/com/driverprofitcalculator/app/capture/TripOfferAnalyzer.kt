@@ -77,3 +77,5 @@ object TripOfferAnalyzer {
         )
     }
 }
+
+// CI validation for the verified Phase 3 notification-analysis pipeline.
