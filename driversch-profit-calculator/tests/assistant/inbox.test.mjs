@@ -97,6 +97,8 @@ test('native bridge deduplicates notifications and rejects malformed payloads', 
   assert.equal(first?.draft.sourceTimestamp, '2026-11-14T08:00:00.000Z')
   assert.equal(acceptNativeNotification(payload, seen), null)
   assert.equal(acceptNativeNotification({ ...payload, notificationId: '', text: 'x' }, seen), null)
+  assert.equal(acceptNativeNotification({ ...payload, packageName: '' }, seen), null)
+  assert.equal(acceptNativeNotification({ ...payload, postedAt: 'not-a-date' }, seen), null)
 })
 
 test('calculator handoff is impossible before confirmation and never persists history', () => {
