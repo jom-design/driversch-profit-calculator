@@ -299,6 +299,8 @@ export const AR_TO_EN = {
   "تصدير CSV": "Export CSV",
   "تكامل Android لاحقًا:": "Future Android integration:",
   "جارٍ استعادة صندوق الرحلات المحفوظ على هذا الجهاز…": "Restoring the trip inbox saved on this device…",
+  "التبديل للوضع الفاتح": "Switch to light mode",
+  "التبديل إلى الإنجليزية": "Switch to English",
 } as const
 export type TranslationKey = keyof typeof AR_TO_EN
 const EN_TO_AR: Readonly<Record<string,string>> = Object.fromEntries(
