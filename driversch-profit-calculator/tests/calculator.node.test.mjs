@@ -149,3 +149,13 @@ test('calculates the required fare increase for a low offer', () => {
   assert.equal(r.fareGap, 23.95)
   assert.equal(r.decision, 'reject')
 })
+
+
+test('accepts valid 59-second and 60-second trips', () => {
+  for (const totalMinutes of [59 / 60, 1]) {
+    const r = calc({ totalMinutes })
+    assert.equal(r.isValid, true)
+    assert.equal(r.decision, 'accept')
+    assert.equal(Number.isFinite(r.hourlyProfit), true)
+  }
+})
