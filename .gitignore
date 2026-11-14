@@ -1,0 +1,12 @@
+# Android signing material — never commit release credentials
+*.jks
+*.keystore
+keystore.properties
+android/keystore.properties
+*.p12
+*.pfx
+
+# Local Android build output
+.gradle/
+**/build/
+local.properties
