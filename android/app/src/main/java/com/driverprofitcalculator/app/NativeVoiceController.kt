@@ -29,9 +29,12 @@ class NativeVoiceController(
     @Volatile private var languageTag: String = "ar-EG"
 
     fun setLanguage(tag: String) {
-        val normalized = if (tag.startsWith("en", true)) "en-US" else "ar-EG"
+        val normalized = NativeVoiceLocalePolicy.normalize(tag)
         languageTag = normalized
-        main.post { tts?.setLanguage(Locale.forLanguageTag(normalized)) }
+        main.post {
+            val result = tts?.setLanguage(Locale.forLanguageTag(normalized)) ?: TextToSpeech.ERROR
+            ttsReady = result != TextToSpeech.LANG_MISSING_DATA && result != TextToSpeech.LANG_NOT_SUPPORTED && result != TextToSpeech.ERROR
+        }
     }
 
     fun startListening(tag: String = languageTag) {
