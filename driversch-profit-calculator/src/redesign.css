@@ -328,3 +328,5 @@ html[data-theme="light"] .progress-wrap>span{color:#425a74}
 
 html[data-theme="light"] .input-wrap small{color:#526780}
 html[data-theme="light"] .field small,html[data-theme="light"] .field-hint{color:#526780}
+
+html[data-theme="light"] .empty-state p,html[data-theme="light"] .empty-state small{color:#526780}
