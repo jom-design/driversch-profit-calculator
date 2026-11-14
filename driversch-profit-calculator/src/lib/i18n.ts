@@ -296,6 +296,9 @@ export const AR_TO_EN = {
   "إعدادات النسخة غير صالحة": "Backup settings are invalid",
   "خريطة عمولات التطبيقات في النسخة غير صالحة": "The backup platform commission map is invalid",
   "ملف النسخة الاحتياطية غير متوافق": "Backup file is incompatible",
+  "تصدير CSV": "Export CSV",
+  "تكامل Android لاحقًا:": "Future Android integration:",
+  "جارٍ استعادة صندوق الرحلات المحفوظ على هذا الجهاز…": "Restoring the trip inbox saved on this device…",
 } as const
 export type TranslationKey = keyof typeof AR_TO_EN
 const EN_TO_AR: Readonly<Record<string,string>> = Object.fromEntries(
