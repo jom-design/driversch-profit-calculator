@@ -28,11 +28,17 @@ export function acceptNativeNotification(
   if (!Number.isFinite(postedAt.getTime())) return null
   seenNotificationIds.add(payload.notificationId)
 
-  const draft: RideOfferDraft = parseRideOffer({
+  const parsed = parseRideOffer({
     text: [payload.appLabel, payload.title, payload.text].filter(Boolean).join('\n'),
     source: 'notification',
     now
   })
+  const draft: RideOfferDraft = {
+    ...parsed,
+    sourceAppPackage: payload.packageName,
+    sourceAppLabel: payload.appLabel,
+    sourceTimestamp: postedAt.toISOString()
+  }
   const item = createInboxItem(draft, payload.notificationId, now)
   return requestInboxReview(markInboxParsed(item, now), now)
 }
