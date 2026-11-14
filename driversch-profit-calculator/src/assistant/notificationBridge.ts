@@ -19,9 +19,9 @@ const SUPPORTED_PACKAGES: Record<string, string> = {
 
 /**
  * Browser code cannot subscribe to notifications posted by other Android apps.
- * A future Android NotificationListenerService may deliver this normalized
- * payload to a WebView/native bridge. This adapter only validates and parses
- * a payload already delivered by that trusted native boundary.
+ * The Android NotificationListenerService delivers this normalized payload
+ * through the restricted local WebView bridge. This adapter independently
+ * validates the package and payload before the existing parser receives it.
  */
 export function acceptNativeNotification(
   payload: NativeNotificationPayload,
