@@ -67,6 +67,16 @@ function extract<T>(text: string, patterns: Pattern[], convert: (raw: string) =>
 const MONEY = '([0-9]+(?:[.,][0-9]{1,3})?)'
 const NUMBER = '([0-9]+(?:[.,][0-9]{1,3})?)'
 
+function genericDistanceMatches(text: string): Array<{ value: number; evidence: EvidenceSpan[] }> {
+  const regex = new RegExp(NUMBER + '\\s*(كم|كيلومتر|km|متر|m)(?=\\s|$|[،,])', 'gi')
+  return [...text.matchAll(regex)].flatMap(match => {
+    const value = parseNumber(match[1])
+    if (value === null || match.index === undefined) return []
+    const normalized = /متر|^m$/i.test(match[2]) ? value / 1000 : value
+    return [{ value: normalized, evidence: [{ text: match[0], start: match.index, end: match.index + match[0].length }] }]
+  })
+}
+
 function farePatterns(provider: RideProvider): Pattern[] {
   if (provider === 'indrive') return [
     { regex: new RegExp('(?:القبول\\\\s*مقابل|قبول\\\\s*مقابل)\\\\s*' + MONEY + '\\\\s*(?:EGP|جنيه|ج\\\\.م)?', 'i'), group: 1, confidence: 0.96 },
@@ -93,10 +103,26 @@ export function parseRideOffer(input: {
 }): RideOfferDraft {
   const rawText = normalizeRideText(input.text)
   const detected = providerFrom(rawText)
-  const distance = extract(rawText, [
-    { regex: new RegExp(NUMBER + '\\s*(?:كم|كيلومتر|km)(?=\\s|$|[،,])', 'i'), group: 1, confidence: 0.82 },
-    { regex: new RegExp(NUMBER + '\\s*(?:متر|m)(?=\\s|$|[،,])', 'i'), group: 1, confidence: 0.72, scale: 0.001 }
+  const pickupDistance = extract(rawText, [
+    { regex: new RegExp('(?:مسافة الوصول|مسافة الاستلام|pickup(?: distance)?|to pickup)\\s*[:：]?\\s*' + NUMBER + '\\s*(?:كم|كيلومتر|km)', 'i'), group: 1, confidence: 0.96 },
+    { regex: new RegExp('(?:مسافة الوصول|مسافة الاستلام|pickup(?: distance)?|to pickup)\\s*[:：]?\\s*' + NUMBER + '\\s*(?:متر|m)', 'i'), group: 1, confidence: 0.96, scale: 0.001 },
+    { regex: new RegExp(NUMBER + '\\s*(?:كم|كيلومتر|km)\\s*(?:للوصول|استلام|pickup)', 'i'), group: 1, confidence: 0.96 },
+    { regex: new RegExp(NUMBER + '\\s*(?:متر|m)\\s*(?:للوصول|استلام|pickup)', 'i'), group: 1, confidence: 0.96, scale: 0.001 }
   ], parseNumber)
+  const explicitTripDistance = extract(rawText, [
+    { regex: new RegExp('(?:مسافة الرحلة|مسافة الراكب|مع الراكب|trip distance|ride distance)\\s*[:：]?\\s*' + NUMBER + '\\s*(?:كم|كيلومتر|km)', 'i'), group: 1, confidence: 0.96 },
+    { regex: new RegExp('(?:مسافة الرحلة|مسافة الراكب|مع الراكب|trip distance|ride distance)\\s*[:：]?\\s*' + NUMBER + '\\s*(?:متر|m)', 'i'), group: 1, confidence: 0.96, scale: 0.001 }
+  ], parseNumber)
+  const allDistanceMatches = genericDistanceMatches(rawText)
+  const unassignedDistances = allDistanceMatches.filter(match =>
+    ![...pickupDistance.evidence, ...explicitTripDistance.evidence].some(evidence =>
+      match.evidence[0].start < evidence.end && match.evidence[0].end > evidence.start
+    )
+  )
+  const distance = explicitTripDistance.value !== null ? explicitTripDistance
+    : unassignedDistances.length === 1
+      ? { value: unassignedDistances[0].value, confidence: 0.72, evidence: unassignedDistances[0].evidence, status: 'needs-review' as const }
+      : missing<number>()
   const duration = extract(rawText, [
     { regex: new RegExp(NUMBER + '\\s*(?:دقيقة|دقائق|min|mins)(?=\\s|$|[،,])', 'i'), group: 1, confidence: 0.86 },
     { regex: new RegExp(NUMBER + '\\s*(?:ساعة|ساعات|hr|hours)(?=\\s|$|[،,])', 'i'), group: 1, confidence: 0.84, scale: 60 }
@@ -105,7 +131,8 @@ export function parseRideOffer(input: {
   const warnings: string[] = []
   if (detected.provider === 'unknown') warnings.push('لم يتم تحديد تطبيق النقل بشكل مؤكد؛ راجع المصدر يدويًا.')
   if (fare.value === null) warnings.push('لم يتم استخراج الأجرة؛ لن يتم تخمينها.')
-  if (distance.value === null) warnings.push('لم يتم استخراج المسافة؛ أدخلها يدويًا.')
+  if (distance.value === null) warnings.push(allDistanceMatches.length > 1 ? 'تم العثور على أكثر من مسافة دون تسميات واضحة؛ لم يتم تخمين مسافة الرحلة.' : 'لم يتم استخراج مسافة الرحلة؛ أدخلها يدويًا.')
+  if (pickupDistance.value === null) warnings.push('مسافة الوصول غير محددة؛ أدخلها يدويًا قبل التأكيد.')
   if (duration.value === null) warnings.push('لم يتم استخراج مدة الرحلة؛ أدخلها يدويًا.')
   if (fare.confidence < 0.85 && fare.value !== null) warnings.push('ثقة استخراج الأجرة أقل من الحد المطلوب؛ يلزم تأكيد يدوي.')
   return {
@@ -117,7 +144,7 @@ export function parseRideOffer(input: {
       fare,
       distanceKm: distance,
       durationMinutes: duration,
-      pickupDistanceKm: missing<number>(),
+      pickupDistanceKm: pickupDistance,
       currency: /EGP|جنيه|ج\.م/i.test(rawText)
         ? { value: 'EGP', confidence: 0.98, evidence: [], status: 'candidate' }
         : missing<'EGP'>()
