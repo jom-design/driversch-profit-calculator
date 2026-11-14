@@ -131,3 +131,31 @@ textarea { min-height: 72px; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+
+
+/* Locale and theme controls */
+.utility-btn{min-height:44px;padding:8px 12px;border:1px solid #3a5275;border-radius:11px;background:#132441;color:#eaf3ff;font-weight:800;font-size:12px;white-space:nowrap}
+.top-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+html[dir="ltr"] body{text-align:left}
+html[dir="ltr"] .template{text-align:left}
+html[dir="ltr"] table{text-align:left}
+html[data-theme="light"] body{background:#f2f6fc;color:#17243b}
+html[data-theme="light"] .app-shell{color:#17243b}
+html[data-theme="light"] .topbar,html[data-theme="light"] .nav,html[data-theme="light"] footer{border-color:#d9e2ef}
+html[data-theme="light"] .brand small,html[data-theme="light"] .hero p,html[data-theme="light"] .section-head span,html[data-theme="light"] .panel-head p,html[data-theme="light"] .field>span,html[data-theme="light"] .formula-note,html[data-theme="light"] footer{color:#52627a}
+html[data-theme="light"] .panel,html[data-theme="light"] .templates{background:#fff;border-color:#dce5f0;box-shadow:0 8px 26px #17365d12}
+html[data-theme="light"] .hero{background:linear-gradient(110deg,#e7f2ff,#f4f9ff 65%,#e7faff);border-color:#c9def5}
+html[data-theme="light"] .hero h1,html[data-theme="light"] .section-head h2,html[data-theme="light"] .section-head h3,html[data-theme="light"] .panel-head h2,html[data-theme="light"] .template strong,html[data-theme="light"] .empty-state strong{color:#152943}
+html[data-theme="light"] .template,html[data-theme="light"] .app-select button,html[data-theme="light"] .choice-row button,html[data-theme="light"] .metric,html[data-theme="light"] .profit-highlight,html[data-theme="light"] .upload-zone,html[data-theme="light"] .ocr-review pre{background:#f6f9fd;border-color:#d9e3ef;color:#213550}
+html[data-theme="light"] .input-wrap,html[data-theme="light"] .field textarea,html[data-theme="light"] .field select{background:#fff;border-color:#cbd8e7;color:#17243b}
+html[data-theme="light"] .input-wrap input{color:#17243b}
+html[data-theme="light"] .nav button{color:#52627a}
+html[data-theme="light"] .nav button.active{background:#dceeff;color:#0759a5;border-color:#9cc9f2}
+html[data-theme="light"] td{color:#263b56}
+html[data-theme="light"] th{color:#52627a}
+html[data-theme="light"] .subtle-btn,html[data-theme="light"] .icon-btn,html[data-theme="light"] .utility-btn{background:#edf4fc;border-color:#cbd9e9;color:#24415f}
+html[data-theme="light"] .profit-highlight small,html[data-theme="light"] .profit-highlight span,html[data-theme="light"] .metric span,html[data-theme="light"] .template small{color:#5b6e87}
+html[data-theme="light"] .metric strong{color:#1a304c}
+html[data-theme="light"] .toast{background:#fff;border-color:#b9cde4;color:#17243b}
+html[data-theme="light"] .free-tag,html[data-theme="light"] .local-tag{background:#edf8f5;border-color:#c2e7db;color:#176b53}
+@media(max-width:600px){.top-actions{gap:6px}.utility-btn{font-size:11px;padding:7px 9px}.top-actions .free-tag{display:none}}
