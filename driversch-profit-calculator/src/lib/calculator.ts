@@ -6,6 +6,10 @@ const finite = (value: number): boolean => Number.isFinite(value)
 
 function validate(input: TripInput, settings: Settings): string[] {
   const errors: string[] = []
+  if (!input || typeof input !== 'object') errors.push('بيانات الرحلة غير متاحة؛ راجع الإدخال.')
+  if (!settings || typeof settings !== 'object') errors.push('الإعدادات غير متاحة؛ راجع الإعدادات.')
+  input = input && typeof input === 'object' ? input : {} as TripInput
+  settings = settings && typeof settings === 'object' ? settings : {} as Settings
   const fields: Array<[string, number]> = [
     ['الأجرة', input.fare],
     ['مسافة الوصول', input.pickupKm],
@@ -20,6 +24,10 @@ function validate(input: TripInput, settings: Settings): string[] {
     ['الحد الأدنى للربح', settings.minNetProfit],
     ['هدف الربح بالساعة', settings.hourlyTarget]
   ]
+
+  if (input.fareMode !== 'net' && input.fareMode !== 'gross' && input.fareMode !== 'unknown') {
+    errors.push('حدد نوع الأجرة بشكل صحيح.')
+  }
 
   for (const [label, value] of fields) {
     if (!finite(value)) errors.push(`${label}: أدخل رقمًا صالحًا.`)
@@ -45,38 +53,40 @@ function validate(input: TripInput, settings: Settings): string[] {
 
 export function calculateTrip(input: TripInput, settings: Settings): Calculation {
   const validationErrors = validate(input, settings)
+  const trip = input && typeof input === 'object' ? input : {} as TripInput
+  const config = settings && typeof settings === 'object' ? settings : {} as Settings
   const validNumber = (value: number, maximum = 1_000_000): number =>
     finite(value) && value >= 0 && value <= maximum ? value : 0
-  const pickupKm = validNumber(input.pickupKm, 1000)
-  const passengerKm = validNumber(input.passengerKm, 1000)
-  const returnKm = validNumber(input.returnKm, 1000)
-  const totalMinutes = validNumber(input.totalMinutes, 24 * 60)
-  const fare = validNumber(input.fare)
-  const extraExpenses = validNumber(input.extraExpenses)
-  const fuelPrice = validNumber(settings.fuelPrice, 1000)
-  const consumption = validNumber(settings.consumptionPer100, 100)
-  const maintenanceRate = validNumber(settings.maintenancePerKm, 1000)
-  const minimumProfit = validNumber(settings.minNetProfit)
-  const hourlyTarget = validNumber(settings.hourlyTarget)
-  const commission = finite(input.commissionRate) && input.commissionRate >= 0 && input.commissionRate < 100
-    ? input.commissionRate : 0
+  const pickupKm = validNumber(trip.pickupKm, 1000)
+  const passengerKm = validNumber(trip.passengerKm, 1000)
+  const returnKm = validNumber(trip.returnKm, 1000)
+  const totalMinutes = validNumber(trip.totalMinutes, 24 * 60)
+  const fare = validNumber(trip.fare)
+  const extraExpenses = validNumber(trip.extraExpenses)
+  const fuelPrice = validNumber(config.fuelPrice, 1000)
+  const consumption = validNumber(config.consumptionPer100, 100)
+  const maintenanceRate = validNumber(config.maintenancePerKm, 1000)
+  const minimumProfit = validNumber(config.minNetProfit)
+  const hourlyTarget = validNumber(config.hourlyTarget)
+  const commission = finite(trip.commissionRate) && trip.commissionRate >= 0 && trip.commissionRate < 100
+    ? trip.commissionRate : 0
 
   const totalKm = pickupKm + passengerKm + returnKm
   const fuelCost = money(totalKm * fuelPrice * consumption / 100)
   const maintenanceCost = money(totalKm * maintenanceRate)
   const totalCost = money(fuelCost + maintenanceCost + extraExpenses)
-  const netFare = money(input.fareMode === 'gross' ? fare * (1 - commission / 100) : fare)
+  const netFare = money(trip.fareMode === 'gross' ? fare * (1 - commission / 100) : fare)
   const netProfit = money(netFare - totalCost)
   const hourlyProfit = totalMinutes > 0 ? money(netProfit * 60 / totalMinutes) : 0
   const targetByTrip = totalCost + minimumProfit
   const targetByHour = totalMinutes > 0 ? totalCost + hourlyTarget * totalMinutes / 60 : targetByTrip
   const requiredNetFare = money(Math.max(targetByTrip, targetByHour))
-  const requiredFare = money(input.fareMode === 'gross' ? requiredNetFare / (1 - commission / 100) : requiredNetFare)
+  const requiredFare = money(trip.fareMode === 'gross' ? requiredNetFare / (1 - commission / 100) : requiredNetFare)
   const fareGap = money(requiredFare - fare)
 
   let decision: Calculation['decision'] = 'review'
   let decisionReason = validationErrors[0] ?? ''
-  if (validationErrors.length === 0 && input.fareMode === 'unknown') {
+  if (validationErrors.length === 0 && trip.fareMode === 'unknown') {
     decisionReason = 'أكد أولًا هل الأجرة صافية أم إجمالية قبل اعتماد قرار الربحية.'
   } else if (validationErrors.length === 0 && netProfit < minimumProfit) {
     decision = 'reject'

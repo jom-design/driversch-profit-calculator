@@ -32,6 +32,22 @@ describe('calculateTrip', () => {
   it('does not issue ACCEPT when fare mode is unknown', () => {
     expect(calculate({ fareMode: 'unknown' }).decision).toBe('review')
   })
+  it('rejects an unsupported fare mode', () => {
+    const result = calculate({ fareMode: 'unexpected' as never })
+    expect(result.isValid).toBe(false)
+    expect(result.validationErrors.length).toBeGreaterThan(0)
+    expect(result.decision).toBe('review')
+  })
+  it('rejects missing trip data and invalid settings without non-finite outputs', () => {
+    const missingTrip = calculateTrip({ ...EMPTY_TRIP, passengerKm: undefined } as never, DEFAULT_SETTINGS)
+    const invalidSettings = calculateTrip(EMPTY_TRIP, { ...DEFAULT_SETTINGS, fuelPrice: -1 })
+    for (const result of [missingTrip, invalidSettings]) {
+      expect(result.isValid).toBe(false)
+      expect(result.validationErrors.length).toBeGreaterThan(0)
+      expect(result.decision).toBe('review')
+      expect(Object.values(result).filter(value => typeof value === 'number').every(Number.isFinite)).toBe(true)
+    }
+  })
   it('converts gross fare and calculates required gross fare', () => {
     const result = calculate({ fare: 200, fareMode: 'gross', commissionRate: 20 })
     expect(result.netFare).toBe(160)
