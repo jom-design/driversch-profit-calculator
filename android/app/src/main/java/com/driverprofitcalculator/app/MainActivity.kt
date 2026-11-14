@@ -63,13 +63,15 @@ class MainActivity : Activity() {
     }
 
     fun applySystemTheme(light: Boolean) {
-        val color = if (light) Color.parseColor("#F3F7FC") else Color.parseColor("#080E20")
-        web.setBackgroundColor(color)
-        window.statusBarColor = color
-        window.navigationBarColor = color
-        WindowInsetsControllerCompat(window, web).apply {
-            isAppearanceLightStatusBars = light
-            isAppearanceLightNavigationBars = light
+        runOnUiThread {
+            val color = if (light) Color.parseColor("#F3F7FC") else Color.parseColor("#080E20")
+            web.setBackgroundColor(color)
+            window.statusBarColor = color
+            window.navigationBarColor = color
+            WindowInsetsControllerCompat(window, web).apply {
+                isAppearanceLightStatusBars = light
+                isAppearanceLightNavigationBars = light
+            }
         }
     }
 
