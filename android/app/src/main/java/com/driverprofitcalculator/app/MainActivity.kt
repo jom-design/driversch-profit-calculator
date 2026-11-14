@@ -13,6 +13,7 @@ import android.webkit.WebViewClient
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.webkit.WebViewAssetLoader
 
 class MainActivity : Activity() {
@@ -59,6 +60,17 @@ class MainActivity : Activity() {
         }
         setContentView(web)
         web.loadUrl("https://" + ASSET_DOMAIN + "/index.html")
+    }
+
+    fun applySystemTheme(light: Boolean) {
+        val color = if (light) Color.parseColor("#F3F7FC") else Color.parseColor("#080E20")
+        web.setBackgroundColor(color)
+        window.statusBarColor = color
+        window.navigationBarColor = color
+        WindowInsetsControllerCompat(window, web).apply {
+            isAppearanceLightStatusBars = light
+            isAppearanceLightNavigationBars = light
+        }
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
