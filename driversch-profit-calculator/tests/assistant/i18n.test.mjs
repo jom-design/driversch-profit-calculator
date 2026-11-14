@@ -96,7 +96,7 @@ test('visible Arabic JSX copy in primary screens and assistant components has di
     const source = readFileSync(url, 'utf8')
     for (const match of source.matchAll(/>([^<>]*[\u0600-\u06FF][^<>]*)</g)) {
       const copy = match[1].trim()
-      if (!copy || copy.length > 220 || copy.startsWith('=') || copy.includes('{') || copy.includes('=>')) continue
+      if (!copy || copy.length > 220 || copy.startsWith('=') || copy.includes('{') || copy.includes('=>') || copy.includes(').join(')) continue
       if (/^(Uber|DiDi|inDrive|Android|Chrome|API|OCR|PNG|JPG)$/.test(copy)) continue
       if (!AR_TO_EN[copy]) missing.push(copy)
     }
