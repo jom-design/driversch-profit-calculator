@@ -119,6 +119,23 @@ test('visible Arabic JSX copy across the source tree has dictionary coverage', (
   assert.deepEqual(missing, [])
 })
 
+test('every explicit React t() call references a real bilingual dictionary key', () => {
+  const root = fileURLToPath(new URL('../../src/', import.meta.url))
+  const collect = directory => readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
+    const path = join(directory, entry.name)
+    if (entry.isDirectory()) return collect(path)
+    return /\\.(tsx?|jsx?)$/.test(entry.name) ? [path] : []
+  })
+  const missing = []
+  for (const path of collect(root)) {
+    const source = readFileSync(path, 'utf8')
+    for (const match of source.matchAll(/\\bt\\('([^']+)'/g)) {
+      if (!Object.hasOwn(AR_TO_EN, match[1])) missing.push({ path, key: match[1] })
+    }
+  }
+  assert.deepEqual(missing, [])
+})
+
 test('no production source can reintroduce DOM-based translation', () => {
   const root = fileURLToPath(new URL('../../src/', import.meta.url))
   const collect = directory => readdirSync(directory, { withFileTypes: true }).flatMap(entry => {

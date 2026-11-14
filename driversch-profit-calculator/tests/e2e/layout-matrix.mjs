@@ -90,7 +90,7 @@ try {
           (await panelHeading.innerText()).includes(alternateLocale === 'ar' ? 'التقاط إشعارات Android' : 'Capture Android notifications'))
         await page.locator('.utility-btn').first().click()
         await page.waitForFunction(expected => document.documentElement.lang === expected, locale)
-        await page.getByRole('button', { name: /Trip Calculator|حاسبة المشاوير/ }).click()
+        await page.getByRole('button', { name: /Trip Calculator|حاسبة المشوار/ }).click()
 
         // Reload proves both preferences survive a fresh document lifecycle.
         await page.reload({ waitUntil: 'networkidle' })
