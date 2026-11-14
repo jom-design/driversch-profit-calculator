@@ -35,6 +35,7 @@ export default function AssistantInbox({ items, onChange, onTransfer }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [reviewed, setReviewed] = useState<Record<string, string[]>>({})
+  const capabilities = detectBrowserCapabilities(window as unknown as BrowserRuntimeLike)
   const selected = useMemo(() => items.find(item => item.id === selectedId) ?? null, [items, selectedId])
   const active = items.filter(item => item.status !== 'dismissed' && item.status !== 'rejected')
   const addOffer = () => {
@@ -71,6 +72,7 @@ export default function AssistantInbox({ items, onChange, onTransfer }: Props) {
     const value = raw === '' ? null : Number(raw)
     if (value !== null && (!Number.isFinite(value) || value < 0)) return
     const evidence = value === null ? [] : [{ text: 'تم الإدخال أو التصحيح يدويًا', start: 0, end: 0 }]
+    setReviewed(current => ({ ...current, [item.id]: (current[item.id] ?? []).filter(name => name !== field) }))
     const draft: RideOfferDraft = {
       ...item.draft,
       fields: { ...item.draft.fields, [field]: {
@@ -108,6 +110,13 @@ export default function AssistantInbox({ items, onChange, onTransfer }: Props) {
       <div><span className="eyebrow">مراجعة قبل الحساب</span><h2 id="inbox-title"><Archive/> صندوق الرحلات الملتقطة</h2>
         <p>العروض هنا لا تُحفظ في سجل الرحلات ولا تُرسل للحاسبة إلا بعد تأكيدك.</p></div>
       <span className="inbox-count" aria-label={`عدد العروض ${active.length}`}>{active.length} عرض</span>
+    </div>
+
+    <div className="inbox-capabilities" aria-label="قدرات المتصفح الحالية">
+      <span>رفع الصور: متاح</span>
+      <span>الميكروفون: {capabilities.microphone ? 'واجهة API متاحة بعد الإذن' : 'غير مدعوم'}</span>
+      <span>التعرف الصوتي: {capabilities.speechRecognition ? 'مدعوم' : 'غير مدعوم'}</span>
+      <span>مشاركة الشاشة: {capabilities.screenCapture ? 'واجهة API متاحة بعد الإذن' : 'غير مدعوم'}</span>
     </div>
 
     <div className="inbox-capture">
