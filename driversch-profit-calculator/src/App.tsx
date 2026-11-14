@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Activity, Archive, Calculator, CarFront, Check, ChevronDown, Download, FileImage, Gauge, History, LayoutDashboard, Mic, MicOff, RotateCcw, Save, Settings as SettingsIcon, ShieldCheck, Trash2, Upload, Wallet, X } from 'lucide-react'
 import { calculateTrip } from './lib/calculator'
+import AssistantInbox from './assistant/AssistantInbox'
+import type { InboxItem } from './assistant/types'
 import { deleteTrip, getSettings, getTrips, replaceAllTrips, saveSettings, saveTrip } from './lib/db'
 import { readTripImage, type OcrDraft } from './lib/ocr'
 import { DEFAULT_SETTINGS, EMPTY_TRIP, type AppName, type FareMode, type SavedTrip, type Settings, type TripInput } from './types'
@@ -26,7 +28,7 @@ export default function App() {
   const [settings,setSettings]=useState<Settings>(DEFAULT_SETTINGS)
   const [trip,setTrip]=useState<TripInput>(EMPTY_TRIP)
   const [trips,setTrips]=useState<SavedTrip[]>([])
-  const [inbox,setInbox]=useState<SavedTrip[]>([])
+  const [inbox,setInbox]=useState<InboxItem[]>([])
   const [draft,setDraft]=useState<OcrDraft|null>(null)
   const [busy,setBusy]=useState(false)
   const [progress,setProgress]=useState(0)
@@ -59,6 +61,19 @@ export default function App() {
       pickupKm:draft.pickupKm??t.pickupKm,passengerKm:draft.passengerKm??t.passengerKm,
       totalMinutes:draft.totalMinutes??t.totalMinutes}))
     setPage('calculator');setDraft(null)
+  }
+  const transferConfirmedOffer=(item:InboxItem)=>{
+    if(item.status!=='confirmed'){setToast('لا يمكن نقل عرض غير مؤكد للحاسبة');return}
+    const fields=item.draft.fields
+    if(fields.fare.value===null||fields.pickupDistanceKm.value===null||fields.distanceKm.value===null||fields.durationMinutes.value===null){
+      setToast('بيانات العرض غير مكتملة؛ ارجع للمراجعة');return
+    }
+    const app:AppName=item.draft.provider==='uber'?'Uber':item.draft.provider==='didi'?'DiDi':item.draft.provider==='indrive'?'inDrive':'أخرى'
+    setTrip(current=>({...current,app,fare:fields.fare.value!,fareMode:'unknown',commissionRate:0,
+      pickupKm:fields.pickupDistanceKm.value!,passengerKm:fields.distanceKm.value!,
+      totalMinutes:fields.durationMinutes.value!,notes:'تم النقل من صندوق الرحلات بعد تأكيدك.'}))
+    setPage('calculator')
+    setToast('تم نقل العرض المؤكد للحاسبة. لم يتم حفظه في سجل الرحلات.')
   }
   const speak=()=>{
     if(!('speechSynthesis'in window)){setToast('ميزة الصوت غير مدعومة في هذا المتصفح');return}
@@ -94,7 +109,7 @@ export default function App() {
       <div className="brand"><div className="brand-icon"><ScaleIcon/></div><div><strong>حاسبة عدالة المشاوير</strong><small>DRIVER PROFIT CALCULATOR</small></div></div>
       <div className="top-actions"><span className="free-tag"><ShieldCheck size={14}/> مجاني 100%</span><span className="local-tag"><span/> حفظ محلي</span></div>
     </header>
-    <nav className="nav">{nav.map(n=><button key={n.id} className={page===n.id?'active':''} onClick={()=>setPage(n.id)}><n.icon size={17}/>{n.label}{n.id==='inbox'&&inbox.length>0?<b>{inbox.length}</b>:null}</button>)}</nav>
+    <nav className="nav">{nav.map(n=><button key={n.id} className={page===n.id?'active':''} onClick={()=>setPage(n.id)}><n.icon size={17}/>{n.label}{n.id==='inbox'&&inbox.filter(item=>item.status!=='rejected'&&item.status!=='dismissed').length>0?<b>{inbox.filter(item=>item.status!=='rejected'&&item.status!=='dismissed').length}</b>:null}</button>)}</nav>
     <main className="main">
       {page==='calculator'&&<><section className="hero"><div><span className="eyebrow">قرار أذكى • ربح أوضح</span><h1>احسبها قبل ما تقبل المشوار</h1><p>اعرف تكلفة الرحلة وصافي ربحك الحقيقي في ثوانٍ.</p></div><div className="hero-stat"><Gauge size={26}/><span>القرار بيتحسب تلقائيًا</span></div></section>
         <section className="templates"><div className="section-head"><h2>نماذج جاهزة للاختبار السريع</h2><span>اضغط لملء الحقول</span></div><div className="template-grid">{templates.map(t=><button className="template" key={t.name} onClick={()=>loadTemplate(t.trip)}><strong>{t.name}</strong><small>{t.desc}</small></button>)}</div></section>
@@ -153,7 +168,7 @@ export default function App() {
           <button className="subtle-btn" onClick={()=>setDraft(null)}><X size={16}/> إلغاء</button>
         </div>}
       </section>}
-      {page==='inbox'&&<section className="panel"><div className="panel-head"><div><span className="eyebrow">مراجعة قبل الحفظ</span><h2><Archive/> صندوق الرحلات الملتقطة</h2></div></div><div className="empty-state"><Archive size={34}/><strong>لا توجد رحلات معلقة</strong><p>ارفع صورة من المساعد الذكي، وراجع بياناتها ثم انقلها للحاسبة.</p><button className="primary-btn" onClick={()=>setPage('assistant')}>فتح المساعد الذكي</button></div></section>}
+      {page==='inbox'&&<AssistantInbox items={inbox} onChange={setInbox} onTransfer={transferConfirmedOffer}/ >}
       {page==='history'&&<section className="panel"><div className="panel-head"><div><span className="eyebrow">بيانات محفوظة على جهازك</span><h2><History/> سجل الرحلات</h2></div><button className="subtle-btn" onClick={exportCsv}><Download size={16}/> تصدير CSV</button></div>
         {trips.length===0?<Empty title="لسه مفيش رحلات محفوظة" text="احسب أول مشوار واحفظه علشان يظهر هنا."/>:<div className="table-wrap"><table><thead><tr><th>التاريخ</th><th>التطبيق</th><th>الأجرة</th><th>المسافة</th><th>صافي الربح</th><th>القرار</th><th></th></tr></thead><tbody>{trips.map(t=><tr key={t.id}><td>{new Date(t.createdAt).toLocaleString('ar-EG')}</td><td>{t.app}</td><td>{money(t.fare)}</td><td>{t.totalKm.toFixed(1)} كم</td><td className={t.netProfit>=0?'positive':'negative'}>{money(t.netProfit)}</td><td><span className={`pill ${decisionClass[t.decision]}`}>{decisionLabel[t.decision]}</span></td><td><button className="danger-icon" onClick={()=>removeTrip(t.id)} title="حذف"><Trash2 size={16}/></button></td></tr>)}</tbody></table></div>}
       </section>}
