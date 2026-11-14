@@ -42,6 +42,12 @@ android {
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
     testOptions { unitTests.returnDefaultValues = true }
+    sourceSets {
+        test {
+            // Shared golden fixture generated from the TypeScript engine (same file the web tests use).
+            resources.srcDir "../../driversch-profit-calculator/tests/fixtures"
+        }
+    }
 }
 
 tasks.register("verifyReleaseSigning") {
@@ -68,4 +74,6 @@ dependencies {
     implementation "androidx.webkit:webkit:1.12.1"
     implementation "androidx.core:core:1.13.1"
     testImplementation "junit:junit:4.13.2"
+    // android.jar stubs org.json with returnDefaultValues=true, so JVM tests need a real implementation.
+    testImplementation "org.json:json:20240303"
 }
