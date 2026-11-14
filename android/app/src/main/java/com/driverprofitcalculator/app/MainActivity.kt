@@ -11,7 +11,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.webkit.WebViewAssetLoader
 
-class MainActivity : Activity() {
+class MainActivity : Activity() {\n    private lateinit var voiceController: NativeVoiceController
     private lateinit var web: WebView
     private lateinit var loader: WebViewAssetLoader
 
@@ -30,7 +30,7 @@ class MainActivity : Activity() {
             mediaPlaybackRequiresUserGesture = true
             setSupportMultipleWindows(false)
         }
-        web.addJavascriptInterface(AndroidBridge(this), "DriverAndroid")
+        voiceController = NativeVoiceController(this, web)\n        web.addJavascriptInterface(AndroidBridge(this, voiceController), "DriverAndroid")
         web.webViewClient = object : WebViewClient() {
             override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? =
                 loader.shouldInterceptRequest(request.url)
@@ -44,7 +44,7 @@ class MainActivity : Activity() {
         web.loadUrl("https://" + ASSET_DOMAIN + "/index.html")
     }
 
-    override fun onDestroy() {
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {\n        super.onRequestPermissionsResult(requestCode, permissions, grantResults)\n        if (requestCode == NativeVoiceController.REQUEST_AUDIO_PERMISSION) {\n            voiceController.onAudioPermissionResult(grantResults.firstOrNull() == android.content.pm.PackageManager.PERMISSION_GRANTED)\n        }\n    }\n\n    override fun onDestroy() {\n        voiceController.destroy()
         web.removeJavascriptInterface("DriverAndroid")
         web.stopLoading()
         web.destroy()
