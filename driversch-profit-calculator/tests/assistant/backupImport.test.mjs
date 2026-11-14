@@ -74,8 +74,11 @@ test('trip numbers with Arabic digits are normalized and notes keep both languag
   assert.equal(cleaned.notes, 'Trip ملاحظة ١٢')
 })
 
-test('a negative trip result is allowed, a negative input is not', () => {
-  assert.equal(normalizeTrip(trip({ netProfit: -12 })).netProfit, -12)
+test('a negative trip result is allowed when its source fare and arithmetic support it', () => {
+  const losingInput = { ...trip(), fare: 35 }
+  const losingTrip = { ...losingInput, ...calculateTrip(losingInput, DEFAULT_SETTINGS) }
+  assert.ok(losingTrip.netProfit < 0)
+  assert.equal(normalizeTrip(losingTrip).netProfit, losingTrip.netProfit)
   assert.equal(normalizeTrip(trip({ pickupKm: -1 })), null)
 })
 
