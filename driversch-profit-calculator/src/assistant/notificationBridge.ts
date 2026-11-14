@@ -1,5 +1,5 @@
-import { createInboxItem, markInboxParsed, requestInboxReview } from './inbox'
-import { parseRideOffer } from './parser'
+import { createInboxItem, markInboxParsed, requestInboxReview } from './inbox.ts'
+import { parseRideOffer } from './parser.ts'
 import type { InboxItem, RideOfferDraft } from './types'
 
 export interface NativeNotificationPayload {
