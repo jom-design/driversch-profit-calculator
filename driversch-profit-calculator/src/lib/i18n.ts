@@ -378,4 +378,5 @@ export function applyLocale(root:ParentNode,locale:AppLocale):void {
     }
   }
   document.title=locale==='ar'?'حاسبة عدالة المشاوير':'Driver Profit Calculator'
+  document.querySelector('meta[name="description"]')?.setAttribute('content',locale==='ar'?'حاسبة مجانية لمساعدة سائقي تطبيقات النقل على حساب صافي ربح الرحلات.':'A free calculator that helps ride-hailing drivers estimate trip costs and net profit.')
 }
