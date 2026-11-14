@@ -127,9 +127,8 @@ export function normalizeBackup(data: unknown, defaults: Settings): ImportResult
   const settings = normalizeSettings(data.settings, defaults)
   if (!settings.ok) return settings
   const trips: SavedTrip[] = []
-  let skippedTrips = 0
   for (let index = 0; index < data.trips.length; index += 1) {
-    const trip = normalizeTrip(data.trips[index], settings.value)
+    const trip = normalizeTrip(data.trips[index])
     if (!trip) return { ok: false, reason: `بيانات الرحلة رقم ${index + 1} تالفة أو نتائجها المالية لا تطابق مدخلاتها؛ لم يتم استيراد أي بيانات.` }
     trips.push(trip)
   }
