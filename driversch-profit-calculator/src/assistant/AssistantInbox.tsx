@@ -165,6 +165,8 @@ export default function AssistantInbox({ items, onChange, onTransfer }: Props) {
               })}
             </div>
             <div className="inbox-source"><strong>مصدر البيانات</strong><span>{selected.draft.source === 'notification' ? 'إشعار مستلم من جسر Android' : selected.draft.source === 'screenshot' ? 'صورة شاشة' : 'إدخال أو لصق يدوي'}</span>
+              {selected.draft.sourceAppPackage && <span>معرّف التطبيق: {selected.draft.sourceAppPackage}</span>}
+              {selected.draft.sourceTimestamp && <span>وقت الإشعار: {new Date(selected.draft.sourceTimestamp).toLocaleString('ar-EG')}</span>}
               <details><summary>عرض النص الأصلي للمراجعة</summary><pre>{selected.draft.rawText}</pre></details>
             </div>
             {selected.draft.warnings.map((warning, index) => <p className="inbox-warning" key={index}><ShieldAlert size={15}/>{warning}</p>)}
