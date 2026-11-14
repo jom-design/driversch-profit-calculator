@@ -93,6 +93,8 @@ test('native bridge deduplicates notifications and rejects malformed payloads', 
   const first = acceptNativeNotification(payload, seen)
   assert.equal(first?.status, 'needs-review')
   assert.equal(first?.draft.source, 'notification')
+  assert.equal(first?.draft.sourceAppPackage, 'com.example.ride')
+  assert.equal(first?.draft.sourceTimestamp, '2026-11-14T08:00:00.000Z')
   assert.equal(acceptNativeNotification(payload, seen), null)
   assert.equal(acceptNativeNotification({ ...payload, notificationId: '', text: 'x' }, seen), null)
 })
