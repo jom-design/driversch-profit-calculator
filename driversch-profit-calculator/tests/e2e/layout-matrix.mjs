@@ -1,9 +1,12 @@
 import { spawn } from 'node:child_process'
 import { mkdirSync } from 'node:fs'
 import { setTimeout as delay } from 'node:timers/promises'
+import { createRequire } from 'node:module'
 import { chromium } from 'playwright'
 
 // Full browser visual matrix: six screens × six viewports × two locales × two themes.
+const require = createRequire(import.meta.url)
+const axePath = require.resolve('axe-core')
 const port = 5176
 const baseUrl = 'http://127.0.0.1:' + port
 const outDir = process.env.LAYOUT_SCREENSHOT_DIR ?? 'test-results/layout'
@@ -61,6 +64,7 @@ try {
         page.on('pageerror', error => pageErrors.push(vp.name + '/' + locale + '/' + theme + ': ' + error.message))
         page.on('dialog', dialog => { void dialog.accept() })
         await page.goto(baseUrl, { waitUntil: 'networkidle' })
+        await page.addScriptTag({ path: axePath })
 
         if (locale === 'en') {
           await page.locator('.utility-btn').first().click()
@@ -94,6 +98,11 @@ try {
             }).map(el => (el.className || el.tagName) + ' "' + (el.textContent || el.getAttribute('aria-label') || '').trim().slice(0, 30) + '"')
           })
           check(`${vp.name}/${locale}/${theme} ${screen.name}: controls stay inside viewport (offending: ${offscreen.join(' | ') || 'none'})`, offscreen.length === 0)
+          const contrast = await page.evaluate(async () => window.axe.run(document, {
+            runOnly: { type: 'rule', values: ['color-contrast'] }
+          }))
+          const contrastFailures = contrast.violations.flatMap(v => v.nodes.map(n => ({ id: v.id, target: n.target, summary: n.failureSummary })))
+          check(`${vp.name}/${locale}/${theme} ${screen.name}: no color contrast violations (${JSON.stringify(contrastFailures).slice(0, 500)})`, contrastFailures.length === 0)
           await page.screenshot({ path: `${outDir}/${vp.name}-${screen.name}-${locale}-${theme}.png`, fullPage: true })
           if (screen.name !== 'calculator') {
             await page.getByRole('button', { name: /Trip Calculator|حاسبة المشوار/ }).click()
