@@ -16,6 +16,7 @@ declare global {
 interface Status {
   isAndroid: boolean
   hasNotificationAccess: boolean
+  serviceConnected: boolean
   enabledProviders: string[]
   lastReceivedAt: string
   queueHealthy: boolean
@@ -109,8 +110,8 @@ export default function AndroidNotificationPanel({ onImport }: Props) {
   return <section className="android-capture-panel" dir="rtl" aria-labelledby="android-capture-title">
     <div className="android-capture-heading"><ShieldCheck/><div><strong id="android-capture-title">ربط إشعارات الرحلات</strong><p>لا تتم قراءة أي تطبيق إلا بعد تفعيله ومنح إذن Android صراحةً.</p></div></div>
     <div className="android-capture-status">
-      <span className={status?.hasNotificationAccess ? 'is-connected' : 'is-disconnected'}>
-        {status?.hasNotificationAccess ? 'إذن قراءة الإشعارات مفعّل' : 'إذن قراءة الإشعارات غير مفعّل'}
+      <span className={status?.hasNotificationAccess && status.serviceConnected ? 'is-connected' : 'is-disconnected'}>
+        {status?.hasNotificationAccess ? (status.serviceConnected ? 'خدمة قراءة الإشعارات متصلة' : 'الإذن مفعّل والخدمة غير متصلة بعد') : 'إذن قراءة الإشعارات غير مفعّل'}
       </span>
       <button type="button" className="subtle-btn" onClick={refresh}><RefreshCw size={15}/> تحديث الحالة</button>
     </div>

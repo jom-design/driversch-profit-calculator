@@ -11,4 +11,9 @@ object ProviderPreferences {
         return context.getSharedPreferences(FILE, 0).edit().putBoolean(id, value).commit()
     }
     fun enabledIds(context: Context) = ProviderRegistry.providers.filter { enabled(context, it.id) }.map { it.id }
+    fun setServiceConnected(context: Context, connected: Boolean) {
+        context.getSharedPreferences(FILE, 0).edit().putBoolean("service_connected", connected).apply()
+    }
+    fun serviceConnected(context: Context): Boolean =
+        context.getSharedPreferences(FILE, 0).getBoolean("service_connected", false)
 }

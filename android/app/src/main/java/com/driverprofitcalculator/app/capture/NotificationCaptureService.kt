@@ -4,6 +4,16 @@ import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 
 class NotificationCaptureService : NotificationListenerService() {
+    override fun onListenerConnected() {
+        super.onListenerConnected()
+        ProviderPreferences.setServiceConnected(this, true)
+    }
+
+    override fun onListenerDisconnected() {
+        ProviderPreferences.setServiceConnected(this, false)
+        super.onListenerDisconnected()
+    }
+
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         val provider = ProviderRegistry.forPackage(sbn.packageName) ?: return
         if (!ProviderPreferences.enabled(this, provider.id)) return
@@ -17,6 +27,6 @@ class NotificationCaptureService : NotificationListenerService() {
             sbn.packageName, sbn.key ?: (sbn.packageName + ":" + sbn.id), title, text, sbn.postTime
         ) ?: return
         // No notification text is logged or sent over a network.
-        EncryptedNotificationStore(this).put(payload)
+        EncryptedNotificationStore(this).put(payload.toJson())
     }
 }

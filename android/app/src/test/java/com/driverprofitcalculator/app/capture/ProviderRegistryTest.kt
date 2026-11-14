@@ -21,7 +21,7 @@ class ProviderRegistryTest {
             "com.didiglobal.driver", "key-1", "طلب رحلة", "أجرة 120 جنيه", 1794500000000L
         )
         assertNotNull(payload)
-        assertEquals("DiDi", payload?.optString("appLabel"))
+        assertEquals("DiDi", payload?.appLabel)
         assertNull(NotificationPayloadNormalizer.normalize("com.example.fake", "key", "طلب رحلة", "أجرة 120 جنيه", 1794500000000L))
         assertNull(NotificationPayloadNormalizer.normalize("com.didiglobal.driver", "key", "Summary", "Account updated", 1794500000000L))
     }
