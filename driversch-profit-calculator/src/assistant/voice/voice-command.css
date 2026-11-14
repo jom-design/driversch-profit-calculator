@@ -1,0 +1,56 @@
+.voice-bar {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(127, 127, 127, 0.25);
+  border-radius: 12px;
+}
+
+.voice-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.voice-head .primary-btn,
+.voice-head .subtle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.voice-status {
+  font-size: 0.95rem;
+  opacity: 0.85;
+}
+
+.voice-confirm {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.voice-confirm p {
+  margin: 0;
+}
+
+.voice-note {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.75;
+  line-height: 1.6;
+}
+
+.voice-bar .inline-alert {
+  margin: 0;
+}
+
+@media (max-width: 480px) {
+  .voice-head .primary-btn,
+  .voice-head .subtle-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

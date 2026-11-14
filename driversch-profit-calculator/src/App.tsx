@@ -5,6 +5,8 @@ import AssistantInbox from './assistant/AssistantInbox'
 import type { InboxItem } from './assistant/types'
 import { toCalculatorTripInput } from './assistant/calculatorTransfer'
 import { ocrDraftToInboxItem } from './assistant/ocrAdapter'
+import VoiceCommandBar from './assistant/voice/VoiceCommandBar'
+import type { VoiceIntent } from './assistant/voice/voiceCommands'
 import { markInboxParseError, markInboxTransferred } from './assistant/inbox'
 import { getInboxStorageErrorMessage, loadInboxItems, saveInboxChanges } from './assistant/inboxStorage'
 import { deleteTrip, getSettings, getTrips, replaceAllTrips, saveSettings, saveTrip } from './lib/db'
@@ -145,6 +147,42 @@ export default function App() {
   const decisionLabel={accept:'اقبل الرحلة',review:'راجع الرحلة',reject:'ارفض الرحلة'}
   const decisionClass={accept:'good',review:'warn',reject:'bad'}
   const savedProfit=trips.reduce((s,t)=>s+t.netProfit,0)
+  // Voice commands only navigate or report. They never accept, reject, move or delete a trip.
+  const runVoiceCommand=(intent:VoiceIntent)=>{
+    switch(intent){
+      case 'calculate':
+        setPage('calculator')
+        setToast(`${decisionLabel[result.decision]} · صافي الربح ${money(result.netProfit)}`)
+        break
+      case 'last-trip': {
+        if(trips.length===0){setToast('لا توجد رحلات محفوظة بعد');break}
+        const last=[...trips].sort((a,b)=>b.createdAt.localeCompare(a.createdAt))[0]
+        setPage('history')
+        setToast(`آخر رحلة: ${decisionLabel[last.decision]} · صافي الربح ${money(last.netProfit)}`)
+        break
+      }
+      case 'open-inbox':
+        setPage('inbox')
+        break
+      case 'unconfirmed-offers': {
+        const unconfirmedStatuses=['received','parsed','needs-review','parse-error']
+        const open=inbox.filter(item=>unconfirmedStatuses.includes(item.status)).length
+        setPage('inbox')
+        setToast(open?`عندك ${open} عرض غير مؤكد`:'مفيش عروض غير مؤكدة')
+        break
+      }
+      case 'start-review':
+        setPage('inbox')
+        setToast('اختر العرض وراجع الحقول قبل التأكيد')
+        break
+      case 'cancel':
+        setToast('تم إلغاء الأمر')
+        break
+      case 'unknown':
+        setToast('الأمر غير مفهوم')
+        break
+    }
+  }
   return <div className="app-shell">
     <header className="topbar">
       <div className="brand"><div className="brand-icon"><ScaleIcon/></div><div><strong>حاسبة عدالة المشاوير</strong><small>DRIVER PROFIT CALCULATOR</small></div></div>
@@ -153,6 +191,7 @@ export default function App() {
     <nav className="nav">{nav.map(n=><button key={n.id} className={page===n.id?'active':''} onClick={()=>setPage(n.id)}><n.icon size={17}/>{n.label}{n.id==='inbox'&&inbox.filter(item=>item.status!=='rejected'&&item.status!=='dismissed'&&item.status!=='transferred').length>0?<b>{inbox.filter(item=>item.status!=='rejected'&&item.status!=='dismissed'&&item.status!=='transferred').length}</b>:null}</button>)}</nav>
     <main className="main">
       {inboxStorageMessage&&<div className="inbox-storage-alert" role="alert"><span>{inboxStorageMessage}</span>{inboxSaveFailed&&<button type="button" onClick={()=>void commitInbox(inbox)}>إعادة محاولة الحفظ</button>}</div>}
+      <VoiceCommandBar onCommand={runVoiceCommand}/>
       {page==='calculator'&&<><section className="hero"><div><span className="eyebrow">قرار أذكى • ربح أوضح</span><h1>احسبها قبل ما تقبل المشوار</h1><p>اعرف تكلفة الرحلة وصافي ربحك الحقيقي في ثوانٍ.</p></div><div className="hero-stat"><Gauge size={26}/><span>القرار بيتحسب تلقائيًا</span></div></section>
         <section className="templates"><div className="section-head"><h2>نماذج جاهزة للاختبار السريع</h2><span>اضغط لملء الحقول</span></div><div className="template-grid">{templates.map(t=><button className="template" key={t.name} onClick={()=>loadTemplate(t.trip)}><strong>{t.name}</strong><small>{t.desc}</small></button>)}</div></section>
         <div className="work-grid"><section className="panel form-panel"><div className="panel-head"><div><span className="eyebrow">بيانات العرض</span><h2><CarFront/> بيانات المشوار المقترح</h2></div><button className="subtle-btn" onClick={()=>setTrip(EMPTY_TRIP)}><RotateCcw size={15}/> تفريغ الحقول</button></div>
