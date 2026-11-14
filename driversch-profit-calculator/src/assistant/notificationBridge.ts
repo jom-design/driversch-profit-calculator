@@ -1,6 +1,6 @@
 import { createInboxItem, markInboxParsed, requestInboxReview } from './inbox.ts'
 import { parseRideOffer } from './parser.ts'
-import type { InboxItem, NativeProfitabilityPreview, RideOfferDraft } from './types'
+import type { InboxItem, RideOfferDraft } from './types'
 
 export interface NativeNotificationPayload {
   notificationId: string
@@ -9,22 +9,6 @@ export interface NativeNotificationPayload {
   title: string
   text: string
   postedAt: string
-  offer?: {
-    fare?: NativeFieldCandidate
-    pickupDistanceKm?: NativeFieldCandidate
-    distanceKm?: NativeFieldCandidate
-    durationMinutes?: NativeFieldCandidate
-    currency?: string | null
-    fareMode?: 'net' | 'gross' | 'unknown'
-  }
-  analysis?: NativeProfitabilityPreview
-}
-
-interface NativeFieldCandidate {
-  value: number | null
-  confidence: number
-  evidence: Array<{ text: string; start: number; end: number }>
-  status: 'missing' | 'candidate' | 'needs-review'
 }
 
 const SUPPORTED_PACKAGES: Record<string, string> = {
@@ -44,4 +28,29 @@ export function acceptNativeNotification(
   seenNotificationIds: Set<string>,
   now = new Date()
 ): InboxItem | null {
-  if (!p¶»§q«^
+  if (!payload || typeof payload.notificationId !== 'string' || !payload.notificationId.trim() ||
+      payload.notificationId.length > 512 ||
+      typeof payload.packageName !== 'string' || !SUPPORTED_PACKAGES[payload.packageName] ||
+      typeof payload.title !== 'string' || payload.title.length > 300 ||
+      typeof payload.text !== 'string' || !payload.text.trim() || payload.text.length > 4000 ||
+      typeof payload.postedAt !== 'string') return null
+  if (seenNotificationIds.has(payload.notificationId)) return null
+  const postedAt = new Date(payload.postedAt)
+  if (!Number.isFinite(postedAt.getTime())) return null
+  seenNotificationIds.add(payload.notificationId)
+
+  const canonicalLabel = SUPPORTED_PACKAGES[payload.packageName]
+  const parsed = parseRideOffer({
+    text: [canonicalLabel, payload.title, payload.text].filter(Boolean).join('\n'),
+    source: 'notification',
+    now
+  })
+  const draft: RideOfferDraft = {
+    ...parsed,
+    sourceAppPackage: payload.packageName,
+    sourceAppLabel: canonicalLabel,
+    sourceTimestamp: postedAt.toISOString()
+  }
+  const item = createInboxItem(draft, payload.notificationId, now)
+  return requestInboxReview(markInboxParsed(item, now), now)
+}

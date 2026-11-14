@@ -20,4 +20,6 @@ object ProviderRegistry {
     fun forId(id: String) = providers.firstOrNull { it.id == id }
     fun relevant(provider: RideProvider, title: String, text: String): Boolean {
         val content = (title + " " + text).lowercase()
-        // Android MessagingStyl¶»§q«^
+        return provider.keywords.any { content.contains(it.lowercase()) }
+    }
+}
