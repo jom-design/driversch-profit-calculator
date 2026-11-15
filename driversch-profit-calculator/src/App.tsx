@@ -156,7 +156,7 @@ export default function App() {
     const text=result.decision==='accept'?`${decision}. ${tr('صافي الربح')} ${moneyText(result.netProfit)}`:result.decision==='review'?`${decision}. ${reason}`:`${decision}. ${tr('صافي الربح')} ${moneyText(result.netProfit)}`
     if(nativeVoice){nativeVoice.speakText(text);setSpeaking(true);return}
     if(!('speechSynthesis'in window)){setToast('ميزة الصوت غير مدعومة في هذا الجهاز');return}
-    const utter=new SpeechSynthesisUtterance(text);utter.lang=locale==='ar'?'ar-EG':'en-US';utter.onend=()=>setSpeaking(false);speechSynthesis.speak(utter);setSpeaking(true)
+    const utter=new SpeechSynthesisUtterance(text);utter.lang=locale==='ar'?'ar-EG':'en-US';utter.onend=()=>setSpeaking(false);utter.onerror=()=>setSpeaking(false);speechSynthesis.speak(utter);setSpeaking(true)
   }
   const exportBackup=async()=>{
     const payload={schemaVersion:1,exportedAt:new Date().toISOString(),settings,trips}

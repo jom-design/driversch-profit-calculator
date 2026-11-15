@@ -30,4 +30,23 @@ class NativeVoiceTextPolicyTest {
     @Test fun persianAndArabicDigitsSurviveTheSpeechPath() {
         assertEquals("صافي ٦١٫٠٥ جنيه", NativeVoiceTextPolicy.sanitizeForSpeech("صافي ٦١٫٠٥ جنيه"))
     }
+
+    @Test fun speakRequestWaitsOnlyWhileTtsInitializationIsRunning() {
+        assertEquals(NativeVoiceTextPolicy.SpeakAction.QUEUE_UNTIL_READY,
+            NativeVoiceTextPolicy.speakAction(engineAlive = true, ttsReady = false, initFinished = false))
+        assertEquals(NativeVoiceTextPolicy.SpeakAction.SPEAK_NOW,
+            NativeVoiceTextPolicy.speakAction(engineAlive = true, ttsReady = true, initFinished = true))
+    }
+
+    @Test fun speakRequestIsReportedAtOnceWhenVoiceDataIsMissing() {
+        assertEquals(NativeVoiceTextPolicy.SpeakAction.REPORT_UNAVAILABLE,
+            NativeVoiceTextPolicy.speakAction(engineAlive = true, ttsReady = false, initFinished = true))
+    }
+
+    @Test fun speakRequestIsReportedAfterTheEngineIsDestroyed() {
+        assertEquals(NativeVoiceTextPolicy.SpeakAction.REPORT_UNAVAILABLE,
+            NativeVoiceTextPolicy.speakAction(engineAlive = false, ttsReady = true, initFinished = true))
+        assertEquals(NativeVoiceTextPolicy.SpeakAction.REPORT_UNAVAILABLE,
+            NativeVoiceTextPolicy.speakAction(engineAlive = false, ttsReady = false, initFinished = false))
+    }
 }

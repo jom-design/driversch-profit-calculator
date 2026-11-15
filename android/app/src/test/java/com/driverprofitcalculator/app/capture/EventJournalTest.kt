@@ -364,4 +364,81 @@ class EventJournalTest {
         }
         override fun markRemoved(notificationId: String, reason: Int?): Boolean = true
     }
+
+    @Test
+    fun `completing one of several events removes exactly that event and keeps the order`() {
+        val journal = EventJournal(TextBackend(), Counts(), clock)
+        val a = journal.append(event("a"))!!
+        journal.append(event("b"))!!
+        val c = journal.append(event("c"))!!
+        val b = journal.pending()[1].seq
+
+        assertTrue(journal.complete(b))
+
+        val remaining = journal.pending()
+        assertEquals(listOf("a", "c"), remaining.map { it.event.key })
+        assertEquals(a, remaining.first().seq)
+        assertEquals(c, remaining.last().seq)
+    }
+
+    @Test
+    fun `a failed write during complete leaves the journal unchanged and is counted`() {
+        val backend = TextBackend()
+        val counts = Counts()
+        val journal = EventJournal(backend, counts, clock)
+        val seq = journal.append(event("kept"))!!
+        val before = backend.raw
+        backend.failWrites = true
+
+        assertFalse(journal.complete(seq))
+
+        assertEquals(before, backend.raw)
+        assertEquals(1, counts.get(CaptureCounterNames.JOURNAL_WRITE_FAILED))
+        backend.failWrites = false
+        assertEquals(listOf("kept"), journal.pending().map { it.event.key })
+    }
+
+    @Test
+    fun `an unreadable journal makes complete report failure without changing anything`() {
+        val backend = TextBackend()
+        val counts = Counts()
+        val journal = EventJournal(backend, counts, clock)
+        val seq = journal.append(event("kept"))!!
+        val before = backend.raw
+        backend.failReads = true
+
+        assertFalse(journal.complete(seq))
+
+        backend.failReads = false
+        assertEquals(before, backend.raw)
+        assertEquals(1, counts.get(CaptureCounterNames.JOURNAL_READ_FAILED))
+    }
+
+    @Test
+    fun `repeated mixed operations match a simple model, issue increasing numbers, and survive restarts`() {
+        val backend = TextBackend()
+        var journal = EventJournal(backend, Counts(), clock)
+        val model = mutableListOf<Pair<Long, String>>()
+        var lastCompleted = -1L
+        var maxIssued = 0L
+        for (round in 0 until 25) {
+            val key = "e$round"
+            val seq = journal.append(event(key))!!
+            assertTrue("sequence must increase", seq > maxIssued)
+            maxIssued = seq
+            model += seq to key
+            if (round % 2 == 0) {
+                val target = model.removeAt(0)
+                assertTrue(journal.complete(target.first))
+                lastCompleted = target.first
+            }
+            // Repeated and unknown completions are no-ops.
+            assertTrue(journal.complete(lastCompleted))
+            assertTrue(journal.complete(maxIssued + 1000))
+            assertEquals(model.map { it.second }, journal.pending().map { it.event.key })
+            // A restart over the same storage sees exactly the same queue.
+            journal = EventJournal(backend, Counts(), clock)
+            assertEquals(model.map { it.second }, journal.pending().map { it.event.key })
+        }
+    }
 }

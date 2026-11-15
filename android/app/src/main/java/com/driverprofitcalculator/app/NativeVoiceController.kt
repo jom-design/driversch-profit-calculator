@@ -25,6 +25,8 @@ class NativeVoiceController(
     private var recognizer: SpeechRecognizer? = null
     private var tts: TextToSpeech? = TextToSpeech(activity.applicationContext, this)
     private var ttsReady = false
+    /** Set once the engine has reported its init result, success or failure. Main thread only. */
+    private var initFinished = false
     private var pendingSpeech: String? = null
     @Volatile private var languageTag: String = "ar-EG"
 
@@ -116,8 +118,14 @@ class NativeVoiceController(
         val safeText = NativeVoiceTextPolicy.sanitizeForSpeech(text)
         if (safeText.isBlank()) return
         main.post {
-            if (!ttsReady) { pendingSpeech = safeText; return@post }
-            speakNow(safeText)
+            when (NativeVoiceTextPolicy.speakAction(engineAlive = tts != null, ttsReady = ttsReady, initFinished = initFinished)) {
+                NativeVoiceTextPolicy.SpeakAction.SPEAK_NOW -> { speakNow(safeText) }
+                NativeVoiceTextPolicy.SpeakAction.QUEUE_UNTIL_READY -> { pendingSpeech = safeText }
+                NativeVoiceTextPolicy.SpeakAction.REPORT_UNAVAILABLE -> {
+                    pendingSpeech = null
+                    emit("speak-error", "tts-unavailable")
+                }
+            }
         }
     }
 
@@ -137,11 +145,12 @@ class NativeVoiceController(
 
     override fun onInit(status: Int) {
         main.post {
-            if (status != TextToSpeech.SUCCESS) { emit("speak-error", "tts-unavailable"); return@post }
+            initFinished = true
+            if (status != TextToSpeech.SUCCESS) { pendingSpeech = null; emit("speak-error", "tts-unavailable"); return@post }
             val languageResult = tts?.setLanguage(Locale.forLanguageTag(languageTag)) ?: TextToSpeech.ERROR
             ttsReady = languageResult != TextToSpeech.LANG_MISSING_DATA &&
                 languageResult != TextToSpeech.LANG_NOT_SUPPORTED && languageResult != TextToSpeech.ERROR
-            if (!ttsReady) { emit("speak-error", "arabic-tts-unavailable"); return@post }
+            if (!ttsReady) { pendingSpeech = null; emit("speak-error", "arabic-tts-unavailable"); return@post }
             tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                 override fun onStart(utteranceId: String?) { emit("speaking", "") }
                 override fun onDone(utteranceId: String?) { emit("speak-ended", "") }
