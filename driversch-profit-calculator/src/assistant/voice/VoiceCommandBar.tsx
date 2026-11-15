@@ -161,7 +161,7 @@ export default function VoiceCommandBar({ onCommand, locale }: Props) {
       {phase === 'error' && <p className="inline-alert" role="alert">{message ? t(message, locale) : ''}</p>}
       <p className="voice-note">
         {nativeSupported
-          ? t('التعرف الصوتي الأصلي يبدأ فقط عند ضغطك على الزر. يطلب التطبيق إذن الميكروفون وقت الاستخدام ولا يحفظ التسجيل. يطلب وضع عدم الاتصال من خدمة Android، لكن توفره يعتمد على محرك الجهاز وقد تُعالج الخدمة الصوت خارجيًا.' as TranslationKey, locale)
+          ? t('التعرف الصوتي الأصلي يبدأ فقط عند ضغطك على الزر. يطلب التطبيق إذن الميكروفون وقت الاستخدام ولا يحفظ التسجيل. يستخدم خدمة التعرف المثبتة على Android وقد يحتاج إلى الإنترنت، وقد تُعالج الخدمة الصوت خارجيًا.' as TranslationKey, locale)
           : t('التعرف يبدأ فقط عند ضغطك على الزر، ولا يعمل في الخلفية. لا يتم حفظ أي تسجيل صوتي داخل التطبيق. في Chrome قد يُرسل الصوت لخدمة التعرف عند جوجل ويحتاج اتصالًا بالإنترنت.' as TranslationKey, locale)}
       </p>
     </section>
