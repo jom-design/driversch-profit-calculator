@@ -77,14 +77,16 @@ class EncryptedNotificationStore(context: Context) : CaptureStore, JournalBacken
     /** Removes an offer from the pending queue. Its fingerprint stays, so the same content is not re-queued. */
     fun acknowledge(id: String): Boolean = synchronized(LOCK) {
         if (id.isBlank()) return@synchronized false
+        // Never replace an unreadable encrypted queue with an empty one through this bridge call.
+        if (!CaptureQueueCodec.isReadable(prefs.getString("queue", null)) { decrypt(it) }) {
+            return@synchronized false
+        }
         val state = load()
         val old = state.optJSONArray("pending") ?: JSONArray()
-        val next = JSONArray()
-        for (i in 0 until old.length()) {
-            val item = old.optJSONObject(i) ?: continue
-            if (item.optString("notificationId") != id && !expired(item)) next.put(item)
-        }
-        state.put("pending", next)
+        val result = PendingNotificationAcknowledger.remove(old, id, ::expired)
+        // A successful write is not proof that this ID was present. Report success only for a real removal.
+        if (!result.found) return@synchronized false
+        state.put("pending", result.pending)
         write(state)
     }
 
@@ -187,5 +189,26 @@ class EncryptedNotificationStore(context: Context) : CaptureStore, JournalBacken
         private const val MAX_PENDING = 50
         private const val MAX_SEEN = 500
         private const val PENDING_TTL_MS = 6 * 60 * 60 * 1000L
+    }
+}
+
+
+/** Pure queue mutation used by the encrypted store and JVM regression tests. */
+internal object PendingNotificationAcknowledger {
+    data class Result(val found: Boolean, val pending: JSONArray)
+
+    fun remove(source: JSONArray, id: String, isExpired: (JSONObject) -> Boolean): Result {
+        if (id.isBlank()) return Result(false, source)
+        var found = false
+        val next = JSONArray()
+        for (i in 0 until source.length()) {
+            val item = source.optJSONObject(i) ?: continue
+            if (item.optString("notificationId") == id) {
+                found = true
+            } else if (!isExpired(item)) {
+                next.put(item)
+            }
+        }
+        return Result(found, next)
     }
 }
