@@ -37,12 +37,17 @@ export async function saveSettings(settings: Settings) {
   const db = await dbPromise
   await db.put('settings', settings, 'main')
 }
-export async function replaceAllTrips(trips: unknown[], settings: Settings = DEFAULT_SETTINGS) {
-  const safeTrips = trips.map(trip => prepareSavedTrip(trip, settings))
-  if (safeTrips.some(trip => trip === null)) throw new Error('النسخة الاحتياطية تحتوي على رحلة غير صالحة؛ لم يتم استبدال السجل.')
+/**
+ * Replaces trips and settings in ONE transaction over both stores. Either both are written or neither is:
+ * a failure part-way through aborts the transaction, which rolls back the trip clear as well.
+ * The argument must be a plan produced by planBackupReplacement, so nothing unvalidated reaches the database.
+ */
+export async function replaceBackup(plan: { trips: SavedTrip[]; settings: Settings }) {
   const db = await dbPromise
-  const tx = db.transaction('trips', 'readwrite')
-  await tx.store.clear()
-  for (const trip of safeTrips) await tx.store.put(trip!)
+  const tx = db.transaction(['trips', 'settings'], 'readwrite')
+  const trips = tx.objectStore('trips')
+  await trips.clear()
+  for (const trip of plan.trips) await trips.put(trip)
+  await tx.objectStore('settings').put(plan.settings, 'main')
   await tx.done
 }

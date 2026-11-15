@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Activity, Archive, Calculator, CarFront, Check, ChevronDown, Download, FileImage, Gauge, History, LayoutDashboard, Mic, MicOff, RotateCcw, Save, Settings as SettingsIcon, ShieldCheck, Trash2, Upload, Wallet, X } from 'lucide-react'
 import { calculateTrip } from './lib/calculator'
-import { deleteTrip, getSettings, getTrips, replaceAllTrips, saveSettings, saveTrip } from './lib/db'
+import { deleteTrip, getSettings, getTrips, replaceBackup, saveSettings, saveTrip } from './lib/db'
+import { planBackupReplacement } from './lib/backupPlan.ts'
 import { readTripImage, type OcrDraft } from './lib/ocr'
 import { DEFAULT_SETTINGS, EMPTY_TRIP, type AppName, type FareMode, type SavedTrip, type Settings, type TripInput } from './types'
 
@@ -75,10 +76,13 @@ export default function App() {
     if(!file)return
     try{
       const data=JSON.parse(await file.text())
-      if(data.schemaVersion!==1||!Array.isArray(data.trips)||!data.settings)throw new Error('invalid')
-      if(!confirm(`سيتم استيراد ${data.trips.length} رحلة واستبدال السجل الحالي. هل تريد المتابعة؟`))return
-      await replaceAllTrips(data.trips,data.settings);await saveSettings(data.settings);setTrips(await getTrips());setSettings(await getSettings());setToast('تم استيراد النسخة الاحتياطية')
-    }catch{setToast('ملف النسخة الاحتياطية غير صالح أو غير متوافق')}
+      if(data.schemaVersion!==1)throw new Error('invalid')
+      // Everything is validated before the first write. An invalid backup leaves the current data untouched.
+      const plan=planBackupReplacement(data.trips,data.settings)
+      if(!plan.ok){setToast(plan.reason);return}
+      if(!confirm(`سيتم استيراد ${plan.trips.length} رحلة واستبدال السجل الحالي. هل تريد المتابعة؟`))return
+      await replaceBackup(plan);setTrips(await getTrips());setSettings(await getSettings());setToast('تم استيراد النسخة الاحتياطية')
+    }catch{setToast('ملف النسخة الاحتياطية غير صالح أو تعذر حفظه؛ لم يتم أي تغيير مؤكد')}
   }
   const exportCsv=()=>{
     const headers=['التاريخ','التطبيق','الأجرة المدخلة','صافي الأجرة','المسافة كم','الوقت دقيقة','التكلفة','صافي الربح','ربح الساعة','القرار']

@@ -28,7 +28,7 @@ jobs:
       - name: Install declared dependencies
         run: npm install --no-package-lock --no-audit --no-fund
       - name: Run Node regression tests
-        run: node --experimental-strip-types --test tests/calculator.node.test.mjs
+        run: node --experimental-strip-types --test tests/*.node.test.mjs
       - name: Run Vitest suite
         run: npm test
       - name: Run full production build (includes TypeScript project build)
