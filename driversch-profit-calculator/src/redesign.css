@@ -36,7 +36,7 @@
 
   --touch: 44px;
   --gutter: 16px;
-  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-top: 0px; /* MainActivity applies the top system inset natively. */
   --safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--android-bottom-inset, 0px));
 }
 
