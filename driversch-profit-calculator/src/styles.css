@@ -22,3 +22,12 @@ footer{display:flex;justify-content:space-between;color:#65738e;font-size:11px;b
 @media(min-width:600px) and (max-width:1000px) and (orientation:portrait){.work-grid{grid-template-columns:1fr}.field-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.result-panel{display:block}}
 @media(min-width:600px) and (max-width:1000px) and (orientation:landscape){.work-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.field-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.app-shell{padding-inline:18px}.panel{padding:17px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+
+/* History integrity status: shown under the decision pill so unverified records are never mistaken for verified ones. */
+.integrity{display:block;font-size:.78rem;margin-top:.25rem}
+.integrity.good{color:inherit;opacity:.85}
+.integrity.warn{color:#b45309}
+.integrity.bad{color:#b91c1c;font-weight:600}
+
+/* Historical, unverified records: visibly separated from verified totals. */
+.historical-block{border:1px dashed #93651e;border-radius:14px;padding:14px;margin:18px 0}

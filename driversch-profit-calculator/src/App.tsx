@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Activity, Archive, Calculator, CarFront, Check, ChevronDown, Download, FileImage, Gauge, History, LayoutDashboard, Mic, MicOff, RotateCcw, Save, Settings as SettingsIcon, ShieldCheck, Trash2, Upload, Wallet, X } from 'lucide-react'
 import { calculateTrip } from './lib/calculator'
-import { deleteTrip, getSettings, getTrips, replaceAllTrips, saveSettings, saveTrip } from './lib/db'
+import { countUnreadableTrips, deleteTrip, getSettings, getTrips, replaceBackup, saveSettings, saveTrip } from './lib/db'
+import { planBackupReplacement } from './lib/backupPlan.ts'
+import { summarizeHistory, verifiedOnly } from './lib/historySummary.ts'
 import { readTripImage, type OcrDraft } from './lib/ocr'
-import { DEFAULT_SETTINGS, EMPTY_TRIP, type AppName, type FareMode, type SavedTrip, type Settings, type TripInput } from './types'
+import { DEFAULT_SETTINGS, EMPTY_TRIP, type AppName, type FareMode, type HistoryIntegrity, type HistoryTrip, type SavedTrip, type Settings, type TripInput } from './types'
 
 type Page = 'calculator' | 'assistant' | 'inbox' | 'history' | 'reports' | 'settings'
 const money = (n: number) => `${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ج.م`
@@ -25,7 +27,8 @@ export default function App() {
   const [page,setPage]=useState<Page>('calculator')
   const [settings,setSettings]=useState<Settings>(DEFAULT_SETTINGS)
   const [trip,setTrip]=useState<TripInput>(EMPTY_TRIP)
-  const [trips,setTrips]=useState<SavedTrip[]>([])
+  const [trips,setTrips]=useState<HistoryTrip[]>([])
+  const [unreadableCount,setUnreadableCount]=useState(0)
   const [inbox,setInbox]=useState<SavedTrip[]>([])
   const [draft,setDraft]=useState<OcrDraft|null>(null)
   const [busy,setBusy]=useState(false)
@@ -33,19 +36,20 @@ export default function App() {
   const [toast,setToast]=useState('')
   const [speaking,setSpeaking]=useState(false)
   const result=useMemo(()=>calculateTrip(trip,settings),[trip,settings])
-  useEffect(()=>{(async()=>{setSettings(await getSettings());setTrips(await getTrips())})()},[])
+  const refreshTrips=async()=>{const [list,bad]=await Promise.all([getTrips(),countUnreadableTrips()]);setTrips(list);setUnreadableCount(bad)}
+  useEffect(()=>{(async()=>{setSettings(await getSettings());await refreshTrips()})()},[])
   useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(''),3200);return()=>clearTimeout(t)},[toast])
   const patch=(key:keyof TripInput,value:any)=>setTrip(t=>({...t,[key]:value}))
   const updateSettings=(key:keyof Settings,value:number)=>setSettings(s=>({...s,[key]:value}))
   const persistSettings=async()=>{await saveSettings(settings);setToast('تم حفظ الإعدادات محليًا')}
   const loadTemplate=(t:TripInput)=>{setTrip({...t});setPage('calculator')}
   const saveCurrent=async()=> {
-    if(trip.totalMinutes<=0 || trip.fare<0 || [trip.pickupKm,trip.passengerKm,trip.returnKm,trip.extraExpenses].some(v=>v<0)){setToast('راجع بيانات الرحلة قبل الحفظ');return}
+    if(!result.isValid){setToast(result.decisionReason || 'راجع بيانات الرحلة قبل الحفظ');return}
     if(trip.fareMode==='unknown'){setToast('حدد هل الأجرة صافية أم إجمالية أولًا');return}
     const saved:SavedTrip={...trip,...result,id:crypto.randomUUID(),createdAt:new Date().toISOString()}
-    await saveTrip(saved);setTrips(await getTrips());setToast('تم حفظ الرحلة على جهازك')
+    await saveTrip(saved,settings);await refreshTrips();setToast('تم حفظ الرحلة على جهازك')
   }
-  const removeTrip=async(id:string)=>{await deleteTrip(id);setTrips(await getTrips())}
+  const removeTrip=async(id:string)=>{await deleteTrip(id);await refreshTrips()}
   const uploadImage=async(file?:File)=>{
     if(!file)return
     setBusy(true);setProgress(0);setDraft(null)
@@ -63,7 +67,7 @@ export default function App() {
   const speak=()=>{
     if(!('speechSynthesis'in window)){setToast('ميزة الصوت غير مدعومة في هذا المتصفح');return}
     if(speaking){speechSynthesis.cancel();setSpeaking(false);return}
-    const text=result.decision==='accept'?`اقبل الرحلة. صافي الربح ${result.netProfit.toFixed(2)} جنيه`:
+    const text=!result.isValid?`راجع بيانات الرحلة. ${result.decisionReason}`:result.decision==='accept'?`اقبل الرحلة. صافي الربح ${result.netProfit.toFixed(2)} جنيه`:
       result.decision==='review'?`راجع الرحلة. ${result.decisionReason}`:`ارفض الرحلة. صافي الربح ${result.netProfit.toFixed(2)} جنيه`
     const utter=new SpeechSynthesisUtterance(text);utter.lang='ar-EG';utter.onend=()=>setSpeaking(false);speechSynthesis.speak(utter);setSpeaking(true)
   }
@@ -75,20 +79,28 @@ export default function App() {
     if(!file)return
     try{
       const data=JSON.parse(await file.text())
-      if(data.schemaVersion!==1||!Array.isArray(data.trips)||!data.settings)throw new Error('invalid')
-      if(!confirm(`سيتم استيراد ${data.trips.length} رحلة واستبدال السجل الحالي. هل تريد المتابعة؟`))return
-      await replaceAllTrips(data.trips);await saveSettings(data.settings);setTrips(await getTrips());setSettings(await getSettings());setToast('تم استيراد النسخة الاحتياطية')
-    }catch{setToast('ملف النسخة الاحتياطية غير صالح أو غير متوافق')}
+      if(data.schemaVersion!==1)throw new Error('invalid')
+      // Everything is validated before the first write. An invalid backup leaves the current data untouched.
+      const plan=planBackupReplacement(data.trips,data.settings)
+      if(!plan.ok){setToast(plan.reason);return}
+      if(!confirm(`سيتم استيراد ${plan.trips.length} رحلة واستبدال السجل الحالي. هل تريد المتابعة؟`))return
+      await replaceBackup(plan);setSettings(await getSettings());await refreshTrips();setToast('تم استيراد النسخة الاحتياطية')
+    }catch{setToast('ملف النسخة الاحتياطية غير صالح أو تعذر حفظه؛ لم يتم أي تغيير مؤكد')}
   }
   const exportCsv=()=>{
-    const headers=['التاريخ','التطبيق','الأجرة المدخلة','صافي الأجرة','المسافة كم','الوقت دقيقة','التكلفة','صافي الربح','ربح الساعة','القرار']
-    const rows=trips.map(t=>[t.createdAt,t.app,t.fare,t.netFare,t.totalKm,t.totalMinutes,t.totalCost,t.netProfit,t.hourlyProfit,t.decision])
+    const headers=['التاريخ','التطبيق','الأجرة المدخلة','صافي الأجرة','المسافة كم','الوقت دقيقة','التكلفة','صافي الربح','ربح الساعة','القرار','حالة السجل']
+    // Hourly profit is left blank when it cannot be trusted; the status column says why.
+    const rows=trips.map(t=>[t.createdAt,t.app,t.fare,t.netFare,t.totalKm,t.totalMinutes,t.totalCost,t.netProfit,t.integrity==='verified'||t.integrity==='legacy-unverified'?t.hourlyProfit:'',t.decision,integrityLabel[t.integrity]])
     const csv=[headers,...rows].map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n')
     downloadFile('\ufeff'+csv,'driver-trips.csv','text/csv;charset=utf-8')
   }
   const decisionLabel={accept:'اقبل الرحلة',review:'راجع الرحلة',reject:'ارفض الرحلة'}
+  const integrityLabel:Record<HistoryIntegrity,string>={verified:'مُتحقق من الحساب',mismatch:'الأرقام لا تطابق الحساب الأصلي',"legacy-unverified":'سجل قديم: إعدادات حسابه الأصلية غير محفوظة','not-recalculable':'سجل تاريخي: لا يمكن إعادة حسابه'}
+  const integrityClass:Record<HistoryIntegrity,string>={verified:'good',mismatch:'bad','legacy-unverified':'warn','not-recalculable':'warn'}
   const decisionClass={accept:'good',review:'warn',reject:'bad'}
-  const savedProfit=trips.reduce((s,t)=>s+t.netProfit,0)
+  // Verified totals and historical, unverified figures are computed separately and never mixed.
+  const history=summarizeHistory(trips)
+  const verifiedTrips=verifiedOnly(trips)
   return <div className="app-shell">
     <header className="topbar">
       <div className="brand"><div className="brand-icon"><ScaleIcon/></div><div><strong>حاسبة عدالة المشاوير</strong><small>DRIVER PROFIT CALCULATOR</small></div></div>
@@ -120,17 +132,17 @@ export default function App() {
         </section>
         <section className="panel result-panel"><div className="panel-head"><div><span className="eyebrow">التحليل المالي</span><h2><Activity/> قرار الرحلة النهائي</h2></div><button className="icon-btn" onClick={speak} title="نطق القرار">{speaking?<MicOff/>:<Mic/>}</button></div>
           <div className={`decision ${decisionClass[result.decision]}`}><div className="decision-mark">{result.decision==='accept'?'✓':result.decision==='review'?'!':'×'}</div><div><strong>{decisionLabel[result.decision]}</strong><p>{result.decisionReason}</p></div></div>
-          <div className="profit-highlight"><small>{trip.fareMode==='unknown'?'ربح تقديري — أكد نوع الأجرة أولًا':'صافي ربحك المتوقع'}</small><strong className={result.netProfit>=0?'positive':'negative'}>{money(result.netProfit)}</strong><span>بعد الوقود والصيانة والمصروفات</span></div>
+          <div className="profit-highlight"><small>{trip.fareMode==='unknown'?'ربح تقديري — أكد نوع الأجرة أولًا':'صافي ربحك المتوقع'}</small><strong className={result.isValid&&result.netProfit>=0?'positive':'negative'}>{result.isValid?money(result.netProfit):'—'}</strong><span>بعد الوقود والصيانة والمصروفات</span></div>
           <div className="metric-grid">
-            <Metric label="إجمالي المسافة" value={`${result.totalKm.toFixed(2)} كم`}/>
-            <Metric label="تكلفة الوقود" value={money(result.fuelCost)}/>
-            <Metric label="الصيانة والإهلاك" value={money(result.maintenanceCost)}/>
-            <Metric label="إجمالي تكلفة التشغيل" value={money(result.totalCost)}/>
-            <Metric label="صافي الأجرة" value={money(result.netFare)}/>
-            <Metric label="الربح في الساعة" value={money(result.hourlyProfit)}/>
+            <Metric label="إجمالي المسافة" value={result.isValid?`${result.totalKm.toFixed(2)} كم`:'—'}/>
+            <Metric label="تكلفة الوقود" value={result.isValid?money(result.fuelCost):'—'}/>
+            <Metric label="الصيانة والإهلاك" value={result.isValid?money(result.maintenanceCost):'—'}/>
+            <Metric label="إجمالي تكلفة التشغيل" value={result.isValid?money(result.totalCost):'—'}/>
+            <Metric label="صافي الأجرة" value={result.isValid?money(result.netFare):'—'}/>
+            <Metric label="الربح في الساعة" value={result.isValid?money(result.hourlyProfit):'—'}/>
           </div>
-          <div className="required-fare"><div><span>الحد الأدنى للأجرة المطلوبة</span><strong>{money(result.requiredFare)}</strong></div><div><span>الفرق عن الأجرة الحالية</span><strong className={result.fareGap<=0?'positive':'negative'}>{result.fareGap<=0?'+'+money(Math.abs(result.fareGap)):'-'+money(result.fareGap)}</strong></div></div>
-          <p className="formula-note">{trip.fareMode==='unknown'?'الأرقام المعروضة تقديرية مؤقتًا بافتراض أن الأجرة صافية؛ لا تعتمد القرار ولا تحفظ الرحلة قبل تحديد نوع الأجرة.':'الحساب يفترض أن كل المسافات المدخلة فعلية، وأن الأجرة الصافية لا تُخصم منها عمولة مرة ثانية.'}</p>
+          <div className="required-fare"><div><span>الحد الأدنى للأجرة المطلوبة</span><strong>{result.isValid?money(result.requiredFare):'—'}</strong></div><div><span>الفرق عن الأجرة الحالية</span><strong className={result.isValid&&result.fareGap<=0?'positive':'negative'}>{result.isValid?(result.fareGap<=0?'+'+money(Math.abs(result.fareGap)):'-'+money(result.fareGap)):'—'}</strong></div></div>
+          <p className="formula-note">{!result.isValid?'لا يمكن عرض نتائج مالية موثوقة قبل تصحيح بيانات الرحلة.':trip.fareMode==='unknown'?'الأرقام المعروضة تقديرية مؤقتًا بافتراض أن الأجرة صافية؛ لا تعتمد القرار ولا تحفظ الرحلة قبل تحديد نوع الأجرة.':'الحساب يفترض أن كل المسافات المدخلة فعلية، وأن الأجرة الصافية لا تُخصم منها عمولة مرة ثانية.'}</p>
         </section></div>
       </>}
       {page==='assistant'&&<section className="panel assistant-panel"><div className="panel-head"><div><span className="eyebrow">قراءة بموافقتك</span><h2><FileImage/> المساعد الذكي لالتقاط الرحلات</h2><p>ارفع Screenshot واضحة من شاشة العرض. راجع القيم قبل إرسالها للحاسبة.</p></div></div>
@@ -155,11 +167,14 @@ export default function App() {
       </section>}
       {page==='inbox'&&<section className="panel"><div className="panel-head"><div><span className="eyebrow">مراجعة قبل الحفظ</span><h2><Archive/> صندوق الرحلات الملتقطة</h2></div></div><div className="empty-state"><Archive size={34}/><strong>لا توجد رحلات معلقة</strong><p>ارفع صورة من المساعد الذكي، وراجع بياناتها ثم انقلها للحاسبة.</p><button className="primary-btn" onClick={()=>setPage('assistant')}>فتح المساعد الذكي</button></div></section>}
       {page==='history'&&<section className="panel"><div className="panel-head"><div><span className="eyebrow">بيانات محفوظة على جهازك</span><h2><History/> سجل الرحلات</h2></div><button className="subtle-btn" onClick={exportCsv}><Download size={16}/> تصدير CSV</button></div>
-        {trips.length===0?<Empty title="لسه مفيش رحلات محفوظة" text="احسب أول مشوار واحفظه علشان يظهر هنا."/>:<div className="table-wrap"><table><thead><tr><th>التاريخ</th><th>التطبيق</th><th>الأجرة</th><th>المسافة</th><th>صافي الربح</th><th>القرار</th><th></th></tr></thead><tbody>{trips.map(t=><tr key={t.id}><td>{new Date(t.createdAt).toLocaleString('ar-EG')}</td><td>{t.app}</td><td>{money(t.fare)}</td><td>{t.totalKm.toFixed(1)} كم</td><td className={t.netProfit>=0?'positive':'negative'}>{money(t.netProfit)}</td><td><span className={`pill ${decisionClass[t.decision]}`}>{decisionLabel[t.decision]}</span></td><td><button className="danger-icon" onClick={()=>removeTrip(t.id)} title="حذف"><Trash2 size={16}/></button></td></tr>)}</tbody></table></div>}
+        {trips.length===0?<Empty title="لسه مفيش رحلات محفوظة" text="احسب أول مشوار واحفظه علشان يظهر هنا."/>:<div className="table-wrap"><table><thead><tr><th>التاريخ</th><th>التطبيق</th><th>الأجرة</th><th>المسافة</th><th>صافي الربح</th><th>القرار</th><th></th></tr></thead><tbody>{trips.map(t=><tr key={t.id}><td>{new Date(t.createdAt).toLocaleString('ar-EG')}</td><td>{t.app}</td><td>{money(t.fare)}</td><td>{t.totalKm.toFixed(1)} كم</td><td className={t.netProfit>=0?'positive':'negative'}>{money(t.netProfit)}</td><td><span className={`pill ${decisionClass[t.decision]}`}>{decisionLabel[t.decision]}</span><small className={`integrity ${integrityClass[t.integrity]}`}>{integrityLabel[t.integrity]}</small></td><td><button className="danger-icon" onClick={()=>removeTrip(t.id)} title="حذف"><Trash2 size={16}/></button></td></tr>)}</tbody></table></div>}
       </section>}
       {page==='reports'&&<section className="panel"><div className="panel-head"><div><span className="eyebrow">ملخص السجل المحفوظ</span><h2><LayoutDashboard/> التقارير والإحصائيات</h2></div></div>
-        <div className="report-grid"><Metric label="عدد الرحلات" value={String(trips.length)}/><Metric label="إجمالي الأجرة الصافية" value={money(trips.reduce((s,t)=>s+t.netFare,0))}/><Metric label="إجمالي التشغيل" value={money(trips.reduce((s,t)=>s+t.totalCost,0))}/><Metric label="صافي الربح" value={money(savedProfit)}/><Metric label="إجمالي المسافات" value={`${trips.reduce((s,t)=>s+t.totalKm,0).toFixed(1)} كم`}/><Metric label="إجمالي الوقت" value={`${trips.reduce((s,t)=>s+t.totalMinutes,0)} دقيقة`}/></div>
-        <div className="section-head"><h3>مقارنة حسب التطبيق</h3></div><div className="table-wrap"><table><thead><tr><th>التطبيق</th><th>عدد الرحلات</th><th>صافي الربح</th><th>متوسط الربح</th></tr></thead><tbody>{(['Uber','DiDi','inDrive','أخرى'] as AppName[]).map(a=>{const list=trips.filter(t=>t.app===a);const sum=list.reduce((s,t)=>s+t.netProfit,0);return <tr key={a}><td>{a}</td><td>{list.length}</td><td>{money(sum)}</td><td>{money(list.length?sum/list.length:0)}</td></tr>})}</tbody></table></div>
+        <div className="section-head"><h3>الإجماليات المُتحقق منها</h3><span>{`تشمل ${history.verified.count} رحلة حُسبت من إعداداتها الأصلية المحفوظة`}</span></div>
+        <div className="report-grid"><Metric label="عدد الرحلات المُتحقق منها" value={String(history.verified.count)}/><Metric label="إجمالي الأجرة الصافية" value={money(history.verified.netFare)}/><Metric label="إجمالي التشغيل" value={money(history.verified.totalCost)}/><Metric label="صافي الربح المُتحقق منه" value={money(history.verified.netProfit)}/><Metric label="إجمالي المسافات" value={`${history.verified.totalKm.toFixed(1)} كم`}/><Metric label="إجمالي الوقت" value={`${history.verified.totalMinutes} دقيقة`}/></div>
+        {history.unverified.count>0&&<div className="historical-block" role="note"><div className="section-head"><h3>سجلات تاريخية غير مُتحقق منها</h3><span>قيم مرجعية كما سُجّلت، وليست حسابات موثوقة، ولا تدخل في الإجماليات أعلاه</span></div><div className="report-grid"><Metric label="عدد السجلات" value={String(history.unverified.count)}/><Metric label="صافي الربح المسجل (مرجعي فقط)" value={money(history.unverified.netProfit)}/></div><p className="formula-note">لم يُحسب هذه السجلات من إعدادات محفوظة تطابق نتيجتها، أو لا يمكن إعادة حسابها (مدة صفر أو خارج النطاق، أو إعدادات حساب أصلية غير محفوظة).</p></div>}
+        {unreadableCount>0&&<p className="formula-note">{`يوجد ${unreadableCount} سجلًا تالفًا لا يمكن قراءته. محفوظ على الجهاز ولم يُحذف.`}</p>}
+        <div className="section-head"><h3>مقارنة حسب التطبيق (مُتحقق منها فقط)</h3></div><div className="table-wrap"><table><thead><tr><th>التطبيق</th><th>عدد الرحلات</th><th>صافي الربح</th><th>متوسط الربح</th></tr></thead><tbody>{(['Uber','DiDi','inDrive','أخرى'] as AppName[]).map(a=>{const list=verifiedTrips.filter(t=>t.app===a);const sum=list.reduce((s,t)=>s+t.netProfit,0);return <tr key={a}><td>{a}</td><td>{list.length}</td><td>{money(sum)}</td><td>{money(list.length?sum/list.length:0)}</td></tr>})}</tbody></table></div>
       </section>}
       {page==='settings'&&<section className="panel"><div className="panel-head"><div><span className="eyebrow">تحكم في افتراضات الحساب</span><h2><SettingsIcon/> الإعدادات</h2></div><button className="primary-btn" onClick={persistSettings}><Save size={16}/> حفظ الإعدادات</button></div>
         <div className="field-grid settings-grid">
