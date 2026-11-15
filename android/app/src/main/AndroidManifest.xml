@@ -5,8 +5,13 @@
         android:roundIcon="@mipmap/ic_launcher_round" android:supportsRtl="true"
         android:theme="@style/AppTheme" android:usesCleartextTraffic="false">
         <activity android:name=".MainActivity" android:configChanges="orientation|screenSize|keyboardHidden|screenLayout|smallestScreenSize|density" android:exported="true"
-            android:windowSoftInputMode="adjustResize">
+            android:launchMode="singleTop" android:windowSoftInputMode="adjustResize">
             <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="image/*"/>
+            </intent-filter>
         </activity>
         <service android:name=".capture.NotificationCaptureService" android:exported="true"
             android:label="@string/notification_listener_label"
