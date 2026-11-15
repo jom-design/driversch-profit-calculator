@@ -3,6 +3,7 @@ import { Activity, Archive, Calculator, CarFront, Check, ChevronDown, Download, 
 import { calculateTrip } from './lib/calculator'
 import { countUnreadableTrips, deleteTrip, getSettings, getTrips, replaceBackup, saveSettings, saveTrip } from './lib/db'
 import { planBackupReplacement } from './lib/backupPlan.ts'
+import { summarizeHistory, verifiedOnly } from './lib/historySummary.ts'
 import { readTripImage, type OcrDraft } from './lib/ocr'
 import { DEFAULT_SETTINGS, EMPTY_TRIP, type AppName, type FareMode, type HistoryIntegrity, type HistoryTrip, type SavedTrip, type Settings, type TripInput } from './types'
 
@@ -96,9 +97,10 @@ export default function App() {
   const decisionLabel={accept:'اقبل الرحلة',review:'راجع الرحلة',reject:'ارفض الرحلة'}
   const integrityLabel:Record<HistoryIntegrity,string>={verified:'مُتحقق من الحساب',mismatch:'الأرقام لا تطابق الحساب الأصلي',"legacy-unverified":'سجل قديم: إعدادات حسابه الأصلية غير محفوظة','not-recalculable':'سجل تاريخي: لا يمكن إعادة حسابه'}
   const integrityClass:Record<HistoryIntegrity,string>={verified:'good',mismatch:'bad','legacy-unverified':'warn','not-recalculable':'warn'}
-  const unverifiedCount=trips.filter(t=>t.integrity!=='verified').length
   const decisionClass={accept:'good',review:'warn',reject:'bad'}
-  const savedProfit=trips.reduce((s,t)=>s+t.netProfit,0)
+  // Verified totals and historical, unverified figures are computed separately and never mixed.
+  const history=summarizeHistory(trips)
+  const verifiedTrips=verifiedOnly(trips)
   return <div className="app-shell">
     <header className="topbar">
       <div className="brand"><div className="brand-icon"><ScaleIcon/></div><div><strong>حاسبة عدالة المشاوير</strong><small>DRIVER PROFIT CALCULATOR</small></div></div>
@@ -168,9 +170,11 @@ export default function App() {
         {trips.length===0?<Empty title="لسه مفيش رحلات محفوظة" text="احسب أول مشوار واحفظه علشان يظهر هنا."/>:<div className="table-wrap"><table><thead><tr><th>التاريخ</th><th>التطبيق</th><th>الأجرة</th><th>المسافة</th><th>صافي الربح</th><th>القرار</th><th></th></tr></thead><tbody>{trips.map(t=><tr key={t.id}><td>{new Date(t.createdAt).toLocaleString('ar-EG')}</td><td>{t.app}</td><td>{money(t.fare)}</td><td>{t.totalKm.toFixed(1)} كم</td><td className={t.netProfit>=0?'positive':'negative'}>{money(t.netProfit)}</td><td><span className={`pill ${decisionClass[t.decision]}`}>{decisionLabel[t.decision]}</span><small className={`integrity ${integrityClass[t.integrity]}`}>{integrityLabel[t.integrity]}</small></td><td><button className="danger-icon" onClick={()=>removeTrip(t.id)} title="حذف"><Trash2 size={16}/></button></td></tr>)}</tbody></table></div>}
       </section>}
       {page==='reports'&&<section className="panel"><div className="panel-head"><div><span className="eyebrow">ملخص السجل المحفوظ</span><h2><LayoutDashboard/> التقارير والإحصائيات</h2></div></div>
-        {unverifiedCount>0&&<p className="formula-note">{`الإجماليات تشمل ${unverifiedCount} سجلًا غير مُتحقق منه؛ إعدادات حسابها الأصلية غير محفوظة أو لا تطابق النتيجة المسجلة.`}</p>}{unreadableCount>0&&<p className="formula-note">{`يوجد ${unreadableCount} سجلًا تالفًا لا يمكن قراءته. محفوظ على الجهاز ولم يُحذف.`}</p>}
-        <div className="report-grid"><Metric label="عدد الرحلات" value={String(trips.length)}/><Metric label="إجمالي الأجرة الصافية" value={money(trips.reduce((s,t)=>s+t.netFare,0))}/><Metric label="إجمالي التشغيل" value={money(trips.reduce((s,t)=>s+t.totalCost,0))}/><Metric label="صافي الربح" value={money(savedProfit)}/><Metric label="إجمالي المسافات" value={`${trips.reduce((s,t)=>s+t.totalKm,0).toFixed(1)} كم`}/><Metric label="إجمالي الوقت" value={`${trips.reduce((s,t)=>s+t.totalMinutes,0)} دقيقة`}/></div>
-        <div className="section-head"><h3>مقارنة حسب التطبيق</h3></div><div className="table-wrap"><table><thead><tr><th>التطبيق</th><th>عدد الرحلات</th><th>صافي الربح</th><th>متوسط الربح</th></tr></thead><tbody>{(['Uber','DiDi','inDrive','أخرى'] as AppName[]).map(a=>{const list=trips.filter(t=>t.app===a);const sum=list.reduce((s,t)=>s+t.netProfit,0);return <tr key={a}><td>{a}</td><td>{list.length}</td><td>{money(sum)}</td><td>{money(list.length?sum/list.length:0)}</td></tr>})}</tbody></table></div>
+        <div className="section-head"><h3>الإجماليات المُتحقق منها</h3><span>{`تشمل ${history.verified.count} رحلة حُسبت من إعداداتها الأصلية المحفوظة`}</span></div>
+        <div className="report-grid"><Metric label="عدد الرحلات المُتحقق منها" value={String(history.verified.count)}/><Metric label="إجمالي الأجرة الصافية" value={money(history.verified.netFare)}/><Metric label="إجمالي التشغيل" value={money(history.verified.totalCost)}/><Metric label="صافي الربح المُتحقق منه" value={money(history.verified.netProfit)}/><Metric label="إجمالي المسافات" value={`${history.verified.totalKm.toFixed(1)} كم`}/><Metric label="إجمالي الوقت" value={`${history.verified.totalMinutes} دقيقة`}/></div>
+        {history.unverified.count>0&&<div className="historical-block" role="note"><div className="section-head"><h3>سجلات تاريخية غير مُتحقق منها</h3><span>قيم مرجعية كما سُجّلت، وليست حسابات موثوقة، ولا تدخل في الإجماليات أعلاه</span></div><div className="report-grid"><Metric label="عدد السجلات" value={String(history.unverified.count)}/><Metric label="صافي الربح المسجل (مرجعي فقط)" value={money(history.unverified.netProfit)}/></div><p className="formula-note">لم يُحسب هذه السجلات من إعدادات محفوظة تطابق نتيجتها، أو لا يمكن إعادة حسابها (مدة صفر أو خارج النطاق، أو إعدادات حساب أصلية غير محفوظة).</p></div>}
+        {unreadableCount>0&&<p className="formula-note">{`يوجد ${unreadableCount} سجلًا تالفًا لا يمكن قراءته. محفوظ على الجهاز ولم يُحذف.`}</p>}
+        <div className="section-head"><h3>مقارنة حسب التطبيق (مُتحقق منها فقط)</h3></div><div className="table-wrap"><table><thead><tr><th>التطبيق</th><th>عدد الرحلات</th><th>صافي الربح</th><th>متوسط الربح</th></tr></thead><tbody>{(['Uber','DiDi','inDrive','أخرى'] as AppName[]).map(a=>{const list=verifiedTrips.filter(t=>t.app===a);const sum=list.reduce((s,t)=>s+t.netProfit,0);return <tr key={a}><td>{a}</td><td>{list.length}</td><td>{money(sum)}</td><td>{money(list.length?sum/list.length:0)}</td></tr>})}</tbody></table></div>
       </section>}
       {page==='settings'&&<section className="panel"><div className="panel-head"><div><span className="eyebrow">تحكم في افتراضات الحساب</span><h2><SettingsIcon/> الإعدادات</h2></div><button className="primary-btn" onClick={persistSettings}><Save size={16}/> حفظ الإعدادات</button></div>
         <div className="field-grid settings-grid">
