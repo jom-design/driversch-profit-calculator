@@ -2,7 +2,12 @@ package com.driverprofitcalculator.app
 
 import android.app.Activity
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.net.Uri
+import android.util.Base64
+import java.io.ByteArrayOutputStream
 import android.net.Uri
 import android.os.Bundle
 import android.webkit.WebResourceRequest
@@ -20,6 +25,8 @@ class MainActivity : Activity() {
     private lateinit var voiceController: NativeVoiceController
     private lateinit var web: WebView
     private lateinit var loader: WebViewAssetLoader
+    private var pendingSharedImageDataUrl: String? = null
+    private var bottomInsetDp: Float = 0f
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,7 +41,10 @@ class MainActivity : Activity() {
         ViewCompat.setOnApplyWindowInsetsListener(web) { view, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
             val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
-            view.setPadding(bars.left, bars.top, bars.right, maxOf(bars.bottom, ime.bottom))
+            val bottom = maxOf(bars.bottom, ime.bottom)
+            view.setPadding(bars.left, bars.top, bars.right, bottom)
+            bottomInsetDp = bottom / view.resources.displayMetrics.density
+            view.post { applyWebInsets() }
             WindowInsetsCompat.CONSUMED
         }
         web.settings.apply {
@@ -50,6 +60,11 @@ class MainActivity : Activity() {
         voiceController = NativeVoiceController(this, web)
         web.addJavascriptInterface(AndroidBridge(this, voiceController), "DriverAndroid")
         web.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView, url: String) {
+                super.onPageFinished(view, url)
+                applyWebInsets()
+                dispatchPendingSharedImage()
+            }
             override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? =
                 loader.shouldInterceptRequest(request.url)
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
@@ -60,6 +75,49 @@ class MainActivity : Activity() {
         }
         setContentView(web)
         web.loadUrl("https://" + ASSET_DOMAIN + "/index.html")
+        handleSharedImage(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleSharedImage(intent)
+    }
+
+    private fun handleSharedImage(source: Intent?) {
+        if (source?.action != Intent.ACTION_SEND || source.type?.startsWith("image/") != true) return
+        val uri = source.getParcelableExtra<Uri>(Intent.EXTRA_STREAM) ?: return
+        Thread {
+            try {
+                val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: return@Thread
+                if (bytes.isEmpty() || bytes.size > MAX_SHARED_IMAGE_BYTES) return@Thread
+                val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+                if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return@Thread
+                var sample = 1
+                while (maxOf(bounds.outWidth, bounds.outHeight) / sample > MAX_SHARED_IMAGE_DIMENSION) sample *= 2
+                val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample }) ?: return@Thread
+                val output = ByteArrayOutputStream()
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 88, output)
+                bitmap.recycle()
+                val dataUrl = "data:image/jpeg;base64," + Base64.encodeToString(output.toByteArray(), Base64.NO_WRAP)
+                runOnUiThread { pendingSharedImageDataUrl = dataUrl; dispatchPendingSharedImage() }
+            } catch (_: Exception) {
+                runOnUiThread { web.evaluateJavascript("window.dispatchEvent(new CustomEvent('driverandroidshareerror'));", null) }
+            }
+        }.start()
+    }
+
+    private fun dispatchPendingSharedImage() {
+        val dataUrl = pendingSharedImageDataUrl ?: return
+        pendingSharedImageDataUrl = null
+        val quoted = org.json.JSONObject.quote(dataUrl)
+        web.evaluateJavascript("window.dispatchEvent(new CustomEvent('driverandroidshareimage',{detail:{dataUrl:$quoted}}));", null)
+    }
+
+    private fun applyWebInsets() {
+        if (!::web.isInitialized) return
+        web.evaluateJavascript("document.documentElement.style.setProperty('--android-bottom-inset','${bottomInsetDp}px');", null)
     }
 
     fun applySystemTheme(light: Boolean) {
@@ -89,5 +147,9 @@ class MainActivity : Activity() {
         web.destroy()
         super.onDestroy()
     }
-    companion object { private const val ASSET_DOMAIN = "appassets.androidplatform.net" }
+    companion object {
+        private const val ASSET_DOMAIN = "appassets.androidplatform.net"
+        private const val MAX_SHARED_IMAGE_BYTES = 20 * 1024 * 1024
+        private const val MAX_SHARED_IMAGE_DIMENSION = 2048
+    }
 }
