@@ -2,7 +2,7 @@ import { openDB } from 'idb'
 import type { HistoryTrip, SavedTrip, Settings } from '../types'
 import { DEFAULT_SETTINGS } from '../types'
 import { isStoredTripSafe, prepareSavedTrip, readStoredTrip } from './persistence'
-import { writeBackup } from './backupWrite.ts'
+import { writeBackup, type BackupDatabase } from './backupWrite.ts'
 
 const DB_NAME = 'driver-profit-calculator'
 const DB_VERSION = 1
@@ -50,5 +50,7 @@ export async function saveSettings(settings: Settings) {
 }
 /** Replaces trips and settings in one transaction. The argument must be a plan from planBackupReplacement. */
 export async function replaceBackup(plan: { trips: SavedTrip[]; settings: Settings }) {
-  await writeBackup(await dbPromise, plan)
+  // idb's typed stores mark clear() as optional across its read and write modes. The runtime API is the same
+  // one BackupDatabase describes, so the cast is made here, once, at the boundary.
+  await writeBackup((await dbPromise) as unknown as BackupDatabase, plan)
 }
