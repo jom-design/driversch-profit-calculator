@@ -10,3 +10,11 @@
 @media(max-width:520px){.android-capture-actions>*{width:100%;justify-content:center}}
 
 .android-provider-note{display:block;color:#b45309;font-size:11px}
+
+.android-capture-diagnostics{border:1px solid rgba(148,163,184,.28);border-radius:10px;padding:10px}
+.android-capture-diagnostics summary{cursor:pointer;font-weight:700;color:#8fd8ff}
+.android-capture-diagnostics>p{margin:8px 0;color:#aab7cf;font-size:.82rem}
+.android-capture-diagnostics dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:6px;margin:0}
+.android-capture-diagnostics dl>div{display:flex;justify-content:space-between;gap:10px;padding:7px 9px;border-radius:8px;background:rgba(148,163,184,.08)}
+.android-capture-diagnostics dt{color:var(--text-secondary,#aab7cf);font-size:.82rem}
+.android-capture-diagnostics dd{margin:0;font-weight:700;font-variant-numeric:tabular-nums}
