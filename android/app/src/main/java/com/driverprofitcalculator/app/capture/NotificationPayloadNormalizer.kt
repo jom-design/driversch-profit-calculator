@@ -49,7 +49,7 @@ object NotificationPayloadNormalizer {
         title: String,
         text: String,
         postedAt: Long,
-        capturedAt: Long,
+        capturedAt: Long = postedAt,
         analysisConfig: TripAnalysisConfig? = null,
     ): NormalizedNotificationPayload? {
         val provider = ProviderRegistry.forPackage(packageName) ?: return null
