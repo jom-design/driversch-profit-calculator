@@ -46,7 +46,8 @@ data class NormalizedRideOffer(
 
 /** Conservative provider-specific parser for notification title/text only (no OCR or UI scraping). */
 object TripOfferParser {
-    private const val NUMBER = "[0-9٠-٩۰-۹]+(?:[٬,][0-9٠-٩۰-۹]{3})*(?:[٫.][0-9٠-٩۰-۹]{1,2})?"
+    // Thousands groups are tried before the decimal part, so "1,250" is one thousand and "130,5" is 130.5.
+    private const val NUMBER = "[0-9٠-٩۰-۹]+(?:[٬,][0-9٠-٩۰-۹]{3})*(?:[٫.,][0-9٠-٩۰-۹]{1,2})?"
     private val empty = ExtractedRideField(null, 0.0, null, "missing")
 
     fun parse(provider: RideProvider, title: String, text: String): NormalizedRideOffer {
