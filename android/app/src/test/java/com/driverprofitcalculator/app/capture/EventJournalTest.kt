@@ -16,13 +16,15 @@ import org.junit.Test
 class EventJournalTest {
 
     /** Stores the journal as serialized text, the way the encrypted preference blob does. */
-    private class TextBackend(var raw: String = "[]") : JournalBackend {
+    private class TextBackend(var raw: String = "[]", var highWater: Long = 0L) : JournalBackend {
         var failReads = false
         var failWrites = false
         override fun readJournal(): JSONArray? = if (failReads) null else JSONArray(raw)
-        override fun writeJournal(items: JSONArray): Boolean {
+        override fun readHighWaterMark(): Long = highWater
+        override fun writeJournal(items: JSONArray, highWaterMark: Long): Boolean {
             if (failWrites) return false
             raw = items.toString()
+            highWater = maxOf(highWater, highWaterMark)
             return true
         }
     }
@@ -93,6 +95,33 @@ class EventJournalTest {
 
         assertTrue(journal.complete(9_999L))
         assertEquals(before, backend.raw)
+    }
+
+    @Test
+    fun `a removed sequence number is never reused, so a repeated complete cannot remove a newer event`() {
+        val journal = EventJournal(TextBackend(), Counts(), clock)
+        val old = journal.append(event("old"))!!
+        journal.complete(old)
+        val fresh = journal.append(event("fresh"))!!
+
+        // The old sequence is repeated after the new event was journaled, as a replayed call could do.
+        assertTrue(journal.complete(old))
+
+        assertTrue(fresh != old)
+        assertEquals(listOf("fresh"), journal.pending().map { it.event.key })
+    }
+
+    @Test
+    fun `the high-water mark survives an empty queue and a restart`() {
+        val backend = TextBackend()
+        val first = EventJournal(backend, Counts(), clock)
+        val seq = first.append(event("a"))!!
+        first.complete(seq)
+
+        // A new journal instance over the same storage, with an empty queue, continues the numbering.
+        val afterRestart = EventJournal(backend, Counts(), clock).append(event("b"))!!
+
+        assertTrue(afterRestart > seq)
     }
 
     @Test

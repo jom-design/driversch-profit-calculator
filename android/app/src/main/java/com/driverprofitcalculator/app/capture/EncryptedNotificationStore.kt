@@ -95,10 +95,16 @@ class EncryptedNotificationStore(context: Context) : CaptureStore, JournalBacken
         try { load().optJSONArray("journal") ?: JSONArray() } catch (_: Exception) { null }
     }
 
-    override fun writeJournal(items: JSONArray): Boolean = synchronized(LOCK) {
+    override fun readHighWaterMark(): Long = synchronized(LOCK) {
+        try { load().optLong("journalSeq", 0L) } catch (_: Exception) { 0L }
+    }
+
+    override fun writeJournal(items: JSONArray, highWaterMark: Long): Boolean = synchronized(LOCK) {
         try {
             val state = load()
             state.put("journal", items)
+            // The mark only moves forward, even if a caller passes an older value.
+            state.put("journalSeq", maxOf(highWaterMark, state.optLong("journalSeq", 0L)))
             write(state)
         } catch (_: Exception) { false }
     }

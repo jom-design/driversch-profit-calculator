@@ -10,7 +10,13 @@ import org.json.JSONObject
 interface JournalBackend {
     /** The journal array, or null when the stored state cannot be read. */
     fun readJournal(): JSONArray?
-    fun writeJournal(items: JSONArray): Boolean
+    /**
+     * The highest sequence number ever issued. It never decreases, so a number is not reused after its event is
+     * removed. Without this, a repeated complete(seq) could remove a newer event that happens to carry the same number.
+     */
+    fun readHighWaterMark(): Long
+    /** Writes the journal and the high-water mark in one write. */
+    fun writeJournal(items: JSONArray, highWaterMark: Long): Boolean
 }
 
 /** An event that was accepted but not yet processed. */
@@ -70,7 +76,7 @@ class EventJournal(
         val seq = nextSequence(items)
         val next = copyOf(items)
         next.put(JSONObject().put("seq", seq).put("at", clock()).put("attempts", 0).put("event", RawEventCodec.toJson(event)))
-        if (!backend.writeJournal(next)) {
+        if (!backend.writeJournal(next, seq)) {
             counters.increment(CaptureCounterNames.JOURNAL_WRITE_FAILED)
             return null
         }
@@ -101,7 +107,7 @@ class EventJournal(
                 }
             }
         }
-        if (kept.length() != items.length() && !backend.writeJournal(kept)) {
+        if (kept.length() != items.length() && !backend.writeJournal(kept, backend.readHighWaterMark())) {
             counters.increment(CaptureCounterNames.JOURNAL_WRITE_FAILED)
         }
         return result
@@ -119,7 +125,7 @@ class EventJournal(
             if (item.optLong("seq", -1L) != seq) next.put(item)
         }
         if (next.length() == items.length()) return true
-        return backend.writeJournal(next).also { if (!it) counters.increment(CaptureCounterNames.JOURNAL_WRITE_FAILED) }
+        return backend.writeJournal(next, backend.readHighWaterMark()).also { if (!it) counters.increment(CaptureCounterNames.JOURNAL_WRITE_FAILED) }
     }
 
     /** Counts one failed attempt. The event stays queued until its attempts are exhausted. */
@@ -138,14 +144,15 @@ class EventJournal(
             }
         }
         if (!found) return true
-        return backend.writeJournal(next).also { if (!it) counters.increment(CaptureCounterNames.JOURNAL_WRITE_FAILED) }
+        return backend.writeJournal(next, backend.readHighWaterMark()).also { if (!it) counters.increment(CaptureCounterNames.JOURNAL_WRITE_FAILED) }
     }
 
     private fun readOrCount(): JSONArray? =
         backend.readJournal().also { if (it == null) counters.increment(CaptureCounterNames.JOURNAL_READ_FAILED) }
 
+    /** Above every number in the queue and above every number ever issued. */
     private fun nextSequence(items: JSONArray): Long {
-        var max = 0L
+        var max = backend.readHighWaterMark()
         for (i in 0 until items.length()) max = maxOf(max, items.optJSONObject(i)?.optLong("seq", 0L) ?: 0L)
         return max + 1
     }
