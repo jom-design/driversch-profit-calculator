@@ -123,6 +123,25 @@ export default function App() {
     catch(e){const failed=markInboxParseError(crypto.randomUUID(),'screenshot','');await commitInbox([failed,...inbox]);setPage('inbox');setToast('تعذرت قراءة الصورة؛ أضف البيانات يدويًا في عنصر الخطأ داخل صندوق المراجعة.')}
     finally{setBusy(false)}
   }
+  useEffect(()=>{
+    const handleSharedImage=(event:Event)=>{
+      const dataUrl=(event as CustomEvent<{dataUrl?:string}>).detail?.dataUrl
+      if(!dataUrl?.startsWith('data:image/'))return
+      setPage('assistant')
+      void fetch(dataUrl).then(response=>{
+        if(!response.ok)throw new Error('shared image unavailable')
+        return response.blob()
+      }).then(blob=>uploadImage(new File([blob], 'shared-trip-screenshot.jpg', {type:blob.type||'image/jpeg'})))
+        .catch(()=>setToast('تعذر استلام الصورة المشاركة. حاول مشاركتها مرة أخرى.'))
+    }
+    const handleShareError=()=>setToast('تعذر فتح الصورة المشاركة. جرّب صورة PNG أو JPG أصغر حجمًا.')
+    window.addEventListener('driverandroidshareimage',handleSharedImage)
+    window.addEventListener('driverandroidshareerror',handleShareError)
+    return ()=>{
+      window.removeEventListener('driverandroidshareimage',handleSharedImage)
+      window.removeEventListener('driverandroidshareerror',handleShareError)
+    }
+  },[inboxReady,inbox])
   const useDraft=async()=>{
     if(!draft)return
     if(!inboxReady){setToast('انتظر استعادة صندوق الرحلات قبل إضافة العرض.');return}
@@ -270,9 +289,10 @@ export default function App() {
       </>}
       {page==='assistant'&&<section className="panel assistant-panel"><div className="panel-head"><div><span className="eyebrow">{tr('قراءة بموافقتك')}</span><h2><FileImage/> {tr('المساعد الذكي لالتقاط الرحلات')}</h2><p>{tr('ارفع Screenshot واضحة من شاشة العرض. راجع القيم قبل إرسالها للحاسبة.')}</p></div></div>
         <div className="capture-info"><ShieldCheck/><div><strong>{tr('خصوصيتك أولًا')}</strong><p>{tr('المعالجة تتم داخل المتصفح. لا يتم حفظ صورة الرحلة أو نصها الخام في سجل الرحلات.')}</p></div></div>
-        <label className="upload-zone"><Upload size={32}/><strong>{tr('اختر Screenshot من جهازك')}</strong><span>{tr('PNG أو JPG — يفضل لقطة شاشة أصلية وليست صورة بالكاميرا')}</span><input type="file" accept="image/*" onChange={e=>uploadImage(e.target.files?.[0])}/></label>
+        <label className="upload-zone"><Upload size={32}/><strong>{tr('اختر Screenshot من جهازك')}</strong><span>{tr('PNG أو JPG — يفضل لقطة شاشة أصلية وليست صورة بالكاميرا')}</span><input type="file" accept="image/png,image/jpeg" onChange={e=>{void uploadImage(e.target.files?.[0]);e.currentTarget.value=''}}/></label>
+        <div className="capture-share-hint"><strong>{tr('مشاركة Screenshot من تطبيق الرحلات')}</strong><p>{tr('خذ لقطة شاشة من تطبيق الرحلات، افتحها في المعرض، ثم اضغط مشاركة واختر حاسبة عدالة المشاوير. ستصل الصورة هنا تلقائيًا لمراجعتها.')}</p></div>
         {busy&&<div className="progress-wrap"><span>{translateMessage(`جاري قراءة الصورة ${progress}%`,locale)}</span><div><i style={{width:`${progress}%`}}/></div></div>}
-        <div className="capture-warning"><strong>{tr('تنبيه بخصوص Android')}</strong><p>{tr('التقاط شاشة التطبيقات الأخرى مباشرة غير متاح بشكل موثوق من صفحة ويب عادية. لذلك نوفر رفع الصورة كحل يعمل على المتصفح. الالتقاط المباشر يحتاج تطبيق Android أصلي وصلاحية MediaProjection بموافقة النظام.')}</p></div>
+        <div className="capture-warning"><strong>{tr('تنبيه بخصوص Android')}</strong><p>{tr('لا نراقب شاشة التطبيقات الأخرى ولا نلتقطها في الخلفية. استقبل فقط الصورة التي تختار مشاركتها معنا من قائمة مشاركة Android، أو اخترها من جهازك.')}</p></div>
         {draft&&<div className="ocr-review"><div className="section-head"><h3>{tr('راجع البيانات المستخرجة')}</h3><span>{tr('ثقة OCR:')} {Math.round(draft.confidence)}%</span></div>
           <div className="field-grid">
             <div className="field"><span>{tr('التطبيق')}</span><select value={draft.app} onChange={e=>setDraft({...draft,app:e.target.value as AppName})}>{['Uber','DiDi','inDrive','أخرى'].map(x=><option key={x}>{x==='أخرى'?tr('أخرى'):x}</option>)}</select></div>
