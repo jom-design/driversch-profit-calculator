@@ -25,6 +25,8 @@ class MainActivity : Activity() {
     private lateinit var web: WebView
     private lateinit var loader: WebViewAssetLoader
     private var pendingSharedImageDataUrl: String? = null
+    private var pendingShareError = false
+    private var pageReady = false
     private var bottomInsetDp: Float = 0f
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,7 +43,9 @@ class MainActivity : Activity() {
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
             val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
             val bottom = maxOf(bars.bottom, ime.bottom)
-            view.setPadding(bars.left, bars.top, bars.right, bottom)
+            // Keep the WebView's bottom viewport available to CSS fixed navigation; expose the
+            // system/IME inset as a CSS variable instead of clipping fixed-position controls.
+            view.setPadding(bars.left, bars.top, bars.right, 0)
             bottomInsetDp = bottom / view.resources.displayMetrics.density
             view.post { applyWebInsets() }
             WindowInsetsCompat.CONSUMED
@@ -61,6 +65,7 @@ class MainActivity : Activity() {
         web.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView, url: String) {
                 super.onPageFinished(view, url)
+                pageReady = true
                 applyWebInsets()
                 dispatchPendingSharedImage()
             }
@@ -102,12 +107,17 @@ class MainActivity : Activity() {
                 val dataUrl = "data:image/jpeg;base64," + Base64.encodeToString(output.toByteArray(), Base64.NO_WRAP)
                 runOnUiThread { pendingSharedImageDataUrl = dataUrl; dispatchPendingSharedImage() }
             } catch (_: Exception) {
-                runOnUiThread { web.evaluateJavascript("window.dispatchEvent(new CustomEvent('driverandroidshareerror'));", null) }
+                runOnUiThread { pendingShareError = true; dispatchPendingSharedImage() }
             }
         }.start()
     }
 
     private fun dispatchPendingSharedImage() {
+        if (!pageReady) return
+        if (pendingShareError) {
+            pendingShareError = false
+            web.evaluateJavascript("window.dispatchEvent(new CustomEvent('driverandroidshareerror'));", null)
+        }
         val dataUrl = pendingSharedImageDataUrl ?: return
         pendingSharedImageDataUrl = null
         val quoted = org.json.JSONObject.quote(dataUrl)
