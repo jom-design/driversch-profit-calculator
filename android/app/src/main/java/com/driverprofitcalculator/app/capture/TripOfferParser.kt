@@ -13,10 +13,11 @@ data class ExtractedRideField(
     val evidenceStart: Int = 0,
     val evidenceEnd: Int = 0,
 ) {
+    /** The matched notification text is never persisted: only the extracted value and its status are. */
     fun toJson(): JSONObject = JSONObject()
         .put("value", value ?: JSONObject.NULL)
         .put("confidence", confidence)
-        .put("evidence", if (evidence == null) JSONArray() else JSONArray().put(JSONObject().put("text", evidence).put("start", evidenceStart).put("end", evidenceEnd)))
+        .put("evidence", JSONArray())
         .put("status", status)
 }
 
@@ -25,9 +26,12 @@ data class NormalizedRideOffer(
     val fare: ExtractedRideField,
     val pickupDistanceKm: ExtractedRideField,
     val distanceKm: ExtractedRideField,
+    /** Trip-only duration. It is NOT the total working time: the pickup time is needed for that. */
     val durationMinutes: ExtractedRideField,
     val currency: String?,
     val fareMode: FareMode,
+    /** Time to reach the passenger, when the notification labels it explicitly. */
+    val pickupMinutes: ExtractedRideField = ExtractedRideField(null, 0.0, null, "missing"),
 ) {
     fun toJson(): JSONObject = JSONObject()
         .put("provider", providerId)
@@ -35,6 +39,7 @@ data class NormalizedRideOffer(
         .put("pickupDistanceKm", pickupDistanceKm.toJson())
         .put("distanceKm", distanceKm.toJson())
         .put("durationMinutes", durationMinutes.toJson())
+        .put("pickupMinutes", pickupMinutes.toJson())
         .put("currency", currency ?: JSONObject.NULL)
         .put("fareMode", fareMode.name.lowercase())
 }
@@ -55,7 +60,8 @@ object TripOfferParser {
         val fare = extract(source, Regex("$fareLabel\\s*[:：]?\\s*(?:EGP\\s*)?($NUMBER)\\s*(?:EGP|جنيه|ج\\.م)?", RegexOption.IGNORE_CASE))
         val pickup = extractDistance(source, "(?:pickup(?:\\s+distance)?|to\\s+pickup|مسافة\\s+الوصول|مسافة\\s+الاستلام|المسافة\\s+إلى\\s+الراكب)")
         val passenger = extractDistance(source, "(?:trip\\s+distance|passenger\\s+distance|مسافة\\s+الرحلة|مسافة\\s+الركاب|المسافة\\s+بالراكب)")
-        val duration = extractDuration(source)
+        val duration = extractDuration(source, "(?:trip\\s+duration|estimated\\s+trip\\s+time|duration|مدة\\s+الرحلة|وقت\\s+الرحلة)")
+        val pickupTime = extractDuration(source, "(?:pickup\\s+time|time\\s+to\\s+pickup|وقت\\s+الوصول|وقت\\s+الوصول\\s+للراكب)")
         val currency = when {
             Regex("\\bEGP\\b|جنيه|ج\\.م", RegexOption.IGNORE_CASE).containsMatchIn(source) -> "EGP"
             else -> null
@@ -65,7 +71,7 @@ object TripOfferParser {
             Regex("إجمالي|اجمالي|قبل\\s+العمولة|\\bgross\\b", RegexOption.IGNORE_CASE).containsMatchIn(source) -> FareMode.GROSS
             else -> FareMode.UNKNOWN
         }
-        return NormalizedRideOffer(provider.id, fare, pickup, passenger, duration, currency, fareMode)
+        return NormalizedRideOffer(provider.id, fare, pickup, passenger, duration, currency, fareMode, pickupTime)
     }
 
     private fun extractDistance(source: String, label: String): ExtractedRideField {
@@ -77,8 +83,8 @@ object TripOfferParser {
         return ExtractedRideField(km, 0.96, match.value, "candidate", match.range.first, match.range.last + 1)
     }
 
-    private fun extractDuration(source: String): ExtractedRideField {
-        val regex = Regex("(?:trip\\s+duration|estimated\\s+trip\\s+time|duration|مدة\\s+الرحلة|وقت\\s+الرحلة)\\s*[:：]?\\s*($NUMBER)\\s*(min(?:ute)?s?|دقيقة|دقائق|hour|hours|ساعة|ساعات)", RegexOption.IGNORE_CASE)
+    private fun extractDuration(source: String, label: String): ExtractedRideField {
+        val regex = Regex("$label\\s*[:：]?\\s*($NUMBER)\\s*(min(?:ute)?s?|دقيقة|دقائق|hour|hours|ساعة|ساعات)", RegexOption.IGNORE_CASE)
         val match = regex.find(source) ?: return empty
         val value = parseNumber(match.groupValues[1]) ?: return empty
         val unit = match.groupValues[2].lowercase()

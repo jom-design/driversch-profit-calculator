@@ -74,7 +74,7 @@ jobs:
   android-build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -96,26 +96,11 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
-      - name: Generate and commit official Gradle 8.9 wrapper
+      - name: Verify the committed Gradle 8.9 wrapper
         run: |
-          if [[ ! -f android/gradle/wrapper/gradle-wrapper.jar || ! -f android/gradlew ]]; then
-            gradle -p android wrapper --gradle-version 8.9 --distribution-type bin
-            chmod +x android/gradlew
-            if ! grep -q '^distributionSha256Sum=' android/gradle/wrapper/gradle-wrapper.properties; then
-              sed -i '/^networkTimeout=/i distributionSha256Sum=d725d707bfabd4dfdc958c624003b3c80accc03f7037b5122c4b1d0ef15cecab' android/gradle/wrapper/gradle-wrapper.properties
-            fi
-            if [[ "${GITHUB_EVENT_NAME}" == "push" && "${GITHUB_REF}" == "refs/heads/feat/full-driver-assistant-20261114" ]]; then
-              git config user.name "github-actions[bot]"
-              git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-              git add android/gradlew android/gradlew.bat android/gradle/wrapper/gradle-wrapper.jar android/gradle/wrapper/gradle-wrapper.properties
-              if ! git diff --cached --quiet; then
-                git commit -m "build(android): add official Gradle 8.9 wrapper"
-                git push origin HEAD:feat/full-driver-assistant-20261114
-              fi
-            fi
-          else
-            echo "Official Gradle 8.9 wrapper already exists; keeping committed files unchanged."
-          fi
+          # The wrapper is committed. CI never generates or commits files, so a missing wrapper fails.
+          test -f android/gradle/wrapper/gradle-wrapper.jar
+          test -f android/gradlew
       - uses: gradle/actions/wrapper-validation@v4
       - name: Test, lint, and assemble Android debug APK
         run: ./android/gradlew -p android :app:testDebugUnitTest :app:lintDebug :app:assembleDebug

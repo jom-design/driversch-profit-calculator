@@ -46,9 +46,8 @@ test('uses native normalized fields and Kotlin profitability preview when presen
       fareMode: 'net'
     },
     analysis: {
-      status: 'review', netProfit: 54.25, hourlyProfit: 93, totalCost: 110.75, requiredFare: 125,
-      decision: 'review', calculatedDecision: 'accept', reason: 'review',
-      assumptions: ['return distance missing', 'extra expenses missing']
+      recommendation: 'review', netProfit: 54.25, hourlyProfit: 93, totalCost: 110.75, requiredFare: 125,
+      partialCost: null, missingFields: ['returnDistance', 'extraExpenses'], reason: 'review', payloadVerified: false
     }
   }
   const item = acceptNativeNotification(payload, new Set(), new Date('2026-11-14T08:01:00.000Z'))
@@ -58,5 +57,36 @@ test('uses native normalized fields and Kotlin profitability preview when presen
   assert.equal(item?.draft.fields.durationMinutes.value, 35)
   assert.equal(item?.draft.fields.currency.value, 'EGP')
   assert.equal(item?.draft.nativeAnalysis?.netProfit, 54.25)
-  assert.equal(item?.draft.nativeAnalysis?.decision, 'review')
+  assert.equal(item?.draft.nativeAnalysis?.recommendation, 'review')
+  assert.equal(item?.draft.nativeAnalysis?.payloadVerified, false)
+})
+
+test('accepts an analysed offer whose raw title and text were dropped natively', () => {
+  const payload = {
+    notificationId: 'com.ubercab.driver:offer-2',
+    packageName: 'com.ubercab.driver',
+    title: '',
+    text: '',
+    postedAt: '2026-11-14T08:00:00.000Z',
+    offer: { fare: { value: 130, confidence: 0.94, evidence: [], status: 'candidate' }, currency: 'EGP', fareMode: 'net' },
+    analysis: {
+      recommendation: 'insufficient_data', netProfit: null, hourlyProfit: null, totalCost: null, requiredFare: null,
+      partialCost: 94.5, missingFields: ['returnDistance', 'extraExpenses'], reason: 'insufficient', payloadVerified: false
+    }
+  }
+  const item = acceptNativeNotification(payload, new Set(), new Date('2026-11-14T08:01:00.000Z'))
+  assert.ok(item)
+  assert.equal(item?.draft.fields.fare.value, 130)
+  assert.equal(item?.draft.nativeAnalysis?.netProfit, null)
+  assert.equal(item?.draft.nativeAnalysis?.partialCost, 94.5)
+})
+
+test('drops a malformed analysis instead of displaying it', () => {
+  const payload = {
+    ...valid,
+    analysis: { recommendation: 'accept', netProfit: null, hourlyProfit: null, totalCost: null, requiredFare: null,
+      partialCost: null, missingFields: [], reason: 'bad', payloadVerified: false }
+  }
+  const item = acceptNativeNotification(payload, new Set(), new Date('2026-11-14T08:01:00.000Z'))
+  assert.equal(item?.draft.nativeAnalysis, undefined)
 })

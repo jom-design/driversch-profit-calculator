@@ -86,6 +86,7 @@ class NotificationEventProcessor(
     private val isProviderEnabled: (providerId: String) -> Boolean,
     private val counters: CaptureCounters,
     private val analysisConfig: () -> TripAnalysisConfig? = { null },
+    private val clock: () -> Long = { System.currentTimeMillis() },
 ) {
     fun process(event: RawNotificationEvent): CaptureOutcome {
         counters.increment(CaptureCounterNames.RECEIVED)
@@ -144,7 +145,7 @@ class NotificationEventProcessor(
         }
         val isUpdate = previous != null
         val payload = NotificationPayloadNormalizer.normalize(
-            event.packageName, event.key, title, text, event.postedAtMillis, analysisConfig(),
+            event.packageName, event.key, title, text, event.postedAtMillis, clock(), analysisConfig(),
         )
         if (payload == null) {
             counters.increment(CaptureCounterNames.PARSER_FAILURE)

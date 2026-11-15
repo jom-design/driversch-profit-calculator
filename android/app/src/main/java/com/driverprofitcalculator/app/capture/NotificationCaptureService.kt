@@ -3,6 +3,9 @@ package com.driverprofitcalculator.app.capture
 import android.app.Notification
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import java.util.concurrent.RejectedExecutionException
 
 /**
  * Android entry point for notification capture. It only translates platform events into
@@ -10,6 +13,13 @@ import android.service.notification.StatusBarNotification
  * whether or not the calculator UI is open. Nothing here logs notification content.
  */
 class NotificationCaptureService : NotificationListenerService() {
+
+    companion object {
+        /** Shared by all service instances so posted and removed events keep their order. */
+        private val worker: ExecutorService = Executors.newSingleThreadExecutor { task ->
+            Thread(task, "notification-capture").apply { isDaemon = true }
+        }
+    }
 
     private val diagnostics by lazy { CaptureDiagnostics(this) }
     private val processor by lazy {
@@ -43,12 +53,31 @@ class NotificationCaptureService : NotificationListenerService() {
         if (sbn != null) handle(sbn, CaptureEventKind.REMOVED, reason)
     }
 
+    /**
+     * Copies the platform event on the listener callback (cheap), then hands processing to a single
+     * background worker. Parsing, analysis and encrypted storage never run on the callback thread.
+     * One worker keeps posted and removed events in order and serializes access to the store.
+     */
     private fun handle(sbn: StatusBarNotification, kind: CaptureEventKind, reason: Int?) {
+        val event: RawNotificationEvent
         try {
-            val event = toRawEvent(sbn, kind, reason) ?: return
+            event = toRawEvent(sbn, kind, reason) ?: return
+        } catch (_: Exception) {
+            // Only the aggregate counter is recorded; exception messages may contain content.
+            diagnostics.increment(CaptureCounterNames.PROCESSING_EXCEPTION)
+            return
+        }
+        try {
+            worker.execute { processSafely(event) }
+        } catch (_: RejectedExecutionException) {
+            diagnostics.increment(CaptureCounterNames.PROCESSING_EXCEPTION)
+        }
+    }
+
+    private fun processSafely(event: RawNotificationEvent) {
+        try {
             processor.process(event)
         } catch (_: Exception) {
-            // Only the aggregate counter is recorded; the exception message may contain content.
             diagnostics.increment(CaptureCounterNames.PROCESSING_EXCEPTION)
         }
     }

@@ -7,25 +7,31 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
+/**
+ * One captured offer. [title] and [text] exist in memory only while this payload is being built;
+ * [toJson], which is what the encrypted queue stores, never includes them.
+ */
 data class NormalizedNotificationPayload(
     val notificationId: String,
     val packageName: String,
     val appLabel: String,
     val title: String,
     val text: String,
+    /** When the notification was posted, from the platform. */
     val postedAt: String,
+    /** When this app processed it. */
+    val capturedAt: String,
     val offer: NormalizedRideOffer,
-    val analysis: NativeTripAnalysis?
+    val analysis: NativeTripAnalysis,
 ) {
     fun toJson(): JSONObject = JSONObject()
         .put("notificationId", notificationId)
         .put("packageName", packageName)
         .put("appLabel", appLabel)
-        .put("title", title)
-        .put("text", text)
         .put("postedAt", postedAt)
+        .put("capturedAt", capturedAt)
         .put("offer", offer.toJson())
-        .also { if (analysis != null) it.put("analysis", analysis.toJson()) }
+        .put("analysis", analysis.toJson())
 }
 
 object NotificationPayloadNormalizer {
@@ -37,14 +43,19 @@ object NotificationPayloadNormalizer {
         return packageName + ":" + hash
     }
 
-    fun normalize(packageName: String, key: String, title: String, text: String, postedAt: Long, analysisConfig: TripAnalysisConfig? = null): NormalizedNotificationPayload? {
+    fun normalize(
+        packageName: String,
+        key: String,
+        title: String,
+        text: String,
+        postedAt: Long,
+        capturedAt: Long,
+        analysisConfig: TripAnalysisConfig? = null,
+    ): NormalizedNotificationPayload? {
         val provider = ProviderRegistry.forPackage(packageName) ?: return null
         val cleanTitle = title.trim().take(300)
         val cleanText = text.trim().take(4000)
         if (cleanText.isBlank() || !ProviderRegistry.relevant(provider, cleanTitle, cleanText)) return null
-        val date = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
-            timeZone = TimeZone.getTimeZone("UTC")
-        }.format(Date(postedAt))
         val offer = TripOfferParser.parse(provider, cleanTitle, cleanText)
         val analysis = TripOfferAnalyzer.analyze(offer, analysisConfig)
         return NormalizedNotificationPayload(
@@ -53,9 +64,15 @@ object NotificationPayloadNormalizer {
             appLabel = provider.label,
             title = cleanTitle,
             text = cleanText,
-            postedAt = date,
+            postedAt = isoUtc(postedAt),
+            capturedAt = isoUtc(capturedAt),
             offer = offer,
-            analysis = analysis
+            analysis = analysis,
         )
     }
+
+    private fun isoUtc(millis: Long): String =
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
+            timeZone = TimeZone.getTimeZone("UTC")
+        }.format(Date(millis))
 }

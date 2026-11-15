@@ -5,7 +5,7 @@ import com.driverprofitcalculator.app.calc.CalcSettings
 import com.driverprofitcalculator.app.calc.FareMode
 import org.json.JSONObject
 
-/** Stores only explicit settings synchronized from the calculator UI. */
+/** Stores only explicit settings synchronized from the calculator UI. Missing values stay null. */
 class TripAnalysisPreferences(context: Context) {
     private val prefs = context.getSharedPreferences("trip_analysis_preferences", Context.MODE_PRIVATE)
 
@@ -31,34 +31,53 @@ class TripAnalysisPreferences(context: Context) {
         if (provider in setOf("uber", "didi", "indrive") && mode in setOf("net", "gross", "unknown")) {
             fareModes.put(provider, mode)
         }
-        val config = JSONObject().put("settings", settings).put("commissionRates", commissionRates).put("fareModes", fareModes)
+        val config = JSONObject()
+            .put("settings", settings)
+            .put("commissionRates", commissionRates)
+            .put("fareModes", fareModes)
+            .put("returnKm", input.optionalNonNegative("returnKmAssumption") ?: JSONObject.NULL)
+            .put("extraExpenses", input.optionalNonNegative("extraExpensesAssumption") ?: JSONObject.NULL)
         prefs.edit().putString("config", config.toString()).commit()
     } catch (_: Exception) { false }
 
     fun load(): TripAnalysisConfig? {
         return try {
-        val root = JSONObject(prefs.getString("config", null) ?: return null)
-        val settings = root.getJSONObject("settings")
-        val rates = root.getJSONObject("commissionRates")
-        val modes = root.optJSONObject("fareModes") ?: JSONObject()
-        val calcSettings = CalcSettings(
-            fuelPrice = settings.getDouble("fuelPrice"),
-            consumptionPer100 = settings.getDouble("consumptionPer100"),
-            maintenancePerKm = settings.getDouble("maintenancePerKm"),
-            minNetProfit = settings.getDouble("minNetProfit"),
-            hourlyTarget = settings.getDouble("hourlyTarget"),
-        )
-        val commissionRates = mapOf("uber" to rates.getDouble("uber"), "didi" to rates.getDouble("didi"), "indrive" to rates.getDouble("indrive"))
-        val fareModes = mutableMapOf<String, FareMode>()
-        listOf("uber", "didi", "indrive").forEach { id ->
-            when (modes.optString(id)) {
-                "net" -> fareModes[id] = FareMode.NET
-                "gross" -> fareModes[id] = FareMode.GROSS
-                else -> fareModes[id] = FareMode.UNKNOWN
+            val root = JSONObject(prefs.getString("config", null) ?: return null)
+            val settings = root.getJSONObject("settings")
+            val rates = root.getJSONObject("commissionRates")
+            val modes = root.optJSONObject("fareModes") ?: JSONObject()
+            val calcSettings = CalcSettings(
+                fuelPrice = settings.getDouble("fuelPrice"),
+                consumptionPer100 = settings.getDouble("consumptionPer100"),
+                maintenancePerKm = settings.getDouble("maintenancePerKm"),
+                minNetProfit = settings.getDouble("minNetProfit"),
+                hourlyTarget = settings.getDouble("hourlyTarget"),
+            )
+            if (listOf(calcSettings.fuelPrice, calcSettings.consumptionPer100, calcSettings.maintenancePerKm, calcSettings.minNetProfit, calcSettings.hourlyTarget).any { !it.isFinite() || it < 0.0 }) return null
+            val commissionRates = mapOf("uber" to rates.getDouble("uber"), "didi" to rates.getDouble("didi"), "indrive" to rates.getDouble("indrive"))
+            val fareModes = mutableMapOf<String, FareMode>()
+            listOf("uber", "didi", "indrive").forEach { id ->
+                fareModes[id] = when (modes.optString(id)) {
+                    "net" -> FareMode.NET
+                    "gross" -> FareMode.GROSS
+                    else -> FareMode.UNKNOWN
+                }
             }
-        }
-        if (listOf(calcSettings.fuelPrice, calcSettings.consumptionPer100, calcSettings.maintenancePerKm, calcSettings.minNetProfit, calcSettings.hourlyTarget).any { !it.isFinite() || it < 0.0 }) return null
-        TripAnalysisConfig(calcSettings, commissionRates, fareModes)
+            TripAnalysisConfig(
+                settings = calcSettings,
+                commissionRates = commissionRates,
+                fareModes = fareModes,
+                returnKm = root.optionalNonNegative("returnKm"),
+                extraExpenses = root.optionalNonNegative("extraExpenses"),
+            )
         } catch (_: Exception) { null }
+    }
+
+    /** A finite, non-negative number when the key is present, otherwise null. Invalid values throw. */
+    private fun JSONObject.optionalNonNegative(key: String): Double? {
+        if (!has(key) || isNull(key)) return null
+        val number = getDouble(key)
+        require(number.isFinite() && number >= 0.0)
+        return number
     }
 }

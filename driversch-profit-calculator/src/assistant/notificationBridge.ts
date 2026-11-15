@@ -1,7 +1,12 @@
 import { createInboxItem, markInboxParsed, requestInboxReview } from './inbox.ts'
 import { parseRideOffer } from './parser.ts'
-import type { InboxItem, NativeProfitabilityPreview, RideOfferDraft } from './types'
+import type { InboxItem, RideOfferDraft } from './types'
+import { validateNativeAnalysis } from './nativeAnalysis.ts'
 
+/**
+ * Native payloads no longer carry the raw notification title or text once analysed. The native side
+ * keeps them in memory only, so `title` and `text` can be empty when `offer` is present.
+ */
 export interface NativeNotificationPayload {
   notificationId: string
   packageName: string
@@ -9,15 +14,17 @@ export interface NativeNotificationPayload {
   title: string
   text: string
   postedAt: string
+  capturedAt?: string
   offer?: {
     fare?: NativeFieldCandidate
     pickupDistanceKm?: NativeFieldCandidate
     distanceKm?: NativeFieldCandidate
     durationMinutes?: NativeFieldCandidate
+    pickupMinutes?: NativeFieldCandidate
     currency?: string | null
     fareMode?: 'net' | 'gross' | 'unknown'
   }
-  analysis?: NativeProfitabilityPreview
+  analysis?: unknown
 }
 
 interface NativeFieldCandidate {
@@ -48,7 +55,8 @@ export function acceptNativeNotification(
       payload.notificationId.length > 512 ||
       typeof payload.packageName !== 'string' || !SUPPORTED_PACKAGES[payload.packageName] ||
       typeof payload.title !== 'string' || payload.title.length > 300 ||
-      typeof payload.text !== 'string' || !payload.text.trim() || payload.text.length > 4000 ||
+      typeof payload.text !== 'string' || payload.text.length > 4000 ||
+      (!payload.text.trim() && !payload.offer) ||
       typeof payload.postedAt !== 'string') return null
   if (seenNotificationIds.has(payload.notificationId)) return null
   const postedAt = new Date(payload.postedAt)
@@ -75,12 +83,7 @@ export function acceptNativeNotification(
     durationMinutes: nativeField(payload.offer.durationMinutes, parsed.fields.durationMinutes),
     currency: payload.offer.currency === 'EGP' ? { value: 'EGP' as const, confidence: 1, evidence: [], status: 'candidate' as const } : parsed.fields.currency
   } : parsed.fields
-  const analysis = payload.analysis && payload.analysis.status === 'review' &&
-    [payload.analysis.netProfit, payload.analysis.hourlyProfit, payload.analysis.totalCost, payload.analysis.requiredFare].every(Number.isFinite) &&
-    ['review', 'accept', 'reject'].includes(payload.analysis.decision) &&
-    ['review', 'accept', 'reject'].includes(payload.analysis.calculatedDecision) &&
-    typeof payload.analysis.reason === 'string' && Array.isArray(payload.analysis.assumptions) && payload.analysis.assumptions.every(value => typeof value === 'string')
-    ? payload.analysis : undefined
+  const analysis = validateNativeAnalysis(payload.analysis)
   const draft: RideOfferDraft = {
     ...parsed, fields, nativeAnalysis: analysis,
     sourceAppPackage: payload.packageName,

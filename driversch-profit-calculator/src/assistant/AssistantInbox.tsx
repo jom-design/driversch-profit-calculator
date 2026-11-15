@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react'
 import { AlertCircle, Archive, Check, ChevronDown, CircleHelp, ClipboardPaste, ShieldAlert, Trash2, X } from 'lucide-react'
 import { createInboxItem, markInboxParsed, requestInboxReview, updateInboxDraft, confirmInboxItem, rejectInboxItem, hasRequiredReviewData, deleteInboxItem, setInboxFieldReviewed } from './inbox'
 import { parseRideOffer } from './parser'
-import type { InboxItem, RideOfferDraft, RideProvider } from './types'
+import type { InboxItem, NativeProfitabilityPreview, RideOfferDraft, RideProvider } from './types'
+import { analysisTone, missingFieldLabels, RECOMMENDATION_LABELS } from './nativeAnalysis.ts'
 import { detectBrowserCapabilities, type BrowserRuntimeLike } from '../platform/browserCapabilities'
 import AndroidNotificationPanel from './AndroidNotificationPanel'
 import NumericInput from '../components/NumericInput'
@@ -35,6 +36,36 @@ const formatValue = (field: keyof typeof fieldLabels, value: number | null, loca
   return `${value.toLocaleString(locale==='ar'?'ar-EG':'en-EG')} ${t('كم', locale)}`
 }
 const newId = () => globalThis.crypto?.randomUUID?.() ?? `offer-${Date.now()}-${Math.random().toString(36).slice(2)}`
+
+/** Result card. Net profit is the headline; every unknown value is shown as unavailable. */
+function NativeAnalysisCard({ analysis, locale }: { analysis: NativeProfitabilityPreview; locale: 'ar' | 'en' }) {
+  const tone = analysisTone(analysis)
+  const missing = missingFieldLabels(analysis)
+  const money = (value: number | null) => value === null
+    ? t('غير متاح', locale)
+    : `${value.toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-EG', { maximumFractionDigits: 2 })} ${t('جنيه', locale)}`
+  const headline = tone === 'insufficient' ? t('البيانات غير كافية لحساب صافي الربح', locale) : money(analysis.netProfit)
+  const recommendation = t(RECOMMENDATION_LABELS[analysis.recommendation] as TranslationKey, locale)
+  return (
+    <section className={`inbox-native-analysis tone-${tone}`} aria-live="polite" data-tone={tone}>
+      <strong>{t('تحليل الربحية (تقدير)', locale)}</strong>
+      <div className="inbox-net-profit">
+        <span>{t('صافي الربح المقدّر', locale)}</span>
+        <b>{headline}</b>
+      </div>
+      <span className="inbox-recommendation">{t('التوصية', locale)}: {recommendation}</span>
+      {!analysis.payloadVerified && <p className="inbox-unverified">{t('صيغة إشعارات هذا التطبيق غير مؤكدة بعد؛ راجع الأرقام داخل تطبيق السائق قبل القرار.', locale)}</p>}
+      <div className="inbox-native-analysis-grid">
+        <span>{t('الربح بالساعة', locale)}<b>{money(analysis.hourlyProfit)}</b></span>
+        <span>{t('التكلفة المتوقعة', locale)}<b>{money(analysis.totalCost)}</b></span>
+        <span>{t('الأجرة المطلوبة للهدف', locale)}<b>{money(analysis.requiredFare)}</b></span>
+        {analysis.partialCost !== null && <span>{t('تكلفة جزئية (بدون مسافة العودة)', locale)}<b>{money(analysis.partialCost)}</b></span>}
+      </div>
+      {missing.length > 0 && <p className="inbox-missing">{t('بيانات ناقصة', locale)}: {missing.map(label => t(label as TranslationKey, locale)).join('، ')}</p>}
+      <p>{analysis.reason}</p>
+    </section>
+  )
+}
 
 export default function AssistantInbox({ items, onChange, onTransfer, locale }: Props) {
   const [sourceText, setSourceText] = useState('')
@@ -168,16 +199,7 @@ export default function AssistantInbox({ items, onChange, onTransfer, locale }: 
               onChange={event => setProvider(selected, event.target.value as RideProvider)}>
               <option value="unknown">{t('غير محدد — اختر يدويًا', locale)}</option><option value="uber">Uber</option><option value="didi">DiDi</option><option value="indrive">inDrive</option>
             </select></label>
-            {selected.draft.nativeAnalysis && <section className="inbox-native-analysis" aria-live="polite">
-              <strong>{t('تقدير مبدئي من محرك الربحية', locale)}</strong>
-              <p>{t('مراجعة مطلوبة: التقدير لا يشمل مسافة العودة أو المصروفات الإضافية، وتأكد من نسبة العمولة.', locale)}</p>
-              <div className="inbox-native-analysis-grid">
-                <span>{t('صافي الربح التقديري', locale)}<b>{selected.draft.nativeAnalysis.netProfit.toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-EG', { maximumFractionDigits: 2 })} {t('جنيه', locale)}</b></span>
-                <span>{t('الربح بالساعة', locale)}<b>{selected.draft.nativeAnalysis.hourlyProfit.toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-EG', { maximumFractionDigits: 2 })} {t('جنيه', locale)}</b></span>
-                <span>{t('التكلفة التشغيلية', locale)}<b>{selected.draft.nativeAnalysis.totalCost.toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-EG', { maximumFractionDigits: 2 })} {t('جنيه', locale)}</b></span>
-                <span>{t('الأجرة المطلوبة', locale)}<b>{selected.draft.nativeAnalysis.requiredFare.toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-EG', { maximumFractionDigits: 2 })} {t('جنيه', locale)}</b></span>
-              </div>
-            </section>}
+            {selected.draft.nativeAnalysis && <NativeAnalysisCard analysis={selected.draft.nativeAnalysis} locale={locale} />}
             <div className="inbox-fields">
               {(['fare', 'pickupDistanceKm', 'distanceKm', 'durationMinutes'] as const).map(field => {
                 const candidate = selected.draft.fields[field]

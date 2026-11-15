@@ -2,14 +2,13 @@ package com.driverprofitcalculator.app.capture
 
 import com.driverprofitcalculator.app.calc.CalcSettings
 import com.driverprofitcalculator.app.calc.FareMode
-import com.driverprofitcalculator.app.calc.Decision
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Synthetic notification fixtures: these are parser tests, not proof of live provider formats. */
+/** SYNTHETIC notification fixtures: these are parser tests, not proof of live provider formats. */
 class TripOfferParserTest {
     private val settings = CalcSettings(
         fuelPrice = 22.25,
@@ -71,45 +70,104 @@ class TripOfferParserTest {
         assertNull(offer.durationMinutes.value)
     }
 
-    @Test fun `profit estimate calls TripCalculator but remains review while return and extras are unknown`() {
+    @Test fun `pickup time is read only from its own explicit label and never used as trip duration`() {
+        val offer = TripOfferParser.parse(
+            ProviderRegistry.forId("uber")!!,
+            "Ride request",
+            "Fare: 130 EGP. Pickup time: 6 min. Trip duration: 25 min",
+        )
+        assertEquals(6.0, offer.pickupMinutes.value!!, 0.001)
+        assertEquals(25.0, offer.durationMinutes.value!!, 0.001)
+    }
+
+    @Test fun `Arabic decimal separator and Arabic digits parse as one number`() {
+        val offer = TripOfferParser.parse(
+            ProviderRegistry.forId("indrive")!!,
+            "عرض رحلة",
+            "القبول مقابل ١٣٠٫٥ جنيه. مسافة الرحلة: ١٨٫٢ كم",
+        )
+        assertEquals(130.5, offer.fare.value!!, 0.001)
+        assertEquals(18.2, offer.distanceKm.value!!, 0.001)
+    }
+
+    @Test fun `thousands separators and decimal commas are parsed by position`() {
+        val thousands = TripOfferParser.parse(
+            ProviderRegistry.forId("uber")!!, "Ride request", "Fare: 1,250.5 EGP",
+        )
+        assertEquals(1250.5, thousands.fare.value!!, 0.001)
+        val decimalComma = TripOfferParser.parse(
+            ProviderRegistry.forId("uber")!!, "Ride request", "Fare: 130,5 EGP",
+        )
+        assertEquals(130.5, decimalComma.fare.value!!, 0.001)
+    }
+
+    @Test fun `malformed amounts produce a missing field, never zero`() {
+        val offer = TripOfferParser.parse(
+            ProviderRegistry.forId("uber")!!, "Ride request", "Fare: abc EGP. Trip distance: km",
+        )
+        assertNull(offer.fare.value)
+        assertNull(offer.distanceKm.value)
+        assertFalse(offer.fare.status == "candidate")
+    }
+
+    @Test fun `unknown currency is reported as null, not guessed`() {
+        val offer = TripOfferParser.parse(
+            ProviderRegistry.forId("uber")!!, "Ride request", "Fare: 130. Trip distance: 18 km",
+        )
+        assertNull(offer.currency)
+        assertTrue(offer.fare.value != null)
+    }
+
+    @Test fun `profit estimate stays insufficient while return and extras are unknown, and shows only the partial cost`() {
         val offer = TripOfferParser.parse(
             ProviderRegistry.forId("uber")!!,
             "Ride request",
             "Fare: 130 EGP. Pickup distance: 2 km. Trip distance: 18 km. Trip duration: 35 min",
         )
-        val config = TripAnalysisConfig(settings, mapOf("uber" to 0.0, "didi" to 0.0, "indrive" to 0.0), mapOf("uber" to FareMode.NET))
+        val config = TripAnalysisConfig(settings, mapOf("uber" to 0.0, "didi" to 0.0, "indrive" to 0.0), mapOf("uber" to FareMode.NET), returnKm = null, extraExpenses = null)
         val analysis = TripOfferAnalyzer.analyze(offer, config)
-        assertTrue(analysis != null)
-        assertEquals(Decision.REVIEW, analysis!!.decision)
-        assertTrue(analysis.calculatedDecision in setOf(Decision.ACCEPT, Decision.REVIEW, Decision.REJECT))
-        assertEquals(3, analysis.assumptions.size)
+        assertEquals(OfferRecommendation.INSUFFICIENT_DATA, analysis.recommendation)
+        assertNull(analysis.netProfit)
+        assertNull(analysis.hourlyProfit)
+        // Fuel 20 km × 10 L/100 km × 22.25 + maintenance 20 km × 2.5 = 94.5, excluding the return leg.
+        assertEquals(94.5, analysis.partialCost!!, 0.001)
+        assertTrue("returnDistance" in analysis.missingFields)
+        assertTrue("extraExpenses" in analysis.missingFields)
+        assertTrue("pickupTime" in analysis.missingFields)
         assertFalse(analysis.reason.isBlank())
     }
 
-    @Test fun `normalizer persists the normalized offer and profitability preview together`() {
-        val config = TripAnalysisConfig(settings, mapOf("uber" to 10.0), mapOf("uber" to FareMode.NET))
+    @Test fun `normalizer persists the normalized offer and analysis but never the raw text`() {
+        val config = TripAnalysisConfig(settings, mapOf("uber" to 10.0), mapOf("uber" to FareMode.NET), returnKm = null, extraExpenses = null)
         val payload = NotificationPayloadNormalizer.normalize(
             "com.ubercab.driver",
             "synthetic-notification-key",
             "Ride request",
-            "Fare: 100 EGP. Pickup distance: 1 km. Trip distance: 10 km. Trip duration: 30 min",
+            "Fare: 100 EGP. Pickup distance: 1 km. Trip distance: 10 km. Trip duration: 30 min", // SYNTHETIC
             1794500000000L,
+            1794500001000L,
             config,
         )
         assertTrue(payload != null)
         val json = payload!!.toJson()
         assertEquals(100.0, json.getJSONObject("offer").getJSONObject("fare").getDouble("value"), 0.001)
-        assertEquals("review", json.getJSONObject("analysis").getString("decision"))
-        assertTrue(json.getJSONObject("analysis").getJSONArray("assumptions").length() >= 2)
+        assertEquals("insufficient_data", json.getJSONObject("analysis").getString("recommendation"))
+        assertTrue(json.getJSONObject("analysis").getJSONArray("missingFields").length() >= 2)
+        assertFalse(json.has("text"))
+        assertFalse(json.has("title"))
     }
 
-    @Test fun `analysis is withheld when fare mode or currency is unknown`() {
+    @Test fun `analysis reports insufficient data when fare mode and currency are unknown`() {
         val offer = TripOfferParser.parse(
             ProviderRegistry.forId("uber")!!,
             "Ride request",
             "Fare: 130. Pickup distance: 2 km. Trip distance: 18 km. Trip duration: 35 min",
         )
-        val config = TripAnalysisConfig(settings, mapOf("uber" to 0.0), emptyMap())
-        assertNull(TripOfferAnalyzer.analyze(offer, config))
+        val config = TripAnalysisConfig(settings, mapOf("uber" to 0.0), emptyMap(), returnKm = 5.0, extraExpenses = 0.0)
+        val analysis = TripOfferAnalyzer.analyze(offer, config)
+        assertEquals(OfferRecommendation.INSUFFICIENT_DATA, analysis.recommendation)
+        assertTrue("fareMode" in analysis.missingFields)
+        assertTrue("currency" in analysis.missingFields)
+        assertNull(analysis.netProfit)
     }
 }

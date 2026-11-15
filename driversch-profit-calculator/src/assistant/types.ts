@@ -16,16 +16,22 @@ export interface FieldCandidate<T> {
   status: 'missing' | 'candidate' | 'needs-review'
 }
 
+export type NativeRecommendation = 'accept' | 'review' | 'reject' | 'insufficient_data'
+
+/**
+ * Analysis produced natively. Every money value is null when unavailable, never zero.
+ * netProfit is non-null only when the recommendation is backed by complete data.
+ */
 export interface NativeProfitabilityPreview {
-  status: 'review'
-  netProfit: number
-  hourlyProfit: number
-  totalCost: number
-  requiredFare: number
-  decision: 'review' | 'accept' | 'reject'
-  calculatedDecision: 'review' | 'accept' | 'reject'
+  recommendation: NativeRecommendation
+  netProfit: number | null
+  hourlyProfit: number | null
+  totalCost: number | null
+  requiredFare: number | null
+  partialCost: number | null
+  missingFields: string[]
   reason: string
-  assumptions: string[]
+  payloadVerified: boolean
 }
 
 export interface RideOfferDraft {
