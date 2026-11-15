@@ -121,6 +121,20 @@ export default function AndroidNotificationPanel({ onImport, locale }: Props) {
       </span>
       <button type="button" className="subtle-btn" onClick={refresh}><RefreshCw size={15}/> {t('تحديث الحالة', locale)}</button>
     </div>
+    {status?.captureCounters && <details className="android-capture-diagnostics">
+      <summary>{t('تشخيص استقبال الإشعارات', locale)}</summary>
+      <p>{t('عدادات محلية إجمالية؛ لا تعرض نصوص الإشعارات أو بيانات الرحلات.', locale)}</p>
+      <dl>
+        <div><dt>{t('أحداث وصلت لخدمة Android', locale)}</dt><dd>{status.captureCounters.received ?? 0}</dd></div>
+        <div><dt>{t('عروض تم حفظها', locale)}</dt><dd>{status.captureCounters.stored ?? 0}</dd></div>
+        <div><dt>{t('تحديثات عروض محفوظة', locale)}</dt><dd>{status.captureCounters.updated ?? 0}</dd></div>
+        <div><dt>{t('تطبيقات غير معروفة للخدمة', locale)}</dt><dd>{status.captureCounters.unsupportedPackage ?? 0}</dd></div>
+        <div><dt>{t('تطبيقات غير مفعّلة', locale)}</dt><dd>{status.captureCounters.providerDisabled ?? 0}</dd></div>
+        <div><dt>{t('إشعارات لم تطابق كلمات العروض', locale)}</dt><dd>{status.captureCounters.notRelevant ?? 0}</dd></div>
+        <div><dt>{t('فشل تحليل العرض', locale)}</dt><dd>{status.captureCounters.parserFailure ?? 0}</dd></div>
+        <div><dt>{t('فشل الحفظ أو المعالجة', locale)}</dt><dd>{(status.captureCounters.persistenceFailure ?? 0) + (status.captureCounters.processingException ?? 0)}</dd></div>
+      </dl>
+    </details>}
     {(status?.queuedEvents ?? 0) > 0 && <p className="android-capture-message" role="status">{t('إشعارات بانتظار المعالجة', locale)}: {status?.queuedEvents}</p>}
     {(status?.captureCounters?.duplicate ?? 0) > 0 && <p className="android-capture-message" role="status">{t('تم تجاهل إشعارات مكررة ولم تُعالج مرتين', locale)}: {status?.captureCounters?.duplicate}</p>}
     {failureTotal(status?.captureCounters) > 0 && <p className="android-capture-message" role="alert">{t('تعذر حفظ أو معالجة بعض الإشعارات. تفاصيل العدادات محفوظة محليًا ولم يُحذف شيء من بيانات الرحلات.', locale)}: {failureTotal(status?.captureCounters)}</p>}
