@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Activity, Archive, Calculator, CarFront, Check, ChevronDown, Download, FileImage, Gauge, History, LayoutDashboard, Mic, MicOff, RotateCcw, Save, Settings as SettingsIcon, ShieldCheck, Trash2, Upload, Wallet, X } from 'lucide-react'
 import { calculateTrip } from './lib/calculator'
-import { deleteTrip, getSettings, getTrips, replaceBackup, saveSettings, saveTrip } from './lib/db'
+import { countUnreadableTrips, deleteTrip, getSettings, getTrips, replaceBackup, saveSettings, saveTrip } from './lib/db'
 import { planBackupReplacement } from './lib/backupPlan.ts'
 import { readTripImage, type OcrDraft } from './lib/ocr'
-import { DEFAULT_SETTINGS, EMPTY_TRIP, type AppName, type FareMode, type SavedTrip, type Settings, type TripInput } from './types'
+import { DEFAULT_SETTINGS, EMPTY_TRIP, type AppName, type FareMode, type HistoryIntegrity, type HistoryTrip, type SavedTrip, type Settings, type TripInput } from './types'
 
 type Page = 'calculator' | 'assistant' | 'inbox' | 'history' | 'reports' | 'settings'
 const money = (n: number) => `${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ج.م`
@@ -26,7 +26,8 @@ export default function App() {
   const [page,setPage]=useState<Page>('calculator')
   const [settings,setSettings]=useState<Settings>(DEFAULT_SETTINGS)
   const [trip,setTrip]=useState<TripInput>(EMPTY_TRIP)
-  const [trips,setTrips]=useState<SavedTrip[]>([])
+  const [trips,setTrips]=useState<HistoryTrip[]>([])
+  const [unreadableCount,setUnreadableCount]=useState(0)
   const [inbox,setInbox]=useState<SavedTrip[]>([])
   const [draft,setDraft]=useState<OcrDraft|null>(null)
   const [busy,setBusy]=useState(false)
@@ -34,7 +35,8 @@ export default function App() {
   const [toast,setToast]=useState('')
   const [speaking,setSpeaking]=useState(false)
   const result=useMemo(()=>calculateTrip(trip,settings),[trip,settings])
-  useEffect(()=>{(async()=>{setSettings(await getSettings());setTrips(await getTrips())})()},[])
+  const refreshTrips=async()=>{const [list,bad]=await Promise.all([getTrips(),countUnreadableTrips()]);setTrips(list);setUnreadableCount(bad)}
+  useEffect(()=>{(async()=>{setSettings(await getSettings());await refreshTrips()})()},[])
   useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(''),3200);return()=>clearTimeout(t)},[toast])
   const patch=(key:keyof TripInput,value:any)=>setTrip(t=>({...t,[key]:value}))
   const updateSettings=(key:keyof Settings,value:number)=>setSettings(s=>({...s,[key]:value}))
@@ -44,9 +46,9 @@ export default function App() {
     if(!result.isValid){setToast(result.decisionReason || 'راجع بيانات الرحلة قبل الحفظ');return}
     if(trip.fareMode==='unknown'){setToast('حدد هل الأجرة صافية أم إجمالية أولًا');return}
     const saved:SavedTrip={...trip,...result,id:crypto.randomUUID(),createdAt:new Date().toISOString()}
-    await saveTrip(saved,settings);setTrips(await getTrips());setToast('تم حفظ الرحلة على جهازك')
+    await saveTrip(saved,settings);await refreshTrips();setToast('تم حفظ الرحلة على جهازك')
   }
-  const removeTrip=async(id:string)=>{await deleteTrip(id);setTrips(await getTrips())}
+  const removeTrip=async(id:string)=>{await deleteTrip(id);await refreshTrips()}
   const uploadImage=async(file?:File)=>{
     if(!file)return
     setBusy(true);setProgress(0);setDraft(null)
@@ -81,16 +83,20 @@ export default function App() {
       const plan=planBackupReplacement(data.trips,data.settings)
       if(!plan.ok){setToast(plan.reason);return}
       if(!confirm(`سيتم استيراد ${plan.trips.length} رحلة واستبدال السجل الحالي. هل تريد المتابعة؟`))return
-      await replaceBackup(plan);setTrips(await getTrips());setSettings(await getSettings());setToast('تم استيراد النسخة الاحتياطية')
+      await replaceBackup(plan);setSettings(await getSettings());await refreshTrips();setToast('تم استيراد النسخة الاحتياطية')
     }catch{setToast('ملف النسخة الاحتياطية غير صالح أو تعذر حفظه؛ لم يتم أي تغيير مؤكد')}
   }
   const exportCsv=()=>{
-    const headers=['التاريخ','التطبيق','الأجرة المدخلة','صافي الأجرة','المسافة كم','الوقت دقيقة','التكلفة','صافي الربح','ربح الساعة','القرار']
-    const rows=trips.map(t=>[t.createdAt,t.app,t.fare,t.netFare,t.totalKm,t.totalMinutes,t.totalCost,t.netProfit,t.hourlyProfit,t.decision])
+    const headers=['التاريخ','التطبيق','الأجرة المدخلة','صافي الأجرة','المسافة كم','الوقت دقيقة','التكلفة','صافي الربح','ربح الساعة','القرار','حالة السجل']
+    // Hourly profit is left blank when it cannot be trusted; the status column says why.
+    const rows=trips.map(t=>[t.createdAt,t.app,t.fare,t.netFare,t.totalKm,t.totalMinutes,t.totalCost,t.netProfit,t.integrity==='verified'||t.integrity==='legacy-unverified'?t.hourlyProfit:'',t.decision,integrityLabel[t.integrity]])
     const csv=[headers,...rows].map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n')
     downloadFile('\ufeff'+csv,'driver-trips.csv','text/csv;charset=utf-8')
   }
   const decisionLabel={accept:'اقبل الرحلة',review:'راجع الرحلة',reject:'ارفض الرحلة'}
+  const integrityLabel:Record<HistoryIntegrity,string>={verified:'مُتحقق من الحساب',mismatch:'الأرقام لا تطابق الحساب الأصلي',"legacy-unverified":'سجل قديم: إعدادات حسابه الأصلية غير محفوظة','not-recalculable':'سجل تاريخي: لا يمكن إعادة حسابه'}
+  const integrityClass:Record<HistoryIntegrity,string>={verified:'good',mismatch:'bad','legacy-unverified':'warn','not-recalculable':'warn'}
+  const unverifiedCount=trips.filter(t=>t.integrity!=='verified').length
   const decisionClass={accept:'good',review:'warn',reject:'bad'}
   const savedProfit=trips.reduce((s,t)=>s+t.netProfit,0)
   return <div className="app-shell">
@@ -159,9 +165,10 @@ export default function App() {
       </section>}
       {page==='inbox'&&<section className="panel"><div className="panel-head"><div><span className="eyebrow">مراجعة قبل الحفظ</span><h2><Archive/> صندوق الرحلات الملتقطة</h2></div></div><div className="empty-state"><Archive size={34}/><strong>لا توجد رحلات معلقة</strong><p>ارفع صورة من المساعد الذكي، وراجع بياناتها ثم انقلها للحاسبة.</p><button className="primary-btn" onClick={()=>setPage('assistant')}>فتح المساعد الذكي</button></div></section>}
       {page==='history'&&<section className="panel"><div className="panel-head"><div><span className="eyebrow">بيانات محفوظة على جهازك</span><h2><History/> سجل الرحلات</h2></div><button className="subtle-btn" onClick={exportCsv}><Download size={16}/> تصدير CSV</button></div>
-        {trips.length===0?<Empty title="لسه مفيش رحلات محفوظة" text="احسب أول مشوار واحفظه علشان يظهر هنا."/>:<div className="table-wrap"><table><thead><tr><th>التاريخ</th><th>التطبيق</th><th>الأجرة</th><th>المسافة</th><th>صافي الربح</th><th>القرار</th><th></th></tr></thead><tbody>{trips.map(t=><tr key={t.id}><td>{new Date(t.createdAt).toLocaleString('ar-EG')}</td><td>{t.app}</td><td>{money(t.fare)}</td><td>{t.totalKm.toFixed(1)} كم</td><td className={t.netProfit>=0?'positive':'negative'}>{money(t.netProfit)}</td><td><span className={`pill ${decisionClass[t.decision]}`}>{decisionLabel[t.decision]}</span></td><td><button className="danger-icon" onClick={()=>removeTrip(t.id)} title="حذف"><Trash2 size={16}/></button></td></tr>)}</tbody></table></div>}
+        {trips.length===0?<Empty title="لسه مفيش رحلات محفوظة" text="احسب أول مشوار واحفظه علشان يظهر هنا."/>:<div className="table-wrap"><table><thead><tr><th>التاريخ</th><th>التطبيق</th><th>الأجرة</th><th>المسافة</th><th>صافي الربح</th><th>القرار</th><th></th></tr></thead><tbody>{trips.map(t=><tr key={t.id}><td>{new Date(t.createdAt).toLocaleString('ar-EG')}</td><td>{t.app}</td><td>{money(t.fare)}</td><td>{t.totalKm.toFixed(1)} كم</td><td className={t.netProfit>=0?'positive':'negative'}>{money(t.netProfit)}</td><td><span className={`pill ${decisionClass[t.decision]}`}>{decisionLabel[t.decision]}</span><small className={`integrity ${integrityClass[t.integrity]}`}>{integrityLabel[t.integrity]}</small></td><td><button className="danger-icon" onClick={()=>removeTrip(t.id)} title="حذف"><Trash2 size={16}/></button></td></tr>)}</tbody></table></div>}
       </section>}
       {page==='reports'&&<section className="panel"><div className="panel-head"><div><span className="eyebrow">ملخص السجل المحفوظ</span><h2><LayoutDashboard/> التقارير والإحصائيات</h2></div></div>
+        {unverifiedCount>0&&<p className="formula-note">{`الإجماليات تشمل ${unverifiedCount} سجلًا غير مُتحقق منه؛ إعدادات حسابها الأصلية غير محفوظة أو لا تطابق النتيجة المسجلة.`}</p>}{unreadableCount>0&&<p className="formula-note">{`يوجد ${unreadableCount} سجلًا تالفًا لا يمكن قراءته. محفوظ على الجهاز ولم يُحذف.`}</p>}
         <div className="report-grid"><Metric label="عدد الرحلات" value={String(trips.length)}/><Metric label="إجمالي الأجرة الصافية" value={money(trips.reduce((s,t)=>s+t.netFare,0))}/><Metric label="إجمالي التشغيل" value={money(trips.reduce((s,t)=>s+t.totalCost,0))}/><Metric label="صافي الربح" value={money(savedProfit)}/><Metric label="إجمالي المسافات" value={`${trips.reduce((s,t)=>s+t.totalKm,0).toFixed(1)} كم`}/><Metric label="إجمالي الوقت" value={`${trips.reduce((s,t)=>s+t.totalMinutes,0)} دقيقة`}/></div>
         <div className="section-head"><h3>مقارنة حسب التطبيق</h3></div><div className="table-wrap"><table><thead><tr><th>التطبيق</th><th>عدد الرحلات</th><th>صافي الربح</th><th>متوسط الربح</th></tr></thead><tbody>{(['Uber','DiDi','inDrive','أخرى'] as AppName[]).map(a=>{const list=trips.filter(t=>t.app===a);const sum=list.reduce((s,t)=>s+t.netProfit,0);return <tr key={a}><td>{a}</td><td>{list.length}</td><td>{money(sum)}</td><td>{money(list.length?sum/list.length:0)}</td></tr>})}</tbody></table></div>
       </section>}

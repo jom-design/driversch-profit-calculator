@@ -1,16 +1,16 @@
-import type { Calculation, Settings, TripInput } from '../types'
+import type { CalcSettings, Calculation, TripInput } from '../types.ts'
 
 const MAX_SAFE_CURRENCY = Number.MAX_SAFE_INTEGER / 100
 const MIN_NORMAL_DURATION_MINUTES = 2.2250738585072014e-308
 const money = (value: number): number => Math.round((value + Number.EPSILON) * 100) / 100
 const finite = (value: number): boolean => Number.isFinite(value)
 
-function validate(input: TripInput, settings: Settings): string[] {
+function validate(input: TripInput, settings: CalcSettings): string[] {
   const errors: string[] = []
   if (!input || typeof input !== 'object') errors.push('بيانات الرحلة غير متاحة؛ راجع الإدخال.')
   if (!settings || typeof settings !== 'object') errors.push('الإعدادات غير متاحة؛ راجع الإعدادات.')
   input = input && typeof input === 'object' ? input : {} as TripInput
-  settings = settings && typeof settings === 'object' ? settings : {} as Settings
+  settings = settings && typeof settings === 'object' ? settings : {} as CalcSettings
   const fields: Array<[string, number]> = [
     ['الأجرة', input.fare],
     ['مسافة الوصول', input.pickupKm],
@@ -75,7 +75,7 @@ function invalidCalculation(validationErrors: string[]): Calculation {
   }
 }
 
-export function calculateTrip(input: TripInput, settings: Settings): Calculation {
+export function calculateTrip(input: TripInput, settings: CalcSettings): Calculation {
   const validationErrors = validate(input, settings)
   if (validationErrors.length > 0) return invalidCalculation(validationErrors)
 

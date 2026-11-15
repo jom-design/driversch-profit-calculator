@@ -15,14 +15,12 @@ const trip = (id, patch = {}) => ({
   ...patch,
 })
 
-test('a valid backup yields a plan with every trip recalculated from its inputs', () => {
+test('a backup keeps every trip as recorded and never recalculates it with the backup settings', () => {
   const stored = trip('t1', { fare: 200 })
-  // A forged derived value in the file must not survive: the plan recalculates from the inputs.
-  const forged = { ...stored, netProfit: 999999 }
-  const plan = planBackupReplacement([forged], settings())
+  const plan = planBackupReplacement([{ ...stored, netProfit: 999999 }], settings())
   assert.equal(plan.ok, true)
-  assert.equal(plan.trips[0].netProfit, calculateTrip(stored, DEFAULT_SETTINGS).netProfit)
-  assert.equal(plan.trips[0].isValid, true)
+  assert.equal(plan.trips[0].netProfit, 999999)
+  assert.equal(plan.trips[0].settingsSnapshot, stored.settingsSnapshot)
 })
 
 test('an empty trip list with valid settings is a valid plan that clears the history', () => {
@@ -43,7 +41,7 @@ test('settings with a missing commission map are refused, not repaired with defa
 })
 
 test('one invalid trip refuses the whole backup, even when the others are valid', () => {
-  const plan = planBackupReplacement([trip('ok-1'), trip('bad', { totalMinutes: 0 })], settings())
+  const plan = planBackupReplacement([trip('ok-1'), trip('bad', { totalMinutes: -1 })], settings())
   assert.equal(plan.ok, false)
 })
 
@@ -63,16 +61,19 @@ test('a 30-second trip is accepted when every other input is valid', () => {
   assert.equal(plan.ok, true)
 })
 
-test('zero and negative durations are refused in a backup', () => {
-  assert.equal(planBackupReplacement([trip('z', { totalMinutes: 0 })], settings()).ok, false)
+test('zero-duration trips are kept as historical records; negative durations are refused', () => {
+  // The original build stored zero-duration trips without the isValid flag, so the fixture is a legacy record.
+  const { isValid, validationErrors, ...legacyZero } = trip('z', { totalMinutes: 0 })
+  assert.equal(planBackupReplacement([legacyZero], settings()).ok, true)
   assert.equal(planBackupReplacement([trip('n', { totalMinutes: -1 })], settings()).ok, false)
 })
 
-test('a legacy trip without the isValid flag is accepted and recalculated', () => {
+test('a legacy trip without the isValid flag is accepted and kept as recorded', () => {
   const { isValid, validationErrors, ...legacy } = trip('legacy')
   const plan = planBackupReplacement([legacy], settings())
   assert.equal(plan.ok, true)
-  assert.equal(plan.trips[0].isValid, true)
+  assert.equal(plan.trips[0].isValid, undefined)
+  assert.equal(plan.trips[0].netProfit, legacy.netProfit)
 })
 
 test('the settings in the plan contain exactly the known keys, never extra fields from the file', () => {

@@ -36,10 +36,27 @@ export interface Calculation {
   isValid: boolean
   validationErrors: string[]
 }
+/** The calculation settings only. Commission is not used by the calculator. */
+export type CalcSettings = Omit<Settings, 'commission'>
+/**
+ * The calculation settings in effect when a trip was saved. Stored with new trips so their results can be
+ * verified later. Absent on records saved before this field existed.
+ */
+export type SettingsSnapshot = CalcSettings
 export interface SavedTrip extends TripInput, Calculation {
   id: string
   createdAt: string
+  settingsSnapshot?: SettingsSnapshot
 }
+/**
+ * How far a stored record can be trusted. Computed on read, never stored:
+ * - verified: the snapshot reproduces the stored results from the original inputs.
+ * - mismatch: the snapshot does not reproduce the stored results. Shown, but flagged.
+ * - legacy-unverified: no usable snapshot. The recorded values are shown as recorded, not as verified.
+ * - not-recalculable: the duration cannot be calculated (zero, subnormal or over 24 hours). Recorded only.
+ */
+export type HistoryIntegrity = 'verified' | 'mismatch' | 'legacy-unverified' | 'not-recalculable'
+export type HistoryTrip = SavedTrip & { integrity: HistoryIntegrity }
 export const DEFAULT_SETTINGS: Settings = {
   fuelPrice: 22.25,
   consumptionPer100: 10,

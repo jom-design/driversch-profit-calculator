@@ -46,12 +46,12 @@ test('an unknown app or fare mode in a stored record is refused', () => {
   assert.equal(isStoredTripSafe(record({ fareMode: 'bogus' })), false)
 })
 
-test('duration boundaries: 30 seconds is kept, zero, negative, subnormal and over 24 hours are refused', () => {
+test('duration boundaries: zero, subnormal and over-24-hour records stay readable as historical; negative is unreadable', () => {
   assert.equal(isStoredTripSafe(record({ totalMinutes: 0.5 })), true)
-  assert.equal(isStoredTripSafe(record({ totalMinutes: 0 })), false)
+  assert.equal(isStoredTripSafe(record({ totalMinutes: 0 })), true)
+  assert.equal(isStoredTripSafe(record({ totalMinutes: Number.MIN_VALUE })), true)
+  assert.equal(isStoredTripSafe(record({ totalMinutes: 24 * 60 + 1 })), true)
   assert.equal(isStoredTripSafe(record({ totalMinutes: -1 })), false)
-  assert.equal(isStoredTripSafe(record({ totalMinutes: Number.MIN_VALUE })), false)
-  assert.equal(isStoredTripSafe(record({ totalMinutes: 24 * 60 + 1 })), false)
 })
 
 test('non-finite derived results are refused', () => {

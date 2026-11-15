@@ -1,4 +1,4 @@
-import { prepareSavedTrip } from './persistence.ts'
+import { prepareImportedTrip } from './persistence.ts'
 import { validateBackupSettings } from './backupSettings.ts'
 import type { SavedTrip, Settings } from '../types.ts'
 
@@ -7,8 +7,8 @@ export type BackupPlan =
   | { ok: false; reason: string }
 
 /**
- * Validates an entire backup before anything is written. Every trip is recalculated from its original
- * inputs with the backup's validated settings, so stored derived values in the file are never trusted.
+ * Validates an entire backup before anything is written. Trips are kept as recorded and are never recalculated
+ * with the backup's settings. The backup's settings replace the current settings only after validation.
  * The plan has no side effects: the database write happens only after a plan is ok.
  */
 export function planBackupReplacement(rawTrips: unknown, rawSettings: unknown): BackupPlan {
@@ -19,7 +19,7 @@ export function planBackupReplacement(rawTrips: unknown, rawSettings: unknown): 
   const seenIds = new Set<string>()
   const trips: SavedTrip[] = []
   for (const raw of rawTrips) {
-    const prepared = prepareSavedTrip(raw, settingsCheck.value)
+    const prepared = prepareImportedTrip(raw)
     if (!prepared) return { ok: false, reason: 'النسخة الاحتياطية تحتوي على رحلة غير صالحة؛ لم يتم أي تغيير.' }
     // Duplicate ids would make the store overwrite one trip silently, so the whole backup is refused.
     if (seenIds.has(prepared.id)) return { ok: false, reason: 'النسخة الاحتياطية تحتوي على معرّفات رحلات مكررة؛ لم يتم أي تغيير.' }
