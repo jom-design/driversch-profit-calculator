@@ -10,6 +10,10 @@ export interface Settings {
   minNetProfit: number
   hourlyTarget: number
   commission: Record<CommissionApp, number>
+  /** Return distance used by the background analysis. null means the driver has not set it. */
+  defaultReturnKm: number | null
+  /** Extra expenses per trip used by the background analysis. null means the driver has not set it. */
+  defaultExtraExpenses: number | null
 }
 export interface TripInput {
   app: AppName
@@ -49,7 +53,10 @@ export const DEFAULT_SETTINGS: Settings = {
   minNetProfit: 50,
   hourlyTarget: 75,
   // 0% is a placeholder until the driver enters the rate that applies to them.
-  commission: { Uber: 0, inDrive: 0, DiDi: 0, 'أخرى': 0 }
+  commission: { Uber: 0, inDrive: 0, DiDi: 0, 'أخرى': 0 },
+  // null is "not set": the analysis then reports the missing input instead of assuming zero.
+  defaultReturnKm: null,
+  defaultExtraExpenses: null
 }
 export const EMPTY_TRIP: TripInput = {
   app: 'Uber', fare: 165, fareMode: 'net', commissionRate: 0,

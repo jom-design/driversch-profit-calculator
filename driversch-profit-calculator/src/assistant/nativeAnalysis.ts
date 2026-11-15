@@ -21,6 +21,12 @@ export const MISSING_FIELD_LABELS: Record<string, string> = {
   extraExpenses: 'المصروفات الإضافية',
 }
 
+/** Arabic labels for the inputs that can come from the driver's saved default settings. */
+export const USER_DEFAULT_LABELS: Record<string, string> = {
+  returnDistance: 'مسافة العودة',
+  extraExpenses: 'المصروفات الإضافية'
+}
+
 export const RECOMMENDATION_LABELS: Record<NativeRecommendation, string> = {
   accept: 'قبول مقترح',
   review: 'مراجعة',
@@ -44,6 +50,9 @@ export function validateNativeAnalysis(value: unknown): NativeProfitabilityPrevi
       !a.missingFields.every(code => typeof code === 'string' && code.length > 0 && code.length <= MAX_MISSING_CODE_LENGTH)) return undefined
   if (typeof a.reason !== 'string' || a.reason.length > MAX_REASON_LENGTH) return undefined
   if (typeof a.payloadVerified !== 'boolean') return undefined
+  // Optional for analyses produced before this field existed. A present but malformed value is refused.
+  if (a.userDefaults !== undefined && (!Array.isArray(a.userDefaults) || a.userDefaults.length > 20 ||
+      !a.userDefaults.every(code => typeof code === 'string' && code.length > 0 && code.length <= MAX_MISSING_CODE_LENGTH))) return undefined
   const recommendation = a.recommendation as NativeRecommendation
   if (recommendation === 'insufficient_data' && a.netProfit !== null) return undefined
   if (recommendation !== 'insufficient_data' && a.netProfit === null) return undefined
@@ -56,7 +65,8 @@ export function validateNativeAnalysis(value: unknown): NativeProfitabilityPrevi
     partialCost: a.partialCost as number | null,
     missingFields: a.missingFields as string[],
     reason: a.reason,
-    payloadVerified: a.payloadVerified
+    payloadVerified: a.payloadVerified,
+    userDefaults: a.userDefaults === undefined ? [] : [...(a.userDefaults as string[])]
   }
 }
 
@@ -68,6 +78,12 @@ export function analysisTone(analysis: NativeProfitabilityPreview | undefined): 
   if (analysis.recommendation === 'reject') return 'negative'
   if (analysis.recommendation === 'accept') return 'positive'
   return 'neutral'
+}
+
+/** Labels for the inputs that were filled in from the saved default settings, without duplicates. */
+export function userDefaultLabels(analysis: NativeProfitabilityPreview | undefined): string[] {
+  if (!analysis) return []
+  return [...new Set(analysis.userDefaults.map(code => USER_DEFAULT_LABELS[code] ?? 'بيانات أخرى'))]
 }
 
 /** Arabic labels for the missing inputs, in the order received, without duplicates. */

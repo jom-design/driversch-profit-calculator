@@ -48,8 +48,11 @@ data class NativeTripAnalysis(
     val reason: String,
     /** False while the provider's notification format has not been verified on a real device. */
     val payloadVerified: Boolean,
+    /** Inputs taken from the user's saved default settings, not from the notification. */
+    val userDefaults: List<String> = emptyList(),
 ) {
     fun toJson(): JSONObject = JSONObject()
+        .put("userDefaults", JSONArray(userDefaults))
         .put("recommendation", recommendation.wire)
         .put("netProfit", netProfit ?: JSONObject.NULL)
         .put("hourlyProfit", hourlyProfit ?: JSONObject.NULL)
@@ -74,9 +77,10 @@ object TripOfferAnalyzer {
         }
 
         val missing = mutableListOf<String>()
-        val fare = usable(offer.fare.value)
-        val pickupKm = usable(offer.pickupDistanceKm.value)
-        val tripKm = usable(offer.distanceKm.value)
+        val fare = usable(offer.fare.value, MAX_MONEY)
+        val pickupKm = usable(offer.pickupDistanceKm.value, MAX_KM)
+        // A trip of zero kilometres is not a real trip, so it is treated as unavailable.
+        val tripKm = usable(offer.distanceKm.value, MAX_KM)?.takeIf { it > 0.0 }
         if (fare == null) missing += "fare"
         if (pickupKm == null) missing += "pickupDistance"
         if (tripKm == null) missing += "tripDistance"
@@ -93,14 +97,15 @@ object TripOfferAnalyzer {
         // The commission only converts a gross fare to net. A net fare does not need it.
         if (fareMode == FareMode.GROSS && !commissionUsable) missing += "commission"
 
-        val pickupMinutes = usable(offer.pickupMinutes.value)
-        val tripMinutes = usable(offer.durationMinutes.value)
+        val pickupMinutes = usable(offer.pickupMinutes.value, MAX_MINUTES)
+        val tripMinutes = usable(offer.durationMinutes.value, MAX_MINUTES)?.takeIf { it > 0.0 }
         // The trip duration alone is not the working time: the pickup time must be known as well.
         if (pickupMinutes == null) missing += "pickupTime"
         if (tripMinutes == null) missing += "duration"
 
-        val returnKm = usable(config.returnKm)
-        val extraExpenses = usable(config.extraExpenses)
+        // Zero is an explicit answer ("no return leg", "no extra expenses") and is kept. Unset stays null.
+        val returnKm = usable(config.returnKm, MAX_RETURN_KM)
+        val extraExpenses = usable(config.extraExpenses, MAX_MONEY)
         if (returnKm == null) missing += "returnDistance"
         if (extraExpenses == null) missing += "extraExpenses"
 
@@ -167,11 +172,21 @@ object TripOfferAnalyzer {
             missingFields = missing.distinct(),
             reason = reason,
             payloadVerified = verified,
+            userDefaults = listOf("returnDistance", "extraExpenses"),
         )
     }
 
-    /** Non-finite and negative numbers are treated as unavailable, never as values. */
-    private fun usable(value: Double?): Double? = value?.takeIf { it.isFinite() && it >= 0.0 }
+    /**
+     * Non-finite, negative and out-of-range numbers are treated as unavailable, never as values.
+     * The limits reject typing mistakes such as an extra zero, which would otherwise look like a real offer.
+     */
+    private fun usable(value: Double?, max: Double): Double? =
+        value?.takeIf { it.isFinite() && it >= 0.0 && it <= max }
+
+    private const val MAX_MONEY = 1_000_000.0
+    private const val MAX_KM = 1_000.0
+    private const val MAX_RETURN_KM = 2_000.0
+    private const val MAX_MINUTES = 1_440.0
 
     private fun insufficient(
         missing: List<String>,

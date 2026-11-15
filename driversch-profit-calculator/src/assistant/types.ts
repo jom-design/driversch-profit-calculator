@@ -32,6 +32,8 @@ export interface NativeProfitabilityPreview {
   missingFields: string[]
   reason: string
   payloadVerified: boolean
+  /** Inputs taken from the driver's saved default settings, not from the notification. */
+  userDefaults: string[]
 }
 
 export interface RideOfferDraft {

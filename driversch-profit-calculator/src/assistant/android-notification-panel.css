@@ -8,3 +8,5 @@
 .android-provider input{width:20px;height:20px;accent-color:#48b6e8}
 .android-capture-panel small{color:#aab7cf}.android-capture-message{margin:0;color:#8fd8ff;font-size:.9rem}
 @media(max-width:520px){.android-capture-actions>*{width:100%;justify-content:center}}
+
+.android-provider-note{display:block;color:#b45309;font-size:11px}

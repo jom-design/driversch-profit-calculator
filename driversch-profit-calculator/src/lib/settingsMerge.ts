@@ -11,6 +11,16 @@ export function mergeStoredSettings(stored: Partial<Settings> | undefined | null
   return {
     ...DEFAULT_SETTINGS,
     ...(stored ?? {}),
-    commission: { ...DEFAULT_SETTINGS.commission, ...storedCommission }
+    commission: { ...DEFAULT_SETTINGS.commission, ...storedCommission },
+    defaultReturnKm: sanitizeOptionalKm(stored?.defaultReturnKm),
+    defaultExtraExpenses: sanitizeOptionalKm(stored?.defaultExtraExpenses)
   }
+}
+
+/**
+ * Keeps a stored optional default only when it is a finite, non-negative number. Anything else
+ * (missing, text, NaN, negative) becomes null, so a damaged record never turns into a fake zero.
+ */
+export function sanitizeOptionalKm(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null
 }

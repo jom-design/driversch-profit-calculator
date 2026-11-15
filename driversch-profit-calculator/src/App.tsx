@@ -302,7 +302,10 @@ export default function App() {
           <Field label={tr('الصيانة والإهلاك لكل كم')} value={settings.maintenancePerKm} onChange={v=>updateSettings('maintenancePerKm',v??0)} unit="ج.م"/>
           <Field label={tr('الحد الأدنى لصافي الرحلة')} value={settings.minNetProfit} onChange={v=>updateSettings('minNetProfit',v??0)} unit="ج.م"/>
           <Field label={tr('هدف الربح في الساعة')} value={settings.hourlyTarget} onChange={v=>updateSettings('hourlyTarget',v??0)} unit="ج.م"/>
+          <Field label={tr('مسافة العودة الافتراضية')} allowEmpty value={settings.defaultReturnKm} onChange={v=>setSettings(s=>({...s,defaultReturnKm:v}))} unit="كم"/>
+          <Field label={tr('المصروفات الإضافية للرحلة')} allowEmpty value={settings.defaultExtraExpenses} onChange={v=>setSettings(s=>({...s,defaultExtraExpenses:v}))} unit="ج.م"/>
         </div>
+        <p className="formula-note">{tr('مسافة العودة والمصروفات الإضافية لا تأتي من الإشعار. اتركها فارغة إن لم تعرفها؛ التطبيق لا يفترض لها صفرًا ولا يعرض صافي ربح قبل تحديدها. صفر قيمة مقصودة.')}</p>
         <div className="section-head"><h3>{tr('عمولة التطبيقات (اختيارية)')}</h3><span>{tr('كل تطبيق له نسبته المستقلة. القيمة 0% افتراضية حتى تُدخل نسبتك، وتُستخدم عند اختيار أجرة إجمالية')}</span></div>
         <div className="field-grid">{(['Uber','inDrive','DiDi','أخرى'] as const).map(a=><Field label={`${tr('عمولة')} ${a==='أخرى'?tr('أخرى'):a}`} value={settings.commission[a]} onChange={v=>setSettings(s=>({...s,commission:{...s.commission,[a]:v??0}}))} unit="%"/>)}</div>
         <div className="backup-actions"><button className="subtle-btn" onClick={exportBackup}><Download size={16}/> {tr('تصدير نسخة احتياطية')}</button><label className="subtle-btn file-button"><Upload size={16}/> {tr('استيراد نسخة احتياطية')}<input type="file" accept="application/json" onChange={e=>importBackup(e.target.files?.[0])}/></label><button className="subtle-btn" onClick={()=>{if(confirm(tr('إعادة الإعدادات الافتراضية؟')))setSettings(DEFAULT_SETTINGS)}}><RotateCcw size={16}/> {tr('استعادة الافتراضي')}</button></div>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { BellRing, ExternalLink, RefreshCw, ShieldCheck } from 'lucide-react'
-import type { NativeNotificationPayload } from './notificationBridge'
+import { isNativePayloadShape, type NativeNotificationPayload } from './notificationBridge'
 import './android-notification-panel.css'
 import { t, translateMessage, type TranslationKey } from '../lib/i18n'
 
@@ -27,6 +27,16 @@ interface Status {
   enabledProviders: string[]
   lastReceivedAt: string
   queueHealthy: boolean
+  /** Events journaled and waiting for processing. */
+  queuedEvents?: number
+  /** Aggregate counters from the native capture service. Names match CaptureCounterNames. */
+  captureCounters?: Record<string, number>
+}
+/** Counters that mean an event was not stored or not processed. Duplicates and unsupported apps are normal. */
+const FAILURE_COUNTERS = ['persistenceFailure', 'processingException', 'journalWriteFailed', 'journalReadFailed',
+  'journalOverflow', 'journalDroppedStale', 'journalDroppedFailed', 'journalDroppedCorrupt']
+function failureTotal(counters: Record<string, number> | undefined): number {
+  return FAILURE_COUNTERS.reduce((sum, name) => sum + (typeof counters?.[name] === 'number' ? counters[name] : 0), 0)
 }
 interface Props {
   locale: 'ar' | 'en'
@@ -37,20 +47,6 @@ const providers = [
   { id: 'didi', label: 'DiDi Driver' },
   { id: 'indrive', label: 'inDrive' }
 ] as const
-const allowedPackages: Record<string, string> = {
-  'com.ubercab.driver': 'uber',
-  'com.didiglobal.driver': 'didi',
-  'sinet.startup.inDriver': 'indrive'
-}
-function isPayload(value: unknown): value is NativeNotificationPayload {
-  if (!value || typeof value !== 'object') return false
-  const item = value as Record<string, unknown>
-  return typeof item.notificationId === 'string' && item.notificationId.length > 0 &&
-    typeof item.packageName === 'string' && allowedPackages[item.packageName] !== undefined &&
-    typeof item.title === 'string' && item.title.length <= 300 &&
-    typeof item.text === 'string' && item.text.trim().length > 0 && item.text.length <= 4000 &&
-    typeof item.postedAt === 'string' && Number.isFinite(new Date(item.postedAt).getTime())
-}
 export default function AndroidNotificationPanel({ onImport, locale }: Props) {
   const bridge = typeof window === 'undefined' ? undefined : window.DriverAndroid
   const [status, setStatus] = useState<Status | null>(null)
@@ -65,7 +61,7 @@ export default function AndroidNotificationPanel({ onImport, locale }: Props) {
       const next = JSON.parse(bridge.getStatusJson()) as Status
       const pending = JSON.parse(bridge.getPendingNotificationsJson()) as unknown
       setStatus(next)
-      setPendingCount(Array.isArray(pending) ? pending.filter(isPayload).length : 0)
+      setPendingCount(Array.isArray(pending) ? pending.filter(isNativePayloadShape).length : 0)
       setMessage('')
     } catch {
       setMessage('تعذر قراءة حالة خدمة Android. أغلق التطبيق وافتحه مرة أخرى.' as TranslationKey)
@@ -88,7 +84,7 @@ export default function AndroidNotificationPanel({ onImport, locale }: Props) {
     setMessage('')
     try {
       const raw = JSON.parse(bridge.getPendingNotificationsJson()) as unknown
-      const payloads = Array.isArray(raw) ? raw.filter(isPayload) : []
+      const payloads = Array.isArray(raw) ? raw.filter(isNativePayloadShape) : []
       if (payloads.length === 0) {
         setMessage('لا توجد إشعارات رحلات جديدة في انتظار الاستيراد.' as TranslationKey)
         return
@@ -125,9 +121,11 @@ export default function AndroidNotificationPanel({ onImport, locale }: Props) {
       </span>
       <button type="button" className="subtle-btn" onClick={refresh}><RefreshCw size={15}/> {t('تحديث الحالة', locale)}</button>
     </div>
+    {(status?.queuedEvents ?? 0) > 0 && <p className="android-capture-message" role="status">{t('إشعارات بانتظار المعالجة', locale)}: {status?.queuedEvents}</p>}
+    {failureTotal(status?.captureCounters) > 0 && <p className="android-capture-message" role="alert">{t('تعذر حفظ أو معالجة بعض الإشعارات. تفاصيل العدادات محفوظة محليًا ولم يُحذف شيء من بيانات الرحلات.', locale)}: {failureTotal(status?.captureCounters)}</p>}
     <div className="android-provider-list">
       {providers.map(provider => <label key={provider.id} className="android-provider">
-        <span>{provider.label}</span>
+        <span>{provider.label}{provider.id === 'didi' && <small className="android-provider-note"> {t('غير مُتحقق منه على جهاز حقيقي؛ الالتقاط معطّل افتراضيًا', locale)}</small>}</span>
         <input type="checkbox" checked={status?.enabledProviders.includes(provider.id) ?? false}
           onChange={event => toggleProvider(provider.id, event.target.checked)} />
       </label>)}

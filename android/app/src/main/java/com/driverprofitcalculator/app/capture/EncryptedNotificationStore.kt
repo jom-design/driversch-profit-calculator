@@ -24,7 +24,7 @@ import javax.crypto.spec.GCMParameterSpec
  * Every method holds LOCK. The service and the WebView bridge create separate instances, so a
  * per-instance lock would not serialize their read-modify-write cycles on the same blob.
  */
-class EncryptedNotificationStore(context: Context) : CaptureStore {
+class EncryptedNotificationStore(context: Context) : CaptureStore, JournalBackend {
     private val prefs = context.getSharedPreferences("notification_queue", Context.MODE_PRIVATE)
     private val counters: CaptureCounters = CaptureDiagnostics(context)
 
@@ -89,6 +89,19 @@ class EncryptedNotificationStore(context: Context) : CaptureStore {
     }
 
     fun lastReceivedAt(): String = synchronized(LOCK) { load().optString("lastReceivedAt", "") }
+
+    /** Raw events waiting for processing. Stored in the same encrypted blob, under the same lock. */
+    override fun readJournal(): JSONArray? = synchronized(LOCK) {
+        try { load().optJSONArray("journal") ?: JSONArray() } catch (_: Exception) { null }
+    }
+
+    override fun writeJournal(items: JSONArray): Boolean = synchronized(LOCK) {
+        try {
+            val state = load()
+            state.put("journal", items)
+            write(state)
+        } catch (_: Exception) { false }
+    }
 
     /** False only when a stored blob exists but cannot be decrypted or parsed. */
     fun isHealthy(): Boolean = synchronized(LOCK) {

@@ -8,9 +8,9 @@ import java.util.concurrent.Executors
 import java.util.concurrent.RejectedExecutionException
 
 /**
- * Android entry point for notification capture. It only translates platform events into
- * RawNotificationEvent and hands them to the pure NotificationEventProcessor, so capture works
- * whether or not the calculator UI is open. Nothing here logs notification content.
+ * Android entry point for notification capture. It translates platform events into
+ * RawNotificationEvent, journals them durably, and processes them in order on one background worker.
+ * Capture works whether or not the calculator UI is open. Nothing here logs notification content.
  */
 class NotificationCaptureService : NotificationListenerService() {
 
@@ -19,12 +19,22 @@ class NotificationCaptureService : NotificationListenerService() {
         private val worker: ExecutorService = Executors.newSingleThreadExecutor { task ->
             Thread(task, "notification-capture").apply { isDaemon = true }
         }
+
+        /**
+         * True only while this process has an active listener connection. It is process-scoped on
+         * purpose: a persisted flag can still say "connected" after the process has been killed.
+         */
+        @Volatile
+        var listenerConnectedInProcess: Boolean = false
+            private set
     }
 
     private val diagnostics by lazy { CaptureDiagnostics(this) }
+    private val store by lazy { EncryptedNotificationStore(this) }
+    private val journal by lazy { EventJournal(store, diagnostics) }
     private val processor by lazy {
         NotificationEventProcessor(
-            store = EncryptedNotificationStore(this),
+            store = store,
             isProviderEnabled = { id -> ProviderPreferences.enabled(this, id) },
             counters = diagnostics,
             analysisConfig = { TripAnalysisPreferences(this).load() },
@@ -33,16 +43,25 @@ class NotificationCaptureService : NotificationListenerService() {
 
     override fun onListenerConnected() {
         super.onListenerConnected()
+        listenerConnectedInProcess = true
         ProviderPreferences.setServiceConnected(this, true)
         // Notifications already in the tray when the listener (re)connects are processed too.
         // Deduplication by fingerprint prevents duplicate processing results.
         val active = try { activeNotifications } catch (_: Exception) { null }
         active?.forEach { handle(it, CaptureEventKind.POSTED, null) }
+        // Events journaled before a process death are processed now, in their original order.
+        submit { drain() }
     }
 
     override fun onListenerDisconnected() {
+        listenerConnectedInProcess = false
         ProviderPreferences.setServiceConnected(this, false)
         super.onListenerDisconnected()
+    }
+
+    override fun onDestroy() {
+        listenerConnectedInProcess = false
+        super.onDestroy()
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
@@ -54,9 +73,8 @@ class NotificationCaptureService : NotificationListenerService() {
     }
 
     /**
-     * Copies the platform event on the listener callback (cheap), then hands processing to a single
-     * background worker. Parsing, analysis and encrypted storage never run on the callback thread.
-     * One worker keeps posted and removed events in order and serializes access to the store.
+     * Copies the platform event on the listener callback (cheap), then hands it to the worker.
+     * Journaling, parsing, analysis and encrypted storage never run on the callback thread.
      */
     private fun handle(sbn: StatusBarNotification, kind: CaptureEventKind, reason: Int?) {
         val event: RawNotificationEvent
@@ -67,10 +85,29 @@ class NotificationCaptureService : NotificationListenerService() {
             diagnostics.increment(CaptureCounterNames.PROCESSING_EXCEPTION)
             return
         }
-        try {
-            worker.execute { processSafely(event) }
-        } catch (_: RejectedExecutionException) {
-            diagnostics.increment(CaptureCounterNames.PROCESSING_EXCEPTION)
+        submit { accept(event) }
+    }
+
+    /** Runs on the worker: journal first, then process everything pending in order. */
+    private fun accept(event: RawNotificationEvent) {
+        if (journal.append(event) == null) {
+            // Not journaled: it is still processed now, but a process death before that would lose it.
+            // The JOURNAL_WRITE_FAILED counter makes that risk visible.
+            processSafely(event)
+        }
+        drain()
+    }
+
+    /** Processes every journaled event in order. A failed event is retried, then dropped with a counter. */
+    private fun drain() {
+        drainJournal(journal) { event ->
+            try {
+                processor.process(event)
+            } catch (_: Exception) {
+                // Counted without the message: exception text may contain notification content.
+                diagnostics.increment(CaptureCounterNames.PROCESSING_EXCEPTION)
+                null
+            }
         }
     }
 
@@ -78,6 +115,14 @@ class NotificationCaptureService : NotificationListenerService() {
         try {
             processor.process(event)
         } catch (_: Exception) {
+            diagnostics.increment(CaptureCounterNames.PROCESSING_EXCEPTION)
+        }
+    }
+
+    private fun submit(task: Runnable) {
+        try {
+            worker.execute(task)
+        } catch (_: RejectedExecutionException) {
             diagnostics.increment(CaptureCounterNames.PROCESSING_EXCEPTION)
         }
     }

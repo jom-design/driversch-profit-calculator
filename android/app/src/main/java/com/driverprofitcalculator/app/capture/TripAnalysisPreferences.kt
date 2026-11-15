@@ -35,8 +35,9 @@ class TripAnalysisPreferences(context: Context) {
             .put("settings", settings)
             .put("commissionRates", commissionRates)
             .put("fareModes", fareModes)
-            .put("returnKm", input.optionalNonNegative("returnKmAssumption") ?: JSONObject.NULL)
-            .put("extraExpenses", input.optionalNonNegative("extraExpensesAssumption") ?: JSONObject.NULL)
+            // The web settings send these as numbers, or null when the driver has not set them.
+            .put("returnKm", input.optionalNonNegative("defaultReturnKm") ?: JSONObject.NULL)
+            .put("extraExpenses", input.optionalNonNegative("defaultExtraExpenses") ?: JSONObject.NULL)
         prefs.edit().putString("config", config.toString()).commit()
     } catch (_: Exception) { false }
 

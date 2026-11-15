@@ -74,10 +74,25 @@ object CaptureCounterNames {
     const val PROCESSING_EXCEPTION = "processingException"
     /** The encrypted queue blob could not be authenticated or parsed and was replaced by an empty queue. */
     const val QUEUE_RESET = "queueReset"
+    /** Event journal: an event could not be written before processing, so it is processed in memory only. */
+    const val JOURNAL_WRITE_FAILED = "journalWriteFailed"
+    /** Event journal: the stored journal could not be read. Nothing was removed from it. */
+    const val JOURNAL_READ_FAILED = "journalReadFailed"
+    /** Event journal full: a new event was refused and counted, never dropped silently. */
+    const val JOURNAL_OVERFLOW = "journalOverflow"
+    /** Event journal: an event older than the retention window was dropped instead of processed as new. */
+    const val JOURNAL_DROPPED_STALE = "journalDroppedStale"
+    /** Event journal: an event kept failing and was dropped after its bounded retries. */
+    const val JOURNAL_DROPPED_FAILED = "journalDroppedFailed"
+    /** Event journal: a stored entry was unreadable and was removed. */
+    const val JOURNAL_DROPPED_CORRUPT = "journalDroppedCorrupt"
+    /** A failed event was kept in the journal for another attempt. */
+    const val RETRY_SCHEDULED = "retryScheduled"
     val ALL = listOf(
         RECEIVED, UNSUPPORTED_PACKAGE, PROVIDER_DISABLED, GROUP_SUMMARY, EMPTY_PAYLOAD, NOT_RELEVANT,
         PARSER_FAILURE, DUPLICATE, UPDATED, STORED, PERSISTENCE_FAILURE, REMOVED, REMOVED_UNKNOWN,
-        PROCESSING_EXCEPTION, QUEUE_RESET,
+        PROCESSING_EXCEPTION, QUEUE_RESET, JOURNAL_WRITE_FAILED, JOURNAL_READ_FAILED, JOURNAL_OVERFLOW,
+        JOURNAL_DROPPED_STALE, JOURNAL_DROPPED_FAILED, JOURNAL_DROPPED_CORRUPT, RETRY_SCHEDULED,
     )
 }
 

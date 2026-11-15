@@ -12,6 +12,7 @@ import type { AppName, Decision, FareMode, SavedTrip, Settings } from '../types.
 export type ImportResult<T> = { ok: true; value: T } | { ok: false; reason: string }
 
 const SETTING_KEYS = ['fuelPrice', 'consumptionPer100', 'maintenancePerKm', 'minNetProfit', 'hourlyTarget'] as const
+const OPTIONAL_SETTING_KEYS = ['defaultReturnKm', 'defaultExtraExpenses'] as const
 // Every platform keeps its own commission. A backup from before Uber had a field simply has no 'Uber' key,
 // and the defaults supply 0 for it. Nothing is copied from 'أخرى' into 'Uber'.
 const COMMISSION_KEYS = ['Uber', 'inDrive', 'DiDi', 'أخرى'] as const
@@ -44,6 +45,14 @@ export function normalizeSettings(raw: unknown, defaults: Settings): ImportResul
   const next: Settings = { ...defaults, commission: { ...defaults.commission } }
   for (const key of SETTING_KEYS) {
     if (raw[key] === undefined) continue
+    const value = readBackupNumber(raw[key], { allowNegative: false })
+    if (value === null) return { ok: false, reason: `القيمة ${key} في الإعدادات ليست رقمًا صحيحًا` }
+    next[key] = value
+  }
+  // Optional defaults: null means "not set" and is kept as null, never converted to zero.
+  for (const key of OPTIONAL_SETTING_KEYS) {
+    if (raw[key] === undefined) continue
+    if (raw[key] === null) { next[key] = null; continue }
     const value = readBackupNumber(raw[key], { allowNegative: false })
     if (value === null) return { ok: false, reason: `القيمة ${key} في الإعدادات ليست رقمًا صحيحًا` }
     next[key] = value

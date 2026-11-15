@@ -3,7 +3,7 @@ import { AlertCircle, Archive, Check, ChevronDown, CircleHelp, ClipboardPaste, S
 import { createInboxItem, markInboxParsed, requestInboxReview, updateInboxDraft, confirmInboxItem, rejectInboxItem, hasRequiredReviewData, deleteInboxItem, setInboxFieldReviewed } from './inbox'
 import { parseRideOffer } from './parser'
 import type { InboxItem, NativeProfitabilityPreview, RideOfferDraft, RideProvider } from './types'
-import { analysisTone, missingFieldLabels, RECOMMENDATION_LABELS } from './nativeAnalysis.ts'
+import { analysisTone, missingFieldLabels, RECOMMENDATION_LABELS, userDefaultLabels } from './nativeAnalysis.ts'
 import { detectBrowserCapabilities, type BrowserRuntimeLike } from '../platform/browserCapabilities'
 import AndroidNotificationPanel from './AndroidNotificationPanel'
 import NumericInput from '../components/NumericInput'
@@ -41,6 +41,7 @@ const newId = () => globalThis.crypto?.randomUUID?.() ?? `offer-${Date.now()}-${
 function NativeAnalysisCard({ analysis, locale }: { analysis: NativeProfitabilityPreview; locale: 'ar' | 'en' }) {
   const tone = analysisTone(analysis)
   const missing = missingFieldLabels(analysis)
+  const fromDefaults = userDefaultLabels(analysis)
   const money = (value: number | null) => value === null
     ? t('غير متاح', locale)
     : `${value.toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-EG', { maximumFractionDigits: 2 })} ${t('جنيه', locale)}`
@@ -54,6 +55,7 @@ function NativeAnalysisCard({ analysis, locale }: { analysis: NativeProfitabilit
         <b>{headline}</b>
       </div>
       <span className="inbox-recommendation">{t('التوصية', locale)}: {recommendation}</span>
+      {fromDefaults.length > 0 && <p className="inbox-user-defaults">{t('قيم من إعداداتك الافتراضية (لم تأتِ من الإشعار)', locale)}: {fromDefaults.map(label => t(label as TranslationKey, locale)).join('، ')}</p>}
       {!analysis.payloadVerified && <p className="inbox-unverified">{t('صيغة إشعارات هذا التطبيق غير مؤكدة بعد؛ راجع الأرقام داخل تطبيق السائق قبل القرار.', locale)}</p>}
       <div className="inbox-native-analysis-grid">
         <span>{t('الربح بالساعة', locale)}<b>{money(analysis.hourlyProfit)}</b></span>

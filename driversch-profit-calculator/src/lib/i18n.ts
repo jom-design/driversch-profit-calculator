@@ -348,6 +348,13 @@ export const AR_TO_EN = {
   "نسبة العمولة": "Commission rate",
   "مسافة العودة": "Return distance",
   "المصروفات الإضافية": "Extra expenses",
+  "مسافة العودة الافتراضية": "Default return distance",
+  "المصروفات الإضافية للرحلة": "Extra expenses per trip",
+  "مسافة العودة والمصروفات الإضافية لا تأتي من الإشعار. اتركها فارغة إن لم تعرفها؛ التطبيق لا يفترض لها صفرًا ولا يعرض صافي ربح قبل تحديدها. صفر قيمة مقصودة.": "Return distance and extra expenses do not come from the notification. Leave them empty if you do not know them; the app never assumes zero and shows no net profit until they are set. Zero is a deliberate value.",
+  "قيم من إعداداتك الافتراضية (لم تأتِ من الإشعار)": "Values from your default settings (not from the notification)",
+  "إشعارات بانتظار المعالجة": "Notifications waiting to be processed",
+  "تعذر حفظ أو معالجة بعض الإشعارات. تفاصيل العدادات محفوظة محليًا ولم يُحذف شيء من بيانات الرحلات.": "Some notifications could not be stored or processed. Counter details are kept locally and no trip data was deleted.",
+  "غير مُتحقق منه على جهاز حقيقي؛ الالتقاط معطّل افتراضيًا": "Not verified on a real device; capture is off by default",
 } as const
 export type TranslationKey = keyof typeof AR_TO_EN
 

@@ -40,6 +40,26 @@ const SUPPORTED_PACKAGES: Record<string, string> = {
   'sinet.startup.inDriver': 'inDrive'
 }
 
+/** Own-property lookup, so names such as "constructor" are never treated as supported packages. */
+const isSupportedPackage = (name: unknown): name is string =>
+  typeof name === 'string' && Object.prototype.hasOwnProperty.call(SUPPORTED_PACKAGES, name)
+
+/**
+ * Shape check shared by the bridge and the review panel. An analysed offer may arrive with empty title and text,
+ * because the native side no longer keeps the raw notification text. Such a payload is valid when `offer` is present.
+ */
+export function isNativePayloadShape(value: unknown): value is NativeNotificationPayload {
+  if (!value || typeof value !== 'object') return false
+  const payload = value as Partial<NativeNotificationPayload>
+  return typeof payload.notificationId === 'string' && payload.notificationId.trim().length > 0 &&
+    payload.notificationId.length <= 512 &&
+    isSupportedPackage(payload.packageName) &&
+    typeof payload.title === 'string' && payload.title.length <= 300 &&
+    typeof payload.text === 'string' && payload.text.length <= 4000 &&
+    (payload.text.trim().length > 0 || payload.offer !== undefined) &&
+    typeof payload.postedAt === 'string' && Number.isFinite(new Date(payload.postedAt).getTime())
+}
+
 /**
  * Browser code cannot subscribe to notifications posted by other Android apps.
  * The Android NotificationListenerService delivers this normalized payload
@@ -51,13 +71,7 @@ export function acceptNativeNotification(
   seenNotificationIds: Set<string>,
   now = new Date()
 ): InboxItem | null {
-  if (!payload || typeof payload.notificationId !== 'string' || !payload.notificationId.trim() ||
-      payload.notificationId.length > 512 ||
-      typeof payload.packageName !== 'string' || !SUPPORTED_PACKAGES[payload.packageName] ||
-      typeof payload.title !== 'string' || payload.title.length > 300 ||
-      typeof payload.text !== 'string' || payload.text.length > 4000 ||
-      (!payload.text.trim() && !payload.offer) ||
-      typeof payload.postedAt !== 'string') return null
+  if (!isNativePayloadShape(payload) || typeof payload.postedAt !== 'string') return null
   if (seenNotificationIds.has(payload.notificationId)) return null
   const postedAt = new Date(payload.postedAt)
   if (!Number.isFinite(postedAt.getTime())) return null

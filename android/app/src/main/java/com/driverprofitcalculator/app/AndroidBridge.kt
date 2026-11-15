@@ -7,6 +7,7 @@ import android.provider.Settings
 import android.webkit.JavascriptInterface
 import com.driverprofitcalculator.app.capture.CaptureDiagnostics
 import com.driverprofitcalculator.app.capture.EncryptedNotificationStore
+import com.driverprofitcalculator.app.capture.EventJournal
 import com.driverprofitcalculator.app.capture.NotificationCaptureService
 import com.driverprofitcalculator.app.capture.ProviderPreferences
 import com.driverprofitcalculator.app.capture.ProviderRegistry
@@ -26,11 +27,14 @@ class AndroidBridge(private val activity: MainActivity, private val voice: Nativ
     @JavascriptInterface fun getStatusJson(): String {
         val enabled = JSONArray()
         ProviderPreferences.enabledIds(context).forEach { enabled.put(it) }
+        val store = EncryptedNotificationStore(context)
         return JSONObject().put("isAndroid", true).put("hasNotificationAccess", hasAccess())
             .put("enabledProviders", enabled)
-            .put("serviceConnected", ProviderPreferences.serviceConnected(context))
-            .put("lastReceivedAt", EncryptedNotificationStore(context).lastReceivedAt())
-            .put("queueHealthy", EncryptedNotificationStore(context).isHealthy())
+            // Verified in this process: a persisted flag can outlive the listener it describes.
+            .put("serviceConnected", NotificationCaptureService.listenerConnectedInProcess)
+            .put("queuedEvents", EventJournal(store, CaptureDiagnostics(context)).count())
+            .put("lastReceivedAt", store.lastReceivedAt())
+            .put("queueHealthy", store.isHealthy())
             .put("captureCounters", CaptureDiagnostics(context).snapshotJson()).toString()
     }
     @JavascriptInterface fun getPendingNotificationsJson(): String = EncryptedNotificationStore(context).pendingJson()
