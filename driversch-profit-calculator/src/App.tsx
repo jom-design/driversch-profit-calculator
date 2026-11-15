@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { nativeTripSettingsPayload } from './assistant/nativeSettingsSync'
 import { t, translateMessage, type AppLocale, type TranslationKey } from './lib/i18n'
 import { Activity, Archive, Calculator, CarFront, Check, ChevronDown, Download, FileImage, Gauge, History, LayoutDashboard, Mic, MicOff, RotateCcw, Save, Settings as SettingsIcon, ShieldCheck, Trash2, Upload, Wallet, X } from 'lucide-react'
 import { calculateTrip } from './lib/calculator'
@@ -38,6 +39,7 @@ export default function App() {
   const tr=(key:string)=>t(key as TranslationKey,locale)
   const [theme,setTheme]=useState<'light'|'dark'>(()=>{try{const saved=localStorage.getItem('driver.theme');if(saved==='light'||saved==='dark')return saved;return window.matchMedia?.('(prefers-color-scheme: light)').matches?'light':'dark'}catch{return 'dark'}})
   const [settings,setSettings]=useState<Settings>(DEFAULT_SETTINGS)
+  const [savedSettings,setSavedSettings]=useState<Settings>(DEFAULT_SETTINGS)
   const [trip,setTrip]=useState<TripInput>(EMPTY_TRIP)
   const [trips,setTrips]=useState<SavedTrip[]>([])
   const [inbox,setInbox]=useState<InboxItem[]>([])
@@ -57,12 +59,12 @@ export default function App() {
   useEffect(()=>{document.documentElement.lang=locale;document.documentElement.dir=locale==='ar'?'rtl':'ltr';document.documentElement.dataset.locale=locale;document.title=tr('حاسبة عدالة المشاوير');document.querySelector('meta[name="description"]')?.setAttribute('content',tr('حاسبة مجانية لمساعدة سائقي تطبيقات النقل على حساب صافي ربح الرحلات.'));try{localStorage.setItem('driver.locale',locale)}catch{}},[locale])
   useEffect(()=>{document.documentElement.dataset.theme=theme;document.querySelector('meta[name="theme-color"]')?.setAttribute('content',theme==='light'?'#f3f7fc':'#080e20');try{localStorage.setItem('driver.theme',theme)}catch{}},[theme])
   useEffect(()=>{const bridge=(window as Window & {DriverAndroid?:{setVoiceLanguage?:(tag:string)=>boolean;setSystemTheme?:(theme:string)=>boolean}}).DriverAndroid;bridge?.setVoiceLanguage?.(locale==='ar'?'ar-EG':'en-US');bridge?.setSystemTheme?.(theme)},[locale])
-  useEffect(()=>{(async()=>{setSettings(await getSettings());setTrips(await getTrips())})()},[])
+  useEffect(()=>{(async()=>{const loaded=await getSettings();setSettings(loaded);setSavedSettings(loaded);setTrips(await getTrips())})()},[])
   useEffect(()=>{
     const bridge=(window as Window & {DriverAndroid?:{setTripAnalysisSettings?:(json:string)=>boolean}}).DriverAndroid
-    const activeProvider=trip.app==='Uber'?'uber':trip.app==='DiDi'?'didi':trip.app==='inDrive'?'indrive':'unknown'
-    bridge?.setTripAnalysisSettings?.(JSON.stringify({...settings,activeProvider,fareMode:trip.fareMode}))
-  },[settings,trip.app,trip.fareMode])
+    // Native analysis receives only saved settings; unsaved edits on the settings page never reach it.
+    bridge?.setTripAnalysisSettings?.(nativeTripSettingsPayload(savedSettings,trip.app,trip.fareMode))
+  },[savedSettings,trip.app,trip.fareMode])
   useEffect(()=>{
     let active=true
     void loadInboxItems().then(({items,invalidCount})=>{
@@ -104,7 +106,7 @@ export default function App() {
   }
   const patch=(key:keyof TripInput,value:any)=>setTrip(t=>({...t,[key]:value}))
   const updateSettings=(key:keyof Settings,value:number)=>setSettings(s=>({...s,[key]:value}))
-  const persistSettings=async()=>{await saveSettings(settings);setToast('تم حفظ الإعدادات محليًا')}
+  const persistSettings=async()=>{await saveSettings(settings);setSavedSettings(settings);setToast('تم حفظ الإعدادات محليًا')}
   const loadTemplate=(t:TripInput)=>{setTrip({...t});setPage('calculator')}
   const saveCurrent=async()=> {
     if(trip.totalMinutes<=0 || trip.fare<0 || [trip.pickupKm,trip.passengerKm,trip.returnKm,trip.extraExpenses].some(v=>v<0)){setToast('راجع بيانات الرحلة قبل الحفظ');return}
@@ -170,7 +172,7 @@ export default function App() {
     const {settings:nextSettings,trips:nextTrips,skippedTrips}=checked.value
     if(!confirm(translateMessage(`سيتم استيراد ${nextTrips.length} رحلة واستبدال السجل الحالي. هل تريد المتابعة؟`,locale)))return
     try{
-      await replaceAllData(nextTrips,nextSettings);setTrips(await getTrips());setSettings(await getSettings())
+      await replaceAllData(nextTrips,nextSettings);setTrips(await getTrips());const reloaded=await getSettings();setSettings(reloaded);setSavedSettings(reloaded)
       setToast(skippedTrips?`تم استيراد النسخة. تم تجاهل ${skippedTrips} رحلة تالفة`:'تم استيراد النسخة الاحتياطية')
     }catch{setToast('تعذر حفظ النسخة الاحتياطية على هذا الجهاز')}
   }

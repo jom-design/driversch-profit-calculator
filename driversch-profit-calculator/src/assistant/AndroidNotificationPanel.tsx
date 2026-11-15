@@ -122,6 +122,7 @@ export default function AndroidNotificationPanel({ onImport, locale }: Props) {
       <button type="button" className="subtle-btn" onClick={refresh}><RefreshCw size={15}/> {t('تحديث الحالة', locale)}</button>
     </div>
     {(status?.queuedEvents ?? 0) > 0 && <p className="android-capture-message" role="status">{t('إشعارات بانتظار المعالجة', locale)}: {status?.queuedEvents}</p>}
+    {(status?.captureCounters?.duplicate ?? 0) > 0 && <p className="android-capture-message" role="status">{t('تم تجاهل إشعارات مكررة ولم تُعالج مرتين', locale)}: {status?.captureCounters?.duplicate}</p>}
     {failureTotal(status?.captureCounters) > 0 && <p className="android-capture-message" role="alert">{t('تعذر حفظ أو معالجة بعض الإشعارات. تفاصيل العدادات محفوظة محليًا ولم يُحذف شيء من بيانات الرحلات.', locale)}: {failureTotal(status?.captureCounters)}</p>}
     <div className="android-provider-list">
       {providers.map(provider => <label key={provider.id} className="android-provider">

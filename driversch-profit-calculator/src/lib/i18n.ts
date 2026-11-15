@@ -355,6 +355,11 @@ export const AR_TO_EN = {
   "إشعارات بانتظار المعالجة": "Notifications waiting to be processed",
   "تعذر حفظ أو معالجة بعض الإشعارات. تفاصيل العدادات محفوظة محليًا ولم يُحذف شيء من بيانات الرحلات.": "Some notifications could not be stored or processed. Counter details are kept locally and no trip data was deleted.",
   "غير مُتحقق منه على جهاز حقيقي؛ الالتقاط معطّل افتراضيًا": "Not verified on a real device; capture is off by default",
+  "صافي الربح المقدّر أقل من حدك الأدنى. القرار النهائي بيدك داخل تطبيق السائق.": "Estimated net profit is below your minimum. The final decision is yours in the driver app.",
+  "صافي الربح يحقق حدك، لكن وقت الوصول غير معروف فلا يمكن تقييم العائد بالساعة.": "Net profit meets your minimum, but arrival time is unknown, so hourly return cannot be assessed.",
+  "صافي الربح موجب، لكن العائد بالساعة أقل من هدفك.": "Net profit is positive, but the hourly return is below your target.",
+  "الرحلة تحقق حد صافي الربح وهدف الساعة. القرار النهائي بيدك داخل تطبيق السائق.": "The trip meets your net profit minimum and hourly target. The final decision is yours in the driver app.",
+  "تم تجاهل إشعارات مكررة ولم تُعالج مرتين": "Duplicate notifications were ignored and not processed twice",
 } as const
 export type TranslationKey = keyof typeof AR_TO_EN
 

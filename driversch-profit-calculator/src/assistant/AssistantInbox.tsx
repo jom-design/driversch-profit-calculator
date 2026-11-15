@@ -64,7 +64,7 @@ function NativeAnalysisCard({ analysis, locale }: { analysis: NativeProfitabilit
         {analysis.partialCost !== null && <span>{t('تكلفة جزئية (بدون مسافة العودة)', locale)}<b>{money(analysis.partialCost)}</b></span>}
       </div>
       {missing.length > 0 && <p className="inbox-missing">{t('بيانات ناقصة', locale)}: {missing.map(label => t(label as TranslationKey, locale)).join('، ')}</p>}
-      <p>{analysis.reason}</p>
+      <p>{translateMessage(analysis.reason, locale)}</p>
     </section>
   )
 }
