@@ -150,11 +150,23 @@ class NotificationEventProcessorTest {
     }
 
     @Test
-    fun emptyTextIsRejectedWithoutInventingValues() {
+    fun blankTitleAndTextIsRejectedWithoutInventingValues() {
         val (p, store, c) = processor()
-        assertTrue(p.process(event(text = "   ")) is CaptureOutcome.EmptyPayload)
+        assertTrue(p.process(event(title = "  ", text = "   ")) is CaptureOutcome.EmptyPayload)
         assertTrue(store.saved.isEmpty())
         assertEquals(1, c.get(CaptureCounterNames.EMPTY_PAYLOAD))
+    }
+
+    @Test
+    fun titleOnlyOfferIsStoredAndMissingFieldsStayUnknown() {
+        // SYNTHETIC: the offer content sits only in the title; no pickup distance is present.
+        val (p, store, c) = processor()
+        assertTrue(p.process(event(title = "Ride request: fare 95 EGP", text = "")) is CaptureOutcome.Stored)
+        assertEquals(1, store.saved.size)
+        assertEquals(0, c.get(CaptureCounterNames.EMPTY_PAYLOAD))
+        val offer = store.saved[0].first.offer
+        assertEquals(95.0, offer.fare.value!!, 0.0001)
+        assertEquals(null, offer.pickupDistanceKm.value)
     }
 
     @Test

@@ -144,7 +144,8 @@ class NotificationEventProcessor(
         }
         val title = event.title.trim()
         val text = event.text.trim()
-        if (text.isEmpty()) {
+        // Some offers carry their content only in the title; the parser reads both fields.
+        if (title.isEmpty() && text.isEmpty()) {
             counters.increment(CaptureCounterNames.EMPTY_PAYLOAD)
             return CaptureOutcome.EmptyPayload
         }

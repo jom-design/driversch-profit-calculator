@@ -55,7 +55,7 @@ object NotificationPayloadNormalizer {
         val provider = ProviderRegistry.forPackage(packageName) ?: return null
         val cleanTitle = title.trim().take(300)
         val cleanText = text.trim().take(4000)
-        if (cleanText.isBlank() || !ProviderRegistry.relevant(provider, cleanTitle, cleanText)) return null
+        if ((cleanTitle.isBlank() && cleanText.isBlank()) || !ProviderRegistry.relevant(provider, cleanTitle, cleanText)) return null
         val offer = TripOfferParser.parse(provider, cleanTitle, cleanText)
         val analysis = TripOfferAnalyzer.analyze(offer, analysisConfig)
         return NormalizedNotificationPayload(
