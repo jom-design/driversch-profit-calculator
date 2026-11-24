@@ -7,6 +7,9 @@ import { DEFAULT_SETTINGS, EMPTY_TRIP } from '../../src/types.ts'
 const { getTrips } = await import('../../src/lib/db.ts')
 const DB_NAME = 'driver-profit-calculator'
 
+// Ensure the production module completes its schema upgrade before this test seeds rows.
+await getTrips()
+
 const legacyTrip = {
   ...EMPTY_TRIP,
   id: 'legacy-valid',
