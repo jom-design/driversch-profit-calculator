@@ -93,7 +93,7 @@ object TripOfferAnalyzer {
             ?: config.fareModes[offer.providerId] ?: FareMode.UNKNOWN
         if (fareMode == FareMode.UNKNOWN) missing += "fareMode"
         val commission = config.commissionRates[offer.providerId]
-        val commissionUsable = commission != null && commission > 0.0
+        val commissionUsable = commission != null && commission.isFinite() && commission > 0.0 && commission < 100.0
         // The commission only converts a gross fare to net. A net fare does not need it.
         if (fareMode == FareMode.GROSS && !commissionUsable) missing += "commission"
 
