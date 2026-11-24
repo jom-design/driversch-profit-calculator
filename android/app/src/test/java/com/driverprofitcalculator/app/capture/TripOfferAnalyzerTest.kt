@@ -142,6 +142,18 @@ class TripOfferAnalyzerTest {
         assertNull(result.netProfit)
     }
 
+    @Test fun `gross fare rejects 100 percent, over-range and non-finite commission rates`() {
+        listOf(100.0, 101.0, Double.POSITIVE_INFINITY, Double.NaN).forEach { rate ->
+            val result = TripOfferAnalyzer.analyze(
+                offer(fareMode = FareMode.GROSS),
+                config(commission = rate, fareMode = FareMode.GROSS),
+            )
+            assertEquals(OfferRecommendation.INSUFFICIENT_DATA, result.recommendation)
+            assertTrue("commission" in result.missingFields)
+            assertNull(result.netProfit)
+        }
+    }
+
     @Test fun `net fare does not need a commission`() {
         val result = TripOfferAnalyzer.analyze(offer(fareMode = FareMode.NET), config(commission = 0.0))
         assertEquals(OfferRecommendation.ACCEPT, result.recommendation)
