@@ -48,7 +48,7 @@ interface CaptureStore {
     fun seenFingerprint(notificationId: String): String?
     /** Persists a new or changed offer and records its fingerprint. */
     fun save(payload: NormalizedNotificationPayload, fingerprint: String, isUpdate: Boolean): Boolean
-    /** Records a removal: drops the pending offer and remembers the removal. */
+    /** Records that the tray notification disappeared without deleting the captured offer awaiting user review. */
     fun markRemoved(notificationId: String, reason: Int?): Boolean
 }
 
