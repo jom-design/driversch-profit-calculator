@@ -64,8 +64,7 @@ export async function readTripImage(file: File, onProgress?: (p: number) => void
       fareText = firstMatch(rawText, [/(?:الأجرة|السعر|المبلغ)[^\d]{0,20}([\d٠-٩۰-۹.,]+)/i])
     }
     const fare = fareText ? parseLocalizedNumber(fareText) : null
-    const distances = [...rawText.matchAll(/[\d٠-٩۰-۹.,]+\s*(?:متر|م\b|كم|كلم|كيلومتر|km\b)/gi)]
-      .map(m => parseDistance(m[0])).filter((n): n is number => n !== null)
+    const distances = extractOcrDistances(rawText)
     const totalMinutes = parseDuration(rawText)
     const warnings: string[] = []
     if (fare === null) warnings.push('لم أتمكن من تحديد الأجرة بشكل موثوق؛ أدخلها يدويًا.')
