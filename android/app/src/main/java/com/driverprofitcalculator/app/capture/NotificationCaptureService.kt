@@ -32,7 +32,7 @@ class NotificationCaptureService : NotificationListenerService() {
     private val diagnostics by lazy { CaptureDiagnostics(this) }
     private val store by lazy { EncryptedNotificationStore(this) }
     private val journal by lazy { EventJournal(store, diagnostics) }
-    private val announcer by lazy { BackgroundOfferAnnouncer(this) }
+    private var announcer: BackgroundOfferAnnouncer? = null
     private val processor by lazy {
         NotificationEventProcessor(
             store = store,
@@ -62,7 +62,8 @@ class NotificationCaptureService : NotificationListenerService() {
 
     override fun onDestroy() {
         listenerConnectedInProcess = false
-        if (BackgroundOfferAnnouncer.enabled(this)) announcer.shutdown()
+        announcer?.shutdown()
+        announcer = null
         super.onDestroy()
     }
 
@@ -123,7 +124,8 @@ class NotificationCaptureService : NotificationListenerService() {
                     array.optJSONObject(index)?.takeIf { it.optString("notificationId") == outcome.notificationId }
                 }
             } catch (_: Exception) { null }
-            if (payload != null) announcer.announce(outcome.notificationId, payload)
+            if (payload != null) (announcer ?: BackgroundOfferAnnouncer(this).also { announcer = it })
+                .announce(outcome.notificationId, payload)
         }
         return outcome
     }
