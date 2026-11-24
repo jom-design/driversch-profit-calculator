@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import { openDB } from 'idb'
 import { DEFAULT_SETTINGS, EMPTY_TRIP } from '../../src/types.ts'
 
-const { getTrips } = await import('../../src/lib/db.ts')
+const { getTrips, saveTrip, replaceAllData } = await import('../../src/lib/db.ts')
 const DB_NAME = 'driver-profit-calculator'
 
 // Ensure the production module completes its schema upgrade before this test seeds rows.
@@ -58,4 +58,29 @@ test('new stored trips with a calculation settings snapshot are recalculated and
   const trips = await getTrips()
   assert.ok(trips.some(trip => trip.id === 'snapshot-valid'))
   assert.ok(!trips.some(trip => trip.id === 'snapshot-forged'))
+})
+
+test('invalid direct writes and imports are rejected without replacing existing history', async () => {
+  const db = await openDB(DB_NAME, 1)
+  await db.put('trips', legacyTrip)
+  await db.close()
+
+  await assert.rejects(
+    saveTrip({ ...legacyTrip, id: 'direct-invalid', netProfit: 999999 }),
+    /بيانات الرحلة غير صالحة/
+  )
+  await assert.rejects(
+    replaceAllData([{ ...legacyTrip, id: 'import-invalid', fare: Number.NaN }], DEFAULT_SETTINGS),
+    /رحلة غير صالحة/
+  )
+  await assert.rejects(
+    replaceAllData([legacyTrip], { ...DEFAULT_SETTINGS, fuelPrice: Number.NaN }),
+    /ليست رقمًا صحيحًا/
+  )
+
+  const verify = await openDB(DB_NAME, 1)
+  assert.ok(await verify.get('trips', 'legacy-valid'), 'failed imports must leave previous history untouched')
+  assert.equal(await verify.get('trips', 'direct-invalid'), undefined)
+  assert.equal(await verify.get('trips', 'import-invalid'), undefined)
+  await verify.close()
 })
