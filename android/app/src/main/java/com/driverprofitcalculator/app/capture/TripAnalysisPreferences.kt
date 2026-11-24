@@ -56,6 +56,7 @@ class TripAnalysisPreferences(context: Context) {
             )
             if (listOf(calcSettings.fuelPrice, calcSettings.consumptionPer100, calcSettings.maintenancePerKm, calcSettings.minNetProfit, calcSettings.hourlyTarget).any { !it.isFinite() || it < 0.0 }) return null
             val commissionRates = mapOf("uber" to rates.getDouble("uber"), "didi" to rates.getDouble("didi"), "indrive" to rates.getDouble("indrive"))
+            if (commissionRates.values.any { !it.isFinite() || it !in 0.0..100.0 }) return null
             val fareModes = mutableMapOf<String, FareMode>()
             listOf("uber", "didi", "indrive").forEach { id ->
                 fareModes[id] = when (modes.optString(id)) {
