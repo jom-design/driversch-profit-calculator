@@ -13,7 +13,7 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 /**
- * Encrypted, short-lived handoff store for captured offers.
+ * Encrypted, short-lived handoff store for captured offers. A tray removal never deletes an unreviewed offer.
  *
  * State (encrypted at rest with an Android Keystore AES-GCM key):
  *  - pending: offers waiting for the analysis/announcement stage (bounded, expire after 6 h)
@@ -53,12 +53,10 @@ class EncryptedNotificationStore(context: Context) : CaptureStore, JournalBacken
         val state = load()
         val fingerprint = findSeen(state.optJSONArray("seen"), notificationId)?.optString("fp") ?: return@synchronized true
         val old = state.optJSONArray("pending") ?: JSONArray()
-        val pending = JSONArray()
-        for (i in 0 until old.length()) {
-            val item = old.optJSONObject(i) ?: continue
-            if (item.optString("notificationId") != notificationId && !expired(item)) pending.put(item)
-        }
-        state.put("pending", pending)
+        // A notification disappearing from the shade does not mean the driver has reviewed the offer.
+        // Android reports removal when the user taps an auto-cancel notification too. Keep every live
+        // captured offer until the app imports and acknowledges it, or the six-hour TTL expires.
+        state.put("pending", PendingNotificationRemoval.preserveCapturedOffer(old, notificationId, ::expired))
         state.put("seen", upsertSeen(state.optJSONArray("seen"), notificationId, fingerprint, removed = true))
         write(state)
     }
