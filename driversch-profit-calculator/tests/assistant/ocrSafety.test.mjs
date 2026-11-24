@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { extractOcrDistances } from '../../src/lib/ocr.ts'
+import { extractOcrDistances, extractOcrTripDuration } from '../../src/lib/ocr.ts'
 import { parseDistance, parseDuration } from '../../src/lib/numberParser.ts'
 
 test('OCR extracts pickup and passenger distances only from explicit labels', () => {
@@ -37,4 +37,10 @@ test('kilometres stay kilometres and meter abbreviations are not mistaken for mi
   assert.equal(parseDuration('750 m'), null)
   assert.equal(parseDuration('18 km'), null)
   assert.equal(parseDuration('35 min'), 35)
+})
+
+test('OCR does not confuse pickup ETA with passenger trip duration', () => {
+  assert.equal(extractOcrTripDuration('Pickup time: 6 min\nTrip duration: 25 min'), 25)
+  assert.equal(extractOcrTripDuration('وقت الوصول للراكب: ٦ دقائق'), null)
+  assert.equal(extractOcrTripDuration('مدة الرحلة: ٤٠ دقيقة'), 40)
 })
