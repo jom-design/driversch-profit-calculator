@@ -17,7 +17,6 @@ class BackgroundOfferAnnouncer(context: Context) : TextToSpeech.OnInitListener {
     private var ready = false
     private var initFinished = false
     private var pending: Pair<String, String>? = null
-    private var lastSpokenAt = 0L
 
     init {
         main.post { engine = TextToSpeech(appContext, this) }
@@ -25,14 +24,14 @@ class BackgroundOfferAnnouncer(context: Context) : TextToSpeech.OnInitListener {
 
     fun announce(notificationId: String, payload: JSONObject) {
         if (!enabled(appContext) || notificationId.isBlank()) return
+        val announcementKey = notificationId + ":" + payload.optString("capturedAt")
         val lastId = prefs.getString(KEY_LAST_ID, null)
-        if (lastId == notificationId) return
+        if (lastId == announcementKey) return
         val text = BackgroundOfferSpeech.build(payload) ?: return
         main.post {
-            if (!enabled(appContext) || prefs.getString(KEY_LAST_ID, null) == notificationId) return@post
+            if (!enabled(appContext) || prefs.getString(KEY_LAST_ID, null) == announcementKey) return@post
             val now = System.currentTimeMillis()
-            if (now - lastSpokenAt < MIN_INTERVAL_MS) return@post
-            if (ready) speak(notificationId, text) else if (!initFinished) pending = notificationId to text
+            if (ready) speak(announcementKey, text) else if (!initFinished) pending = announcementKey to text
         }
     }
 
@@ -55,11 +54,9 @@ class BackgroundOfferAnnouncer(context: Context) : TextToSpeech.OnInitListener {
     }
 
     private fun speak(id: String, text: String) {
-        val now = System.currentTimeMillis()
-        if (!enabled(appContext) || now - lastSpokenAt < MIN_INTERVAL_MS) return
+        if (!enabled(appContext)) return
         // Persist the deduplication marker before handing text to the platform TTS engine.
         if (!prefs.edit().putString(KEY_LAST_ID, id).commit()) return
-        lastSpokenAt = now
         engine?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "offer-" + id.hashCode())
     }
 
@@ -77,7 +74,6 @@ class BackgroundOfferAnnouncer(context: Context) : TextToSpeech.OnInitListener {
         private const val PREFERENCES = "background_offer_announcements"
         private const val KEY_ENABLED = "enabled"
         private const val KEY_LAST_ID = "last_announced_id"
-        private const val MIN_INTERVAL_MS = 8_000L
 
         fun enabled(context: Context): Boolean =
             context.applicationContext.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE).getBoolean(KEY_ENABLED, false)
