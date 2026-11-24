@@ -26,7 +26,7 @@ export function parseDuration(text: string): number | null {
   let total = 0
   let found = false
   const hours = s.match(/([\d.,]+)\s*(?:ساعات|ساعة|س(?=[\s،,]|$)|سا|h\b|hr\b)/i)
-  const mins = s.match(/([\d.,]+)\s*(?:دقائق|دقيقة|د(?=[\s،,]|$)|دق|m\b|min\b)/i)
+  const mins = s.match(/([\d.,]+)\s*(?:دقائق|دقيقة|د(?=[\s،,]|$)|دق|min\b)/i)
   if (hours) { total += (parseLocalizedNumber(hours[1]) || 0) * 60; found = true }
   if (mins) { total += parseLocalizedNumber(mins[1]) || 0; found = true }
   if (!found) {
