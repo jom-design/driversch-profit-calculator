@@ -30,10 +30,10 @@ export function extractOcrDistances(text: string): { pickupKm: number | null; pa
   }
   return {
     pickupKm: distance([
-      /(?:مسافة\\s+(?:الوصول|الاستلام)|المسافة\\s+إلى\\s+الراكب|pickup(?:\\s+distance)?|to\\s+pickup)\\s*[:：-]?\\s*([\\d.,]+\\s*(?:متر|م\\b|كم|كلم|كيلومتر|km\\b))/i
+      /(?:مسافة\s+(?:الوصول|الاستلام)|المسافة\s+إلى\s+الراكب|pickup(?:\s+distance)?|to\s+pickup)\s*[:：-]?\s*([\d.,]+\s*(?:متر|م\b|كم|كلم|كيلومتر|km\b))/i
     ]),
     passengerKm: distance([
-      /(?:مسافة\\s+(?:الرحلة|الركاب)|المسافة\\s+بالراكب|trip\\s+distance|passenger\\s+distance)\\s*[:：-]?\\s*([\\d.,]+\\s*(?:متر|م\\b|كم|كلم|كيلومتر|km\\b))/i
+      /(?:مسافة\s+(?:الرحلة|الركاب)|المسافة\s+بالراكب|trip\s+distance|passenger\s+distance)\s*[:：-]?\s*([\d.,]+\s*(?:متر|م\b|كم|كلم|كيلومتر|km\b))/i
     ])
   }
 }
