@@ -210,3 +210,23 @@ internal object PendingNotificationAcknowledger {
         return Result(found, next)
     }
 }
+
+
+/**
+ * A tray removal is not a user acknowledgement. Keep the captured item available for manual review;
+ * only expired entries may be pruned while recording the removal event.
+ */
+internal object PendingNotificationRemoval {
+    fun preserveCapturedOffer(
+        source: JSONArray,
+        notificationId: String,
+        isExpired: (JSONObject) -> Boolean,
+    ): JSONArray {
+        val next = JSONArray()
+        for (i in 0 until source.length()) {
+            val item = source.optJSONObject(i) ?: continue
+            if (!isExpired(item)) next.put(item)
+        }
+        return next
+    }
+}
