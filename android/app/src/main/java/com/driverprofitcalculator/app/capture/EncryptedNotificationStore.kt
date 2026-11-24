@@ -56,7 +56,7 @@ class EncryptedNotificationStore(context: Context) : CaptureStore, JournalBacken
         // A notification disappearing from the shade does not mean the driver has reviewed the offer.
         // Android reports removal when the user taps an auto-cancel notification too. Keep every live
         // captured offer until the app imports and acknowledges it, or the six-hour TTL expires.
-        state.put("pending", PendingNotificationRemoval.preserveCapturedOffer(old, notificationId, ::expired))
+        state.put("pending", PendingNotificationRemoval.preserveCapturedOffer(old, ::expired))
         state.put("seen", upsertSeen(state.optJSONArray("seen"), notificationId, fingerprint, removed = true))
         write(state)
     }
@@ -219,7 +219,6 @@ internal object PendingNotificationAcknowledger {
 internal object PendingNotificationRemoval {
     fun preserveCapturedOffer(
         source: JSONArray,
-        notificationId: String,
         isExpired: (JSONObject) -> Boolean,
     ): JSONArray {
         val next = JSONArray()
