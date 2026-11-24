@@ -16,6 +16,8 @@ class NotificationCaptureService : NotificationListenerService() {
 
     companion object {
         private const val MAX_ANNOUNCEMENT_AGE_MS = 120_000L
+        @Volatile private var activeAnnouncer: BackgroundOfferAnnouncer? = null
+        fun stopBackgroundAnnouncements() { activeAnnouncer?.stop() }
         /** Shared by all service instances so posted and removed events keep their order. */
         private val worker: ExecutorService = Executors.newSingleThreadExecutor { task ->
             Thread(task, "notification-capture").apply { isDaemon = true }
@@ -64,6 +66,7 @@ class NotificationCaptureService : NotificationListenerService() {
     override fun onDestroy() {
         listenerConnectedInProcess = false
         announcer?.shutdown()
+        if (activeAnnouncer === announcer) activeAnnouncer = null
         announcer = null
         super.onDestroy()
     }
@@ -127,8 +130,13 @@ class NotificationCaptureService : NotificationListenerService() {
                     array.optJSONObject(index)?.takeIf { it.optString("notificationId") == outcome.notificationId }
                 }
             } catch (_: Exception) { null }
-            if (payload != null) (announcer ?: BackgroundOfferAnnouncer(this).also { announcer = it })
-                .announce(outcome.notificationId, payload)
+            if (payload != null) {
+                val speaker = announcer ?: BackgroundOfferAnnouncer(this).also {
+                    announcer = it
+                    activeAnnouncer = it
+                }
+                speaker.announce(outcome.notificationId, payload)
+            }
         }
         return outcome
     }
