@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { nativeTripSettingsPayload } from './assistant/nativeSettingsSync'
 import { t, translateMessage, type AppLocale, type TranslationKey } from './lib/i18n'
 import { Activity, Archive, Calculator, CarFront, Check, ChevronDown, Download, FileImage, Gauge, History, LayoutDashboard, Mic, MicOff, RotateCcw, Save, Settings as SettingsIcon, ShieldCheck, Trash2, Upload, Wallet, X } from 'lucide-react'
-import { calculateTrip } from './lib/calculator'
+import { calculateTrip, isSavableTripInput } from './lib/calculator'
 import NumericInput from './components/NumericInput'
 import { normalizeBackup } from './lib/backupImport'
 import AssistantInbox from './assistant/AssistantInbox'
@@ -109,8 +109,7 @@ export default function App() {
   const persistSettings=async()=>{await saveSettings(settings);setSavedSettings(settings);setToast('تم حفظ الإعدادات محليًا')}
   const loadTemplate=(t:TripInput)=>{setTrip({...t});setPage('calculator')}
   const saveCurrent=async()=> {
-    if(trip.totalMinutes<=0 || trip.fare<0 || [trip.pickupKm,trip.passengerKm,trip.returnKm,trip.extraExpenses].some(v=>v<0)){setToast('راجع بيانات الرحلة قبل الحفظ');return}
-    if(trip.fareMode==='unknown'){setToast('حدد هل الأجرة صافية أم إجمالية أولًا');return}
+    if(!isSavableTripInput(trip,settings)){setToast('راجع بيانات الرحلة والإعدادات؛ لا يمكن حفظ مدخلات ناقصة أو غير صالحة.');return}
     const saved:SavedTrip={...trip,...result,calculationSettings:{...settings,commission:{...settings.commission}},id:crypto.randomUUID(),createdAt:new Date().toISOString()}
     await saveTrip(saved);setTrips(await getTrips());setToast('تم حفظ الرحلة على جهازك')
   }
