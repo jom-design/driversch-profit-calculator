@@ -30,7 +30,6 @@ class BackgroundOfferAnnouncer(context: Context) : TextToSpeech.OnInitListener {
         val text = BackgroundOfferSpeech.build(payload) ?: return
         main.post {
             if (!enabled(appContext) || prefs.getString(KEY_LAST_ID, null) == announcementKey) return@post
-            val now = System.currentTimeMillis()
             if (ready) speak(announcementKey, text) else if (!initFinished) pending = announcementKey to text
         }
     }
