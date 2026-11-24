@@ -16,6 +16,7 @@ interface NativeBridge {
   stopSpeechRecognition: () => boolean
   speakText: (text: string) => boolean
   stopSpeaking: () => boolean
+  setBackgroundAnnouncementsEnabled: (enabled: boolean) => boolean
 }
 declare global {
   interface Window { DriverAndroid?: NativeBridge }
@@ -27,6 +28,7 @@ interface Status {
   enabledProviders: string[]
   lastReceivedAt: string
   queueHealthy: boolean
+  backgroundAnnouncementsEnabled?: boolean
   /** Events journaled and waiting for processing. */
   queuedEvents?: number
   /** Aggregate counters from the native capture service. Names match CaptureCounterNames. */
@@ -161,6 +163,17 @@ export default function AndroidNotificationPanel({ onImport, locale }: Props) {
     {(status?.queuedEvents ?? 0) > 0 && <p className="android-capture-message" role="status">{t('إشعارات بانتظار المعالجة', locale)}: {status?.queuedEvents}</p>}
     {(status?.captureCounters?.duplicate ?? 0) > 0 && <p className="android-capture-message" role="status">{t('تم تجاهل إشعارات مكررة ولم تُعالج مرتين', locale)}: {status?.captureCounters?.duplicate}</p>}
     {failureTotal(status?.captureCounters) > 0 && <p className="android-capture-message" role="alert">{t('تعذر حفظ أو معالجة بعض الإشعارات. تفاصيل العدادات محفوظة محليًا ولم يُحذف شيء من بيانات الرحلات.', locale)}: {failureTotal(status?.captureCounters)}</p>}
+    <label className="android-provider android-announcement-toggle">
+      <span><strong>{t('نطق عروض الرحلات في الخلفية', locale)}</strong><small className="android-provider-note"> {t('يقرأ الأجرة والمسافات والأوقات المتاحة فقط. لا يصدر قرار قبول أو رفض، والإعداد مغلق افتراضيًا.', locale)}</small></span>
+      <input type="checkbox" checked={status?.backgroundAnnouncementsEnabled ?? false}
+        onChange={event => {
+          if (!bridge.setBackgroundAnnouncementsEnabled(event.target.checked)) {
+            setMessage('تعذر حفظ إعداد التطبيق على هذا الجهاز.' as TranslationKey)
+            return
+          }
+          refresh()
+        }} />
+    </label>
     <div className="android-provider-list">
       {providers.map(provider => <label key={provider.id} className="android-provider">
         <span>{provider.label}{provider.id === 'didi' && <small className="android-provider-note"> {t('غير مُتحقق منه على جهاز حقيقي؛ الالتقاط معطّل افتراضيًا', locale)}</small>}</span>
