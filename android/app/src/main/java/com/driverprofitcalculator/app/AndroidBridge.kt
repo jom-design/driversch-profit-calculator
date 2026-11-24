@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.provider.Settings
 import android.webkit.JavascriptInterface
+import com.driverprofitcalculator.app.capture.BackgroundOfferAnnouncer
 import com.driverprofitcalculator.app.capture.CaptureDiagnostics
 import com.driverprofitcalculator.app.capture.EncryptedNotificationStore
 import com.driverprofitcalculator.app.capture.EventJournal
@@ -35,6 +36,7 @@ class AndroidBridge(private val activity: MainActivity, private val voice: Nativ
             .put("queuedEvents", EventJournal(store, CaptureDiagnostics(context)).count())
             .put("lastReceivedAt", store.lastReceivedAt())
             .put("queueHealthy", store.isHealthy())
+            .put("backgroundAnnouncementsEnabled", BackgroundOfferAnnouncer.enabled(context))
             .put("captureCounters", CaptureDiagnostics(context).snapshotJson()).toString()
     }
     @JavascriptInterface fun getPendingNotificationsJson(): String = EncryptedNotificationStore(context).pendingJson()
@@ -43,6 +45,8 @@ class AndroidBridge(private val activity: MainActivity, private val voice: Nativ
         TripAnalysisPreferences(context).saveFromJson(json)
     @JavascriptInterface fun setProviderEnabled(id: String, enabled: Boolean): Boolean =
         ProviderPreferences.setEnabled(context, id, enabled)
+    @JavascriptInterface fun setBackgroundAnnouncementsEnabled(enabled: Boolean): Boolean =
+        BackgroundOfferAnnouncer.setEnabled(context, enabled)
     @JavascriptInterface fun openNotificationAccessSettings(): Boolean = try {
         context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         true
