@@ -72,6 +72,26 @@ test('stored optional defaults stay null when unset, and invalid stored values b
   assert.equal(mergeStoredSettings({ defaultExtraExpenses: Number.NaN }).defaultExtraExpenses, null)
 })
 
+test('corrupted persisted numeric settings and commission rates fall back to safe defaults', () => {
+  const merged = mergeStoredSettings({
+    fuelPrice: Number.NaN,
+    consumptionPer100: '10',
+    maintenancePerKm: -1,
+    minNetProfit: Number.POSITIVE_INFINITY,
+    hourlyTarget: 90,
+    commission: { Uber: 120, DiDi: Number.NaN, inDrive: 15, 'أخرى': -1 }
+  })
+  assert.equal(merged.fuelPrice, DEFAULT_SETTINGS.fuelPrice)
+  assert.equal(merged.consumptionPer100, DEFAULT_SETTINGS.consumptionPer100)
+  assert.equal(merged.maintenancePerKm, DEFAULT_SETTINGS.maintenancePerKm)
+  assert.equal(merged.minNetProfit, DEFAULT_SETTINGS.minNetProfit)
+  assert.equal(merged.hourlyTarget, 90)
+  assert.equal(merged.commission.Uber, DEFAULT_SETTINGS.commission.Uber)
+  assert.equal(merged.commission.DiDi, DEFAULT_SETTINGS.commission.DiDi)
+  assert.equal(merged.commission.inDrive, 15)
+  assert.equal(merged.commission['أخرى'], DEFAULT_SETTINGS.commission['أخرى'])
+})
+
 test('an explicit zero stored default is kept as zero, not treated as unset', () => {
   assert.equal(mergeStoredSettings({ defaultReturnKm: 0 }).defaultReturnKm, 0)
   assert.equal(mergeStoredSettings({ defaultExtraExpenses: 0 }).defaultExtraExpenses, 0)
