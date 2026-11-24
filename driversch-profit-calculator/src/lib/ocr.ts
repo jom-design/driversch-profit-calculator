@@ -37,6 +37,17 @@ export function extractOcrDistances(text: string): { pickupKm: number | null; pa
     ])
   }
 }
+/**
+ * Pickup ETA and passenger-trip duration are different financial inputs.
+ * OCR only fills trip duration when the screenshot labels it explicitly.
+ */
+export function extractOcrTripDuration(text: string): number | null {
+  const normalized = normalizeDigits(text)
+  const value = firstMatch(normalized, [
+    /(?:مدة\\s+الرحلة|وقت\\s+الرحلة|trip\\s+duration|estimated\\s+trip\\s+time|duration)\\s*[:：-]?\\s*([\\d.,]+\\s*(?:ساعة|ساعات|دقيقة|دقائق|دق|min\\b|hr\\b|h\\b))/i
+  ])
+  return value ? parseDuration(value) : null
+}
 export async function readTripImage(file: File, onProgress?: (p: number) => void): Promise<OcrDraft> {
   const worker = await createWorker('ara+eng', 1, {
     logger: m => { if (m.status === 'recognizing text') onProgress?.(Math.round(m.progress * 100)) }
@@ -65,7 +76,7 @@ export async function readTripImage(file: File, onProgress?: (p: number) => void
     }
     const fare = fareText ? parseLocalizedNumber(fareText) : null
     const distances = extractOcrDistances(rawText)
-    const totalMinutes = parseDuration(rawText)
+    const totalMinutes = extractOcrTripDuration(rawText)
     const warnings: string[] = []
     if (fare === null) warnings.push('لم أتمكن من تحديد الأجرة بشكل موثوق؛ أدخلها يدويًا.')
     if (app === 'inDrive' && fare !== null) warnings.push('تأكد أن المبلغ هو الموجود بجوار «القبول مقابل» وليس أحد أزرار الاقتراح.')
