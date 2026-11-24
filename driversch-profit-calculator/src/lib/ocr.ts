@@ -1,5 +1,5 @@
 import { createWorker } from 'tesseract.js'
-import { normalizeDigits, parseLocalizedNumber, parseDistance, parseDuration } from './numberParser'
+import { normalizeDigits, parseLocalizedNumber, parseDistance, parseDuration } from './numberParser.ts'
 import type { AppName, FareMode } from '../types'
 
 export interface OcrDraft {
