@@ -5,14 +5,14 @@ import { validateNativeAnalysis } from './nativeAnalysis.ts'
 
 /**
  * Native payloads no longer carry the raw notification title or text once analysed. The native side
- * keeps them in memory only, so `title` and `text` can be empty when `offer` is present.
+ * keeps them in memory only and omits them from persisted JSON; normalized `offer` fields are sufficient.
  */
 export interface NativeNotificationPayload {
   notificationId: string
   packageName: string
   appLabel?: string
-  title: string
-  text: string
+  title?: string
+  text?: string
   postedAt: string
   capturedAt?: string
   offer?: {
@@ -51,12 +51,14 @@ const isSupportedPackage = (name: unknown): name is string =>
 export function isNativePayloadShape(value: unknown): value is NativeNotificationPayload {
   if (!value || typeof value !== 'object') return false
   const payload = value as Partial<NativeNotificationPayload>
+  const hasOffer = !!payload.offer && typeof payload.offer === 'object' && !Array.isArray(payload.offer)
+  const titleValid = payload.title === undefined ? hasOffer : typeof payload.title === 'string' && payload.title.length <= 300
+  const textValid = payload.text === undefined ? hasOffer : typeof payload.text === 'string' && payload.text.length <= 4000
   return typeof payload.notificationId === 'string' && payload.notificationId.trim().length > 0 &&
     payload.notificationId.length <= 512 &&
     isSupportedPackage(payload.packageName) &&
-    typeof payload.title === 'string' && payload.title.length <= 300 &&
-    typeof payload.text === 'string' && payload.text.length <= 4000 &&
-    (payload.text.trim().length > 0 || payload.offer !== undefined) &&
+    titleValid && textValid &&
+    ((typeof payload.text === 'string' && payload.text.trim().length > 0) || hasOffer) &&
     typeof payload.postedAt === 'string' && Number.isFinite(new Date(payload.postedAt).getTime())
 }
 
