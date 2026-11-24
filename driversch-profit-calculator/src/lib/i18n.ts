@@ -377,6 +377,8 @@ export const AR_TO_EN = {
   "صافي الربح موجب، لكن العائد بالساعة أقل من هدفك.": "Net profit is positive, but the hourly return is below your target.",
   "الرحلة تحقق حد صافي الربح وهدف الساعة. القرار النهائي بيدك داخل تطبيق السائق.": "The trip meets your net profit minimum and hourly target. The final decision is yours in the driver app.",
   "تم تجاهل إشعارات مكررة ولم تُعالج مرتين": "Duplicate notifications were ignored and not processed twice",
+  "نطق عروض الرحلات في الخلفية": "Speak ride offers in the background",
+  "يقرأ الأجرة والمسافات والأوقات المتاحة فقط. لا يصدر قرار قبول أو رفض، والإعداد مغلق افتراضيًا.": "Reads only the available fare, distances and times. It never recommends accepting or rejecting; this setting is off by default.",
 } as const
 export type TranslationKey = keyof typeof AR_TO_EN
 
