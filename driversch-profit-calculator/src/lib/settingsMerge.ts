@@ -17,8 +17,8 @@ function sanitizeCommission(value: unknown, fallback: number): number {
  * browser storage and older app versions without silently treating malformed values as zero.
  */
 export function mergeStoredSettings(stored: Partial<Settings> | undefined | null): Settings {
-  const source = stored && typeof stored === 'object' ? stored : {}
-  const storedCommission = source.commission && typeof source.commission === 'object' && !Array.isArray(source.commission)
+  const source: Partial<Settings> = stored && typeof stored === 'object' ? stored : {}
+  const storedCommission: Partial<Settings['commission']> = source.commission && typeof source.commission === 'object' && !Array.isArray(source.commission)
     ? source.commission
     : {}
   const commission = { ...DEFAULT_SETTINGS.commission }
