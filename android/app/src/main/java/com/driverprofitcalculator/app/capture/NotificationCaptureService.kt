@@ -32,6 +32,7 @@ class NotificationCaptureService : NotificationListenerService() {
     private val diagnostics by lazy { CaptureDiagnostics(this) }
     private val store by lazy { EncryptedNotificationStore(this) }
     private val journal by lazy { EventJournal(store, diagnostics) }
+    private val announcer by lazy { BackgroundOfferAnnouncer(this) }
     private val processor by lazy {
         NotificationEventProcessor(
             store = store,
@@ -61,6 +62,7 @@ class NotificationCaptureService : NotificationListenerService() {
 
     override fun onDestroy() {
         listenerConnectedInProcess = false
+        if (BackgroundOfferAnnouncer.enabled(this)) announcer.shutdown()
         super.onDestroy()
     }
 
@@ -102,7 +104,7 @@ class NotificationCaptureService : NotificationListenerService() {
     private fun drain() {
         drainJournal(journal) { event ->
             try {
-                processor.process(event)
+                processAndAnnounce(event)
             } catch (_: Exception) {
                 // Counted without the message: exception text may contain notification content.
                 diagnostics.increment(CaptureCounterNames.PROCESSING_EXCEPTION)
@@ -111,9 +113,24 @@ class NotificationCaptureService : NotificationListenerService() {
         }
     }
 
+    private fun processAndAnnounce(event: RawNotificationEvent): CaptureOutcome {
+        val outcome = processor.process(event)
+        if (event.kind == CaptureEventKind.POSTED && outcome is CaptureOutcome.Stored &&
+            BackgroundOfferAnnouncer.enabled(this)) {
+            val payload = try {
+                val array = org.json.JSONArray(store.pendingJson())
+                (0 until array.length()).firstNotNullOfOrNull { index ->
+                    array.optJSONObject(index)?.takeIf { it.optString("notificationId") == outcome.notificationId }
+                }
+            } catch (_: Exception) { null }
+            if (payload != null) announcer.announce(outcome.notificationId, payload)
+        }
+        return outcome
+    }
+
     private fun processSafely(event: RawNotificationEvent) {
         try {
-            processor.process(event)
+            processAndAnnounce(event)
         } catch (_: Exception) {
             diagnostics.increment(CaptureCounterNames.PROCESSING_EXCEPTION)
         }
