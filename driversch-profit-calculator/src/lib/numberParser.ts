@@ -18,7 +18,8 @@ export function parseDistance(text: string): number | null {
   if (!m) return null
   const n = parseLocalizedNumber(m[1])
   if (n === null) return null
-  return /متر|م\b|m\b/i.test(m[2]) ? n / 1000 : n
+  const unit = m[2].toLowerCase()
+  return /^(?:متر|م|m)$/.test(unit) ? n / 1000 : n
 }
 export function parseDuration(text: string): number | null {
   const s = normalizeDigits(text.toLowerCase())
