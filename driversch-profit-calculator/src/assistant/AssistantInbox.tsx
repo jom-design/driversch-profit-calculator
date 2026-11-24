@@ -235,7 +235,6 @@ export default function AssistantInbox({ items, onChange, onTransfer, locale }: 
           </div>}
       </div>
     </div>
-    <div className="inbox-native-note"><ShieldAlert size={17}/><p><strong>{t('تكامل Android لاحقًا:', locale)}</strong> {t('استقبال الإشعارات يتطلب تطبيقًا أصليًا يستخدم NotificationListenerService بعد موافقة المستخدم. صفحة الويب لا تقرأ إشعارات Uber أو DiDi أو inDrive بنفسها.', locale)}</p></div>
   </section>
 }
 
