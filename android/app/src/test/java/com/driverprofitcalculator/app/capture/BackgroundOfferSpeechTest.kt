@@ -43,7 +43,7 @@ class BackgroundOfferSpeechTest {
         val payload = JSONObject().put("offer", JSONObject()
             .put("provider", "indrive")
             .put("fare", field(-1))
-            .put("distanceKm", field(Double.NaN)))
+            .put("distanceKm", field("NaN")))
         assertNull(BackgroundOfferSpeech.build(payload))
     }
 }
