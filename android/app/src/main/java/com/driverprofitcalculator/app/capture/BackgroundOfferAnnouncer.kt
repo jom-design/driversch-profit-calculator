@@ -59,6 +59,13 @@ class BackgroundOfferAnnouncer(context: Context) : TextToSpeech.OnInitListener {
         engine?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "offer-" + id.hashCode())
     }
 
+    fun stop() {
+        main.post {
+            pending = null
+            engine?.stop()
+        }
+    }
+
     fun shutdown() {
         main.post {
             pending = null
