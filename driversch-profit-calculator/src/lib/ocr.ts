@@ -44,7 +44,7 @@ export function extractOcrDistances(text: string): { pickupKm: number | null; pa
 export function extractOcrTripDuration(text: string): number | null {
   const normalized = normalizeDigits(text)
   const value = firstMatch(normalized, [
-    /(?:مدة\\s+الرحلة|وقت\\s+الرحلة|trip\\s+duration|estimated\\s+trip\\s+time|duration)\\s*[:：-]?\\s*([\\d.,]+\\s*(?:ساعة|ساعات|دقيقة|دقائق|دق|min\\b|hr\\b|h\\b))/i
+    /(?:مدة\s+الرحلة|وقت\s+الرحلة|trip\s+duration|estimated\s+trip\s+time|duration)\s*[:：-]?\s*([\d.,]+\s*(?:ساعة|ساعات|دقيقة|دقائق|دق|min\b|hr\b|h\b))/i
   ])
   return value ? parseDuration(value) : null
 }
