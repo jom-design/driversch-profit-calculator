@@ -4,14 +4,14 @@ import { extractOcrDistances } from '../../src/lib/ocr.ts'
 
 test('OCR extracts pickup and passenger distances only from explicit labels', () => {
   assert.deepEqual(
-    extractOcrDistances('مسافة الوصول: ٣ كم\\nمسافة الرحلة: ٢٢ كم'),
+    extractOcrDistances('مسافة الوصول: ٣ كم\nمسافة الرحلة: ٢٢ كم'),
     { pickupKm: 3, passengerKm: 22 }
   )
 })
 
 test('OCR does not guess the meaning of two unlabelled distances', () => {
   assert.deepEqual(
-    extractOcrDistances('3 كم\\n22 كم'),
+    extractOcrDistances('3 كم\n22 كم'),
     { pickupKm: null, passengerKm: null }
   )
 })
