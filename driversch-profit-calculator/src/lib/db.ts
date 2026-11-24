@@ -1,6 +1,7 @@
 import { openDB } from 'idb'
 import type { SavedTrip, Settings } from '../types'
 import { mergeStoredSettings } from './settingsMerge.ts'
+import { normalizeTrip } from './backupImport.ts'
 
 const DB_NAME = 'driver-profit-calculator'
 const DB_VERSION = 1
@@ -15,7 +16,14 @@ const dbPromise = openDB(DB_NAME, DB_VERSION, {
 })
 export async function getTrips(): Promise<SavedTrip[]> {
   const db = await dbPromise
-  return (await db.getAll('trips')).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  // Normalize legacy and current rows before exposing them to history, reports, or backup export.
+  // Invalid rows remain untouched in IndexedDB so a later recovery tool can inspect them.
+  const rows = await db.getAll('trips')
+  const safeTrips = rows.flatMap(row => {
+    const normalized = normalizeTrip(row)
+    return normalized ? [normalized] : []
+  })
+  return safeTrips.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 }
 export async function saveTrip(trip: SavedTrip) {
   const db = await dbPromise
