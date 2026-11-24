@@ -15,6 +15,7 @@ import java.util.concurrent.RejectedExecutionException
 class NotificationCaptureService : NotificationListenerService() {
 
     companion object {
+        private const val MAX_ANNOUNCEMENT_AGE_MS = 120_000L
         /** Shared by all service instances so posted and removed events keep their order. */
         private val worker: ExecutorService = Executors.newSingleThreadExecutor { task ->
             Thread(task, "notification-capture").apply { isDaemon = true }
@@ -116,7 +117,9 @@ class NotificationCaptureService : NotificationListenerService() {
 
     private fun processAndAnnounce(event: RawNotificationEvent): CaptureOutcome {
         val outcome = processor.process(event)
-        if (event.kind == CaptureEventKind.POSTED && outcome is CaptureOutcome.Stored &&
+        val isRecentPost = event.postedAtMillis > 0L &&
+            System.currentTimeMillis() - event.postedAtMillis <= MAX_ANNOUNCEMENT_AGE_MS
+        if (event.kind == CaptureEventKind.POSTED && isRecentPost && outcome is CaptureOutcome.Stored &&
             BackgroundOfferAnnouncer.enabled(this)) {
             val payload = try {
                 val array = org.json.JSONArray(store.pendingJson())
