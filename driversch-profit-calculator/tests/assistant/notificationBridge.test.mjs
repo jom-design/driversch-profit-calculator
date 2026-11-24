@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { acceptNativeNotification } from '../../src/assistant/notificationBridge.ts'
+import { acceptNativeNotification, isNativePayloadShape } from '../../src/assistant/notificationBridge.ts'
 
 const valid = {
   notificationId: 'com.ubercab.driver:offer-1',
@@ -89,4 +89,45 @@ test('drops a malformed analysis instead of displaying it', () => {
   }
   const item = acceptNativeNotification(payload, new Set(), new Date('2026-11-14T08:01:00.000Z'))
   assert.equal(item?.draft.nativeAnalysis, undefined)
+})
+
+test('accepts the exact privacy-scrubbed JSON shape emitted by the Android encrypted queue', () => {
+  const nativeJson = {
+    notificationId: 'com.ubercab.driver:sha256-offer-3',
+    packageName: 'com.ubercab.driver',
+    appLabel: 'Uber',
+    postedAt: '2026-11-24T08:00:00.000Z',
+    capturedAt: '2026-11-24T08:00:01.000Z',
+    offer: {
+      fare: { value: 130, confidence: 0.94, evidence: [], status: 'candidate' },
+      pickupDistanceKm: { value: 2, confidence: 0.96, evidence: [], status: 'candidate' },
+      distanceKm: { value: 18, confidence: 0.96, evidence: [], status: 'candidate' },
+      durationMinutes: { value: 35, confidence: 0.96, evidence: [], status: 'candidate' },
+      pickupMinutes: { value: 5, confidence: 0.96, evidence: [], status: 'candidate' },
+      currency: 'EGP',
+      fareMode: 'net'
+    },
+    analysis: {
+      recommendation: 'insufficient_data', netProfit: null, hourlyProfit: null, totalCost: null, requiredFare: null,
+      partialCost: 94.5, missingFields: ['returnDistance', 'extraExpenses'], reason: 'review', payloadVerified: false,
+      userDefaults: []
+    }
+  }
+  assert.equal(Object.hasOwn(nativeJson, 'title'), false)
+  assert.equal(Object.hasOwn(nativeJson, 'text'), false)
+  assert.equal(isNativePayloadShape(nativeJson), true)
+  const item = acceptNativeNotification(nativeJson, new Set(), new Date('2026-11-24T08:01:00.000Z'))
+  assert.ok(item)
+  assert.equal(item?.draft.fields.fare.value, 130)
+  assert.equal(item?.draft.fields.pickupDistanceKm.value, 2)
+  assert.equal(item?.draft.fields.distanceKm.value, 18)
+  assert.equal(item?.draft.fields.durationMinutes.value, 35)
+  assert.equal(item?.draft.nativeAnalysis?.partialCost, 94.5)
+  assert.equal(item?.status, 'needs-review')
+})
+
+test('does not accept a payload without raw text or normalized offer fields', () => {
+  const { title, text, ...withoutContent } = valid
+  assert.equal(isNativePayloadShape(withoutContent), false)
+  assert.equal(acceptNativeNotification(withoutContent, new Set()), null)
 })
