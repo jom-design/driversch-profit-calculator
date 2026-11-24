@@ -1,46 +1,63 @@
-# نتائج اختبار Android
+# نتائج اختبار Android والتطبيق
 
 ## النسخة التي تم التحقق منها
 - Branch: `feat/full-driver-assistant-20261114`
-- Commit: `150966f5e9951dee11be708f2d3b415b5221f275`
-- GitHub Actions run #54: https://github.com/jom-design/driversch-profit-calculator/actions/runs/43583723631
-- Result: **SUCCESS**
+- Commit: `b14c830bda719369e34933e8b349fb0d75f5ada2`
+- Android build + JUnit run: https://github.com/jom-design/driversch-profit-calculator/actions/runs/45358350944
+- Android emulator install / startup run: https://github.com/jom-design/driversch-profit-calculator/actions/runs/45358350752
+- Result: **SUCCESS** على كل Jobs في Commit أعلاه.
 
-## النتائج الفعلية
-
+## نتائج Web / Assistant
 | الفحص | النتيجة |
 |---|---|
-| `npm ci` | PASS |
-| Assistant Node unit tests | 45/45 PASS |
-| TypeScript `npx tsc -b` | PASS |
-| Vite production build | PASS — 1,623 modules |
-| Playwright Chromium E2E | PASS |
-| RTL / Arabic language | PASS |
-| axe accessibility scan | 0 violations |
-| Six responsive viewports | No horizontal overflow |
-| Android Kotlin unit tests | 3/3 PASS |
-| Android `lintDebug` | PASS |
-| Android `assembleDebug` | PASS |
-| APK artifact upload | PASS |
+| Assistant Node tests | 171/171 PASS |
+| TypeScript project check | PASS |
+| Vite production build | PASS — 1,634 modules |
+| Playwright Chromium install | PASS على Ubuntu 24.04 |
+| Inbox persistence E2E | PASS |
+| Native voice bridge UI | PASS — push-to-talk, transcript confirmation, navigation, TTS delegation |
+| Numeric input compatibility E2E | 33/33 assertions PASS |
+| Responsive layout matrix | 578/578 assertions PASS |
+| Responsive viewports | 6 viewports، عربي/إنجليزي، فاتح/داكن |
+| Accessibility scan | 0 violations |
+| Browser page errors | 0 |
 
-اختبار المتصفح أكد استعادة البيانات والتصحيحات والمراجعات بعد Reload، واستعادة حالتي confirmed وtransferred، وإخفاء زر النقل بعد النقل، وبقاء `fareMode=unknown`، وعدم الكتابة التلقائية في سجل الرحلات، وعدم وجود page errors.
+اختبار Inbox أكد استعادة الأجرة المعدلة ومراجعات المستخدم وحالتي confirmed وtransferred بعد إعادة التحميل، وإخفاء إجراء النقل بعد النقل، وبقاء fareMode=unknown، وعدم الكتابة التلقائية في سجل الرحلات.
 
-## APK Debug
-تم إنشاء ورفع Artifact باسم:
-`driver-profit-calculator-android-debug`
+## نتائج Android
+| الفحص | النتيجة |
+|---|---|
+| Kotlin unit tests | 130/130 PASS |
+| `:app:lintDebug` | PASS |
+| `:app:assembleDebug` | PASS |
+| Gradle Wrapper validation | PASS |
+| APK launcher icon verification | PASS لكل كثافات الأيقونات |
+| Android Emulator API 35 boot | PASS |
+| تثبيت APK | PASS |
+| تشغيل التطبيق وبقاء العملية نشطة | PASS |
+| Screenshot / UI hierarchy capture | PASS |
+| فحص Logcat لاكتشاف انهيار التطبيق | لا توجد FATAL EXCEPTION أو أخطاء بدء التشغيل التي يفحصها الاختبار |
 
-- Artifact ID: `14109507627`
-- Size: 1,327,866 bytes
-- SHA-256 of artifact ZIP: `ca78639e6976ef63988061dc650506b9bc12244b7ce4cadc1ce7025e8c88da21`
-- Download: https://github.com/jom-design/driversch-profit-calculator/actions/runs/43583723631/artifacts/14109507627
+بيانات الحزمة: `com.driverprofitcalculator.app`، الإصدار `1.0.0`، versionCode `1`، minSdk `26`، targetSdk `35`.
 
-الـArtifact يحتوي على APK Debug الناتج من Gradle. هذا ليس إصدارًا موقّعًا للنشر العام.
+## APK Debug الذي تم تثبيته على المحاكي
+- Artifact: https://github.com/jom-design/driversch-profit-calculator/actions/runs/45358350752/artifacts/14902984218
+- APK size: 2,311,167 bytes
+- SHA-256: `18c449ca181a000a09f6399b556e3de1e03bbab0f775718ccfb4615673b74dc6`
+
+هذا APK Debug قابل للتثبيت والاختبار، وليس إصدار Release موقّعًا للنشر العام. خطوة Release تخطت بناء APK لأن مفاتيح التوقيع المملوكة لصاحب المشروع غير مهيأة كـ GitHub Secrets؛ لم تُنشأ مفاتيح مؤقتة ولم تُطلب أسرار عبر المحادثة.
+
+## تحسينات تم تضمينها في النسخة
+- إصلاح استيراد TypeScript في OCR ليعمل مع Node test runner.
+- تثبيت CI على Ubuntu 24.04 LTS لتفادي عدم توافق Playwright مع ubuntu-latest المتغير.
+- إضافة INTERNET permission اللازم لتنزيل ملفات محرك وبيانات Tesseract.js؛ توثيق أن OCR يعالج الصورة محليًا وأن تنزيل ملفات المحرك واللغة يتم عبر HTTPS.
+- إضافة اختبار آلي لحماية أذونات Android الأساسية.
 
 ## حدود التحقق المتبقية
-- لم يتم تشغيل التطبيق على Android Emulator في هذه المرحلة.
-- لم يتم اختباره على جهاز Android فعلي.
-- لم يتم اختبار إشعارات فعلية من حسابات Uber أو DiDi أو inDrive؛ اختبارات Kotlin غطت allowlist والتصفية والتطبيع بحمولات اختبار.
-- Gradle 8.9 مثبت صراحةً في CI، لكن Gradle Wrapper لم يُضمّن بعد في المستودع. يجب إضافة Wrapper قبل اعتبار البناء المحلي مستقلًا تمامًا.
-- يجب إجراء اختبار ميداني بموافقة السائق للتحقق من تنسيقات إشعارات كل تطبيق وإصداراته.
+- لم يتم اختبار التطبيق على هاتف فعلي.
+- لم يتم التقاط إشعارات فعلية من حسابات Uber أو DiDi أو inDrive على جهاز حقيقي؛ تنسيقات الإشعارات ما زالت بحاجة إلى تحقق ميداني.
+- لم يتم اختبار قراءة Screenshot فعلية بواسطة OCR على هاتف؛ اختبارات OCR الحالية تغطي قواعد الاستخراج والتحويل والتمييز بين المسافات والمدة.
+- اختبار واجهة الصوت يغطي جسر التطبيق وتدفق تأكيد النص، لكنه لا يثبت جودة محرك SpeechRecognizer أو TextToSpeech على كل جهاز.
+- لا يوجد APK Release موقّع حتى تهيئة أسرار التوقيع الرسمية.
 
-نجاح CI يثبت أن المصدر تم تجميعه وأن APK Debug تم إنتاجه، لكنه لا يثبت بعد سلوك NotificationListenerService على كل جهاز أو كل إصدار من تطبيقات النقل.
+نجاح CI والمحاكي يثبت أن المصدر بُني وأن APK ثُبّت وبدأ العمل على محاكي Android 15، لكنه لا يستبدل الاختبار الميداني مع تطبيقات النقل الحقيقية والأجهزة المختلفة.
