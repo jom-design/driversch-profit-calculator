@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { BellRing, ExternalLink, RefreshCw, ShieldCheck } from 'lucide-react'
 import { isNativePayloadShape, type NativeNotificationPayload } from './notificationBridge'
 import './android-notification-panel.css'
@@ -54,6 +54,10 @@ export default function AndroidNotificationPanel({ onImport, locale }: Props) {
   const [message, setMessage] = useState<TranslationKey | ''>('')
   const [importedCount, setImportedCount] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
+  const syncInProgress = useRef(false)
+  const onImportRef = useRef(onImport)
+
+  useEffect(() => { onImportRef.current = onImport }, [onImport])
 
   const refresh = useCallback(() => {
     if (!bridge) return
@@ -68,28 +72,21 @@ export default function AndroidNotificationPanel({ onImport, locale }: Props) {
     }
   }, [bridge])
 
-  useEffect(() => { refresh() }, [refresh])
-
-  const toggleProvider = (id: string, enabled: boolean) => {
-    if (!bridge?.setProviderEnabled(id, enabled)) {
-      setMessage('تعذر حفظ إعداد التطبيق على هذا الجهاز.' as TranslationKey)
-      return
-    }
-    refresh()
-  }
-
-  const importPending = async () => {
-    if (!bridge || !status?.hasNotificationAccess) return
+  const importPending = useCallback(async (silent = false) => {
+    if (!bridge || syncInProgress.current) return
+    syncInProgress.current = true
     setBusy(true)
-    setMessage('')
     try {
+      // Read live native permission/queue state instead of relying on a possibly stale React snapshot.
+      const liveStatus = JSON.parse(bridge.getStatusJson()) as Status
+      if (!liveStatus.hasNotificationAccess || !liveStatus.queueHealthy) return
       const raw = JSON.parse(bridge.getPendingNotificationsJson()) as unknown
       const payloads = Array.isArray(raw) ? raw.filter(isNativePayloadShape) : []
       if (payloads.length === 0) {
-        setMessage('لا توجد إشعارات رحلات جديدة في انتظار الاستيراد.' as TranslationKey)
+        if (!silent) setMessage('لا توجد إشعارات رحلات جديدة في انتظار الاستيراد.' as TranslationKey)
         return
       }
-      const saved = await onImport(payloads)
+      const saved = await onImportRef.current(payloads)
       if (!saved) {
         setMessage('لم يتم تأكيد الحفظ المحلي؛ ستظل الإشعارات في قائمة الانتظار لإعادة المحاولة.' as TranslationKey)
         return
@@ -102,10 +99,36 @@ export default function AndroidNotificationPanel({ onImport, locale }: Props) {
       setMessage('تم استيراد إشعارات' as TranslationKey)
       refresh()
     } catch {
-      setMessage('تعذر استيراد الإشعارات. لم يتم حذف قائمة الانتظار الأصلية.' as TranslationKey)
+      if (!silent) setMessage('تعذر استيراد الإشعارات. لم يتم حذف قائمة الانتظار الأصلية.' as TranslationKey)
     } finally {
+      syncInProgress.current = false
       setBusy(false)
     }
+  }, [bridge, refresh])
+
+  useEffect(() => {
+    refresh()
+    const sync = () => {
+      if (document.visibilityState !== 'visible') return
+      refresh()
+      void importPending(true)
+    }
+    // Import locally into the review inbox automatically; confirmation and trip saving remain manual.
+    void importPending(true)
+    const interval = window.setInterval(sync, 3000)
+    document.addEventListener('visibilitychange', sync)
+    return () => {
+      window.clearInterval(interval)
+      document.removeEventListener('visibilitychange', sync)
+    }
+  }, [refresh, importPending])
+
+  const toggleProvider = (id: string, enabled: boolean) => {
+    if (!bridge?.setProviderEnabled(id, enabled)) {
+      setMessage('تعذر حفظ إعداد التطبيق على هذا الجهاز.' as TranslationKey)
+      return
+    }
+    refresh()
   }
 
   if (!bridge) return <section className="android-capture-panel">
@@ -150,7 +173,7 @@ export default function AndroidNotificationPanel({ onImport, locale }: Props) {
         <ExternalLink size={15}/> {t('فتح إعدادات إذن الإشعارات', locale)}
       </button>
       <button type="button" className="primary-btn" disabled={busy || !status?.hasNotificationAccess || !status?.queueHealthy}
-        onClick={importPending}><BellRing size={15}/> {busy ? t('جارٍ الاستيراد…', locale) : `${t('استيراد الإشعارات', locale)} (${pendingCount})`}</button>
+        onClick={() => void importPending(false)}><BellRing size={15}/> {busy ? t('جارٍ الاستيراد…', locale) : `${t('استيراد الإشعارات', locale)} (${pendingCount})`}</button>
     </div>
     {!status?.queueHealthy && <p className="android-capture-message" role="alert">{t('تعذر فك تشفير قائمة الإشعارات المحلية. تم إيقاف الاستيراد لحماية البيانات؛ لا تحذف بيانات التطبيق قبل تصدير ما يلزم.', locale)}</p>}
     {status?.lastReceivedAt && <small>{t('آخر إشعار مؤهل:', locale)} {new Date(status.lastReceivedAt).toLocaleString(locale==='ar'?'ar-EG':'en-EG')}</small>}
