@@ -17,6 +17,26 @@ function firstMatch(text: string, patterns: RegExp[]): string | null {
   for (const p of patterns) { const m = text.match(p); if (m?.[1]) return m[1] }
   return null
 }
+
+/**
+ * OCR must not infer which of two unlabelled distances is pickup vs passenger distance.
+ * Only explicit labels are accepted; ambiguous screenshots leave the fields for manual review.
+ */
+export function extractOcrDistances(text: string): { pickupKm: number | null; passengerKm: number | null } {
+  const normalized = normalizeDigits(text)
+  const distance = (patterns: RegExp[]) => {
+    const value = firstMatch(normalized, patterns)
+    return value ? parseDistance(value) : null
+  }
+  return {
+    pickupKm: distance([
+      /(?:مسافة\\s+(?:الوصول|الاستلام)|المسافة\\s+إلى\\s+الراكب|pickup(?:\\s+distance)?|to\\s+pickup)\\s*[:：-]?\\s*([\\d.,]+\\s*(?:متر|م\\b|كم|كلم|كيلومتر|km\\b))/i
+    ]),
+    passengerKm: distance([
+      /(?:مسافة\\s+(?:الرحلة|الركاب)|المسافة\\s+بالراكب|trip\\s+distance|passenger\\s+distance)\\s*[:：-]?\\s*([\\d.,]+\\s*(?:متر|م\\b|كم|كلم|كيلومتر|km\\b))/i
+    ])
+  }
+}
 export async function readTripImage(file: File, onProgress?: (p: number) => void): Promise<OcrDraft> {
   const worker = await createWorker('ara+eng', 1, {
     logger: m => { if (m.status === 'recognizing text') onProgress?.(Math.round(m.progress * 100)) }
@@ -51,13 +71,12 @@ export async function readTripImage(file: File, onProgress?: (p: number) => void
     if (fare === null) warnings.push('لم أتمكن من تحديد الأجرة بشكل موثوق؛ أدخلها يدويًا.')
     if (app === 'inDrive' && fare !== null) warnings.push('تأكد أن المبلغ هو الموجود بجوار «القبول مقابل» وليس أحد أزرار الاقتراح.')
     if (app === 'Uber' && !/صافي\s*رسوم\s*الخدمة/i.test(rawText)) warnings.push('لم يتم تأكيد أن أجرة Uber صافية؛ راجع طريقة احتساب العمولة.')
-    if (distances.length > 2) warnings.push('تم العثور على أكثر من مسافة؛ راجع مسافة الوصول ومسافة الرحلة يدويًا.')
-    if (distances.length === 1) warnings.push('تم استخراج مسافة واحدة فقط؛ أكمل باقي المسافات يدويًا.')
+    if (distances.pickupKm === null || distances.passengerKm === null) warnings.push('لم أتمكن من ربط كل مسافة بتسمية واضحة؛ أدخل مسافة الوصول ومسافة الرحلة يدويًا.')
     if (data.confidence < 70) warnings.push('جودة القراءة منخفضة. الأفضل رفع Screenshot أصلية بدل تصوير الشاشة بالكاميرا.')
     return {
       app, fare, fareMode: app === 'Uber' && /صافي\s*رسوم\s*الخدمة/i.test(rawText) ? 'net' : 'unknown',
-      pickupKm: distances.length >= 2 ? distances[0] : null,
-      passengerKm: distances.length >= 2 ? distances[1] : distances[0] ?? null,
+      pickupKm: distances.pickupKm,
+      passengerKm: distances.passengerKm,
       totalMinutes, rawText, confidence: data.confidence, warnings
     }
   } finally {
