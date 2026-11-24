@@ -45,8 +45,11 @@ class AndroidBridge(private val activity: MainActivity, private val voice: Nativ
         TripAnalysisPreferences(context).saveFromJson(json)
     @JavascriptInterface fun setProviderEnabled(id: String, enabled: Boolean): Boolean =
         ProviderPreferences.setEnabled(context, id, enabled)
-    @JavascriptInterface fun setBackgroundAnnouncementsEnabled(enabled: Boolean): Boolean =
-        BackgroundOfferAnnouncer.setEnabled(context, enabled)
+    @JavascriptInterface fun setBackgroundAnnouncementsEnabled(enabled: Boolean): Boolean {
+        val saved = BackgroundOfferAnnouncer.setEnabled(context, enabled)
+        if (saved && !enabled) NotificationCaptureService.stopBackgroundAnnouncements()
+        return saved
+    }
     @JavascriptInterface fun openNotificationAccessSettings(): Boolean = try {
         context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         true
