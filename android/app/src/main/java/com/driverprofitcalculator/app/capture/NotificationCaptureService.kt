@@ -17,7 +17,8 @@ class NotificationCaptureService : NotificationListenerService() {
     companion object {
         private const val MAX_ANNOUNCEMENT_AGE_MS = 120_000L
         @Volatile private var activeAnnouncer: BackgroundOfferAnnouncer? = null
-        fun stopBackgroundAnnouncements() { activeAnnouncer?.stop() }
+        @Volatile private var activeNotificationAnnouncer: NotificationAnnouncer? = null
+        fun stopBackgroundAnnouncements() { activeAnnouncer?.stop(); activeNotificationAnnouncer?.stop() }
         /** Shared by all service instances so posted and removed events keep their order. */
         private val worker: ExecutorService = Executors.newSingleThreadExecutor { task ->
             Thread(task, "notification-capture").apply { isDaemon = true }
@@ -36,6 +37,7 @@ class NotificationCaptureService : NotificationListenerService() {
     private val store by lazy { EncryptedNotificationStore(this) }
     private val journal by lazy { EventJournal(store, diagnostics) }
     private var announcer: BackgroundOfferAnnouncer? = null
+    private var notificationAnnouncer: NotificationAnnouncer? = null
     private val processor by lazy {
         NotificationEventProcessor(
             store = store,
@@ -66,8 +68,11 @@ class NotificationCaptureService : NotificationListenerService() {
     override fun onDestroy() {
         listenerConnectedInProcess = false
         announcer?.shutdown()
+        notificationAnnouncer?.shutdown()
         if (activeAnnouncer === announcer) activeAnnouncer = null
+        if (activeNotificationAnnouncer === notificationAnnouncer) activeNotificationAnnouncer = null
         announcer = null
+        notificationAnnouncer = null
         super.onDestroy()
     }
 
@@ -119,6 +124,22 @@ class NotificationCaptureService : NotificationListenerService() {
     }
 
     private fun processAndAnnounce(event: RawNotificationEvent): CaptureOutcome {
+        if (event.kind == CaptureEventKind.POSTED &&
+            NotificationSpeechPreferences.shouldSpeak(this, event.packageName)) {
+            val text = event.text.take(4000)
+            val title = event.title.take(500)
+            val appLabel = try {
+                val info = packageManager.getApplicationInfo(event.packageName, 0)
+                packageManager.getApplicationLabel(info).toString()
+            } catch (_: Exception) { event.packageName }
+            if (NotificationSpeechText.hasContent(title, text)) {
+                val speaker = notificationAnnouncer ?: NotificationAnnouncer(this).also {
+                    notificationAnnouncer = it
+                    activeNotificationAnnouncer = it
+                }
+                speaker.announce(event.key + ":" + event.postedAtMillis, appLabel, title, text)
+            }
+        }
         val outcome = processor.process(event)
         val isRecentPost = event.postedAtMillis > 0L &&
             System.currentTimeMillis() - event.postedAtMillis <= MAX_ANNOUNCEMENT_AGE_MS
