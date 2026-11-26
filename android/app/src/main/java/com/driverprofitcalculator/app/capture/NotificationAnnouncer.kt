@@ -12,17 +12,17 @@ class NotificationAnnouncer(context: Context) : TextToSpeech.OnInitListener {
     private val main = Handler(Looper.getMainLooper())
     private var engine: TextToSpeech? = null
     private var ready = false
-    private var pending = ArrayDeque<Pair<String, String>>()
+    private var pending = ArrayDeque<Triple<String, String, String>>()
     private val prefs = appContext.getSharedPreferences("notification_speech_dedupe", Context.MODE_PRIVATE)
 
     init { main.post { engine = TextToSpeech(appContext, this) } }
 
-    fun announce(eventId: String, appLabel: String, title: String, body: String) {
-        if (eventId.isBlank() || !NotificationSpeechText.hasContent(title, body)) return
+    fun announce(eventId: String, packageName: String, appLabel: String, title: String, body: String) {
+        if (eventId.isBlank() || !NotificationSpeechPreferences.shouldSpeak(appContext, packageName) || !NotificationSpeechText.hasContent(title, body)) return
         val text = NotificationSpeechText.build(appLabel, title, body) ?: return
         main.post {
             if (prefs.getString("last_event", null) == eventId) return@post
-            if (ready) speak(eventId, text) else if (pending.size < 8) pending.addLast(eventId to text)
+            if (!NotificationSpeechPreferences.shouldSpeak(appContext, packageName)) return@post\n            if (ready) speak(eventId, text) else if (pending.size < 8) pending.addLast(Triple(eventId, packageName, text))
         }
     }
 
@@ -36,7 +36,7 @@ class NotificationAnnouncer(context: Context) : TextToSpeech.OnInitListener {
             if (!ready) { pending.clear(); return@post }
             while (pending.isNotEmpty()) {
                 val item = pending.removeFirst()
-                speak(item.first, item.second)
+                if (NotificationSpeechPreferences.shouldSpeak(appContext, item.second)) speak(item.first, item.third)
             }
         }
     }
