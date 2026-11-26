@@ -57,10 +57,16 @@ class AndroidBridge(private val activity: MainActivity, private val voice: Nativ
             .sortedBy { it.optString("label").lowercase() }
         return JSONArray(apps).toString()
     }
-    @JavascriptInterface fun setNotificationSpeechEnabled(enabled: Boolean): Boolean =
-        NotificationSpeechPreferences.setAllEnabled(context, enabled)
-    @JavascriptInterface fun setNotificationAppSpeechEnabled(packageName: String, enabled: Boolean): Boolean =
-        NotificationSpeechPreferences.setAppEnabled(context, packageName, enabled)
+    @JavascriptInterface fun setNotificationSpeechEnabled(enabled: Boolean): Boolean {
+        val saved = NotificationSpeechPreferences.setAllEnabled(context, enabled)
+        if (saved && !enabled) NotificationCaptureService.stopBackgroundAnnouncements()
+        return saved
+    }
+    @JavascriptInterface fun setNotificationAppSpeechEnabled(packageName: String, enabled: Boolean): Boolean {
+        val saved = NotificationSpeechPreferences.setAppEnabled(context, packageName, enabled)
+        if (saved && !enabled) NotificationCaptureService.stopBackgroundAnnouncements()
+        return saved
+    }
     @JavascriptInterface fun acknowledgeNotification(id: String): Boolean = EncryptedNotificationStore(context).acknowledge(id)
     @JavascriptInterface fun setTripAnalysisSettings(json: String): Boolean =
         TripAnalysisPreferences(context).saveFromJson(json)
