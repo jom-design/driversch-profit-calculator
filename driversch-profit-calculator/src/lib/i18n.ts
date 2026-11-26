@@ -379,6 +379,11 @@ export const AR_TO_EN = {
   "تم تجاهل إشعارات مكررة ولم تُعالج مرتين": "Duplicate notifications were ignored and not processed twice",
   "نطق عروض الرحلات في الخلفية": "Speak ride offers in the background",
   "يقرأ الأجرة والمسافات والأوقات المتاحة فقط. لا يصدر قرار قبول أو رفض، والإعداد مغلق افتراضيًا.": "Reads only the available fare, distances and times. It never recommends accepting or rejecting; this setting is off by default.",
+  "قراءة إشعارات التطبيقات بصوت مسموع": "Read app notifications aloud",
+  "مفتاح عام؛ لن يُقرأ أي تطبيق إلا إذا فعّلت مفتاحه أيضًا. كل المفاتيح مغلقة افتراضيًا.": "Master switch; an app is read only when its own switch is also enabled. All switches are off by default.",
+  "اختار التطبيقات التي تريد قراءة إشعاراتها": "Choose which apps' notifications to read",
+  "لم يتم العثور على تطبيقات قابلة للتشغيل على الجهاز.": "No launchable apps were found on this device.",
+  "سيقرأ الهاتف اسم التطبيق وعنوان الإشعار ونصه كما وصلك. لا يتم إرسال محتوى الإشعارات إلى خادم، ويمكنك إيقاف القراءة من المفتاح العام أو مفتاح كل تطبيق.": "The phone reads the app name, notification title and notification text as received. Notification content is not sent to a server. You can stop speech using the master switch or an individual app switch.",
 } as const
 export type TranslationKey = keyof typeof AR_TO_EN
 
