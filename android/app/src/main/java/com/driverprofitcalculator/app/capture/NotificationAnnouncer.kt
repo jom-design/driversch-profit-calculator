@@ -21,15 +21,11 @@ class NotificationAnnouncer(context: Context) : TextToSpeech.OnInitListener {
         if (eventId.isBlank() || !NotificationSpeechText.hasContent(title, body)) return
         val text = NotificationSpeechText.build(appLabel, title, body) ?: return
         main.post {
-            if (!NotificationSpeechPreferences.shouldSpeak(appContext, packageForEvent(eventId))) return@post
             if (prefs.getString("last_event", null) == eventId) return@post
             if (ready) speak(eventId, text) else if (pending.size < 8) pending.addLast(eventId to text)
         }
     }
 
-    // The service performs the package opt-in check before calling announce. This guard is
-    // intentionally handled there because event IDs are opaque and never contain package names.
-    private fun packageForEvent(@Suppress("UNUSED_PARAMETER") eventId: String): String = ""
 
     override fun onInit(status: Int) {
         main.post {
