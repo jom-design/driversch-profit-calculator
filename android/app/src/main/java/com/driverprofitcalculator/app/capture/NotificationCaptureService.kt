@@ -137,7 +137,7 @@ class NotificationCaptureService : NotificationListenerService() {
                     notificationAnnouncer = it
                     activeNotificationAnnouncer = it
                 }
-                speaker.announce(event.key + ":" + event.postedAtMillis, appLabel, title, text)
+                speaker.announce(event.key + ":" + event.postedAtMillis, event.packageName, appLabel, title, text)
             }
         }
         val outcome = processor.process(event)
