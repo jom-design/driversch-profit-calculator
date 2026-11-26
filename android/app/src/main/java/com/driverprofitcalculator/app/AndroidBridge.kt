@@ -10,6 +10,7 @@ import com.driverprofitcalculator.app.capture.CaptureDiagnostics
 import com.driverprofitcalculator.app.capture.EncryptedNotificationStore
 import com.driverprofitcalculator.app.capture.EventJournal
 import com.driverprofitcalculator.app.capture.NotificationCaptureService
+import com.driverprofitcalculator.app.capture.NotificationSpeechPreferences
 import com.driverprofitcalculator.app.capture.ProviderPreferences
 import com.driverprofitcalculator.app.capture.ProviderRegistry
 import com.driverprofitcalculator.app.capture.TripAnalysisPreferences
@@ -37,9 +38,29 @@ class AndroidBridge(private val activity: MainActivity, private val voice: Nativ
             .put("lastReceivedAt", store.lastReceivedAt())
             .put("queueHealthy", store.isHealthy())
             .put("backgroundAnnouncementsEnabled", BackgroundOfferAnnouncer.enabled(context))
+            .put("notificationSpeechEnabled", NotificationSpeechPreferences.allEnabled(context))
             .put("captureCounters", CaptureDiagnostics(context).snapshotJson()).toString()
     }
     @JavascriptInterface fun getPendingNotificationsJson(): String = EncryptedNotificationStore(context).pendingJson()
+    @JavascriptInterface fun getNotificationSpeechAppsJson(): String {
+        val launcher = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        val apps = context.packageManager.queryIntentActivities(launcher, 0)
+            .mapNotNull { resolve ->
+                val info = resolve.activityInfo?.applicationInfo ?: return@mapNotNull null
+                if (info.packageName == context.packageName) return@mapNotNull null
+                JSONObject()
+                    .put("packageName", info.packageName)
+                    .put("label", resolve.loadLabel(context.packageManager)?.toString() ?: info.packageName)
+                    .put("enabled", NotificationSpeechPreferences.appEnabled(context, info.packageName))
+            }
+            .distinctBy { it.optString("packageName") }
+            .sortedBy { it.optString("label").lowercase() }
+        return JSONArray(apps).toString()
+    }
+    @JavascriptInterface fun setNotificationSpeechEnabled(enabled: Boolean): Boolean =
+        NotificationSpeechPreferences.setAllEnabled(context, enabled)
+    @JavascriptInterface fun setNotificationAppSpeechEnabled(packageName: String, enabled: Boolean): Boolean =
+        NotificationSpeechPreferences.setAppEnabled(context, packageName, enabled)
     @JavascriptInterface fun acknowledgeNotification(id: String): Boolean = EncryptedNotificationStore(context).acknowledge(id)
     @JavascriptInterface fun setTripAnalysisSettings(json: String): Boolean =
         TripAnalysisPreferences(context).saveFromJson(json)
