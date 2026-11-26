@@ -17,6 +17,9 @@ interface NativeBridge {
   speakText: (text: string) => boolean
   stopSpeaking: () => boolean
   setBackgroundAnnouncementsEnabled: (enabled: boolean) => boolean
+  getNotificationSpeechAppsJson: () => string
+  setNotificationSpeechEnabled: (enabled: boolean) => boolean
+  setNotificationAppSpeechEnabled: (packageName: string, enabled: boolean) => boolean
 }
 declare global {
   interface Window { DriverAndroid?: NativeBridge }
@@ -29,6 +32,7 @@ interface Status {
   lastReceivedAt: string
   queueHealthy: boolean
   backgroundAnnouncementsEnabled?: boolean
+  notificationSpeechEnabled?: boolean
   /** Events journaled and waiting for processing. */
   queuedEvents?: number
   /** Aggregate counters from the native capture service. Names match CaptureCounterNames. */
@@ -40,6 +44,7 @@ const FAILURE_COUNTERS = ['persistenceFailure', 'processingException', 'journalW
 function failureTotal(counters: Record<string, number> | undefined): number {
   return FAILURE_COUNTERS.reduce((sum, name) => sum + (typeof counters?.[name] === 'number' ? counters[name] : 0), 0)
 }
+interface SpeechApp { packageName: string; label: string; enabled: boolean }
 interface Props {
   locale: 'ar' | 'en'
   onImport: (payloads: NativeNotificationPayload[]) => Promise<boolean>
@@ -53,6 +58,7 @@ export default function AndroidNotificationPanel({ onImport, locale }: Props) {
   const bridge = typeof window === 'undefined' ? undefined : window.DriverAndroid
   const [status, setStatus] = useState<Status | null>(null)
   const [pendingCount, setPendingCount] = useState(0)
+  const [speechApps, setSpeechApps] = useState<SpeechApp[]>([])
   const [message, setMessage] = useState<TranslationKey | ''>('')
   const [importedCount, setImportedCount] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
@@ -67,6 +73,12 @@ export default function AndroidNotificationPanel({ onImport, locale }: Props) {
       const next = JSON.parse(bridge.getStatusJson()) as Status
       const pending = JSON.parse(bridge.getPendingNotificationsJson()) as unknown
       setStatus(next)
+      const apps = JSON.parse(bridge.getNotificationSpeechAppsJson()) as unknown
+      setSpeechApps(Array.isArray(apps) ? apps.filter((item): item is SpeechApp =>
+        !!item && typeof item === 'object' &&
+        typeof (item as SpeechApp).packageName === 'string' &&
+        typeof (item as SpeechApp).label === 'string' &&
+        typeof (item as SpeechApp).enabled === 'boolean') : [])
       setPendingCount(Array.isArray(pending) ? pending.filter(isNativePayloadShape).length : 0)
       setMessage('')
     } catch {
@@ -125,6 +137,14 @@ export default function AndroidNotificationPanel({ onImport, locale }: Props) {
     }
   }, [refresh, importPending])
 
+  const toggleSpeechApp = (packageName: string, enabled: boolean) => {
+    if (!bridge?.setNotificationAppSpeechEnabled(packageName, enabled)) {
+      setMessage('تعذر حفظ إعداد التطبيق على هذا الجهاز.' as TranslationKey)
+      return
+    }
+    setSpeechApps(current => current.map(app => app.packageName === packageName ? { ...app, enabled } : app))
+  }
+
   const toggleProvider = (id: string, enabled: boolean) => {
     if (!bridge?.setProviderEnabled(id, enabled)) {
       setMessage('تعذر حفظ إعداد التطبيق على هذا الجهاز.' as TranslationKey)
@@ -163,17 +183,30 @@ export default function AndroidNotificationPanel({ onImport, locale }: Props) {
     {(status?.queuedEvents ?? 0) > 0 && <p className="android-capture-message" role="status">{t('إشعارات بانتظار المعالجة', locale)}: {status?.queuedEvents}</p>}
     {(status?.captureCounters?.duplicate ?? 0) > 0 && <p className="android-capture-message" role="status">{t('تم تجاهل إشعارات مكررة ولم تُعالج مرتين', locale)}: {status?.captureCounters?.duplicate}</p>}
     {failureTotal(status?.captureCounters) > 0 && <p className="android-capture-message" role="alert">{t('تعذر حفظ أو معالجة بعض الإشعارات. تفاصيل العدادات محفوظة محليًا ولم يُحذف شيء من بيانات الرحلات.', locale)}: {failureTotal(status?.captureCounters)}</p>}
-    <label className="android-provider android-announcement-toggle">
-      <span><strong>{t('نطق عروض الرحلات في الخلفية', locale)}</strong><small className="android-provider-note"> {t('يقرأ الأجرة والمسافات والأوقات المتاحة فقط. لا يصدر قرار قبول أو رفض، والإعداد مغلق افتراضيًا.', locale)}</small></span>
-      <input type="checkbox" checked={status?.backgroundAnnouncementsEnabled ?? false}
-        onChange={event => {
-          if (!bridge.setBackgroundAnnouncementsEnabled(event.target.checked)) {
-            setMessage('تعذر حفظ إعداد التطبيق على هذا الجهاز.' as TranslationKey)
-            return
-          }
-          refresh()
-        }} />
-    </label>
+    <div className="android-speech-settings">
+      <label className="android-provider android-announcement-toggle">
+        <span><strong>{t('قراءة إشعارات التطبيقات بصوت مسموع', locale)}</strong><small className="android-provider-note"> {t('مفتاح عام؛ لن يُقرأ أي تطبيق إلا إذا فعّلت مفتاحه أيضًا. كل المفاتيح مغلقة افتراضيًا.', locale)}</small></span>
+        <input type="checkbox" checked={status?.notificationSpeechEnabled ?? false}
+          onChange={event => {
+            if (!bridge.setNotificationSpeechEnabled(event.target.checked)) {
+              setMessage('تعذر حفظ إعداد التطبيق على هذا الجهاز.' as TranslationKey)
+              return
+            }
+            refresh()
+          }} />
+      </label>
+      <div className="android-speech-app-list">
+        <strong>{t('اختار التطبيقات التي تريد قراءة إشعاراتها', locale)}</strong>
+        {speechApps.length === 0
+          ? <p className="android-capture-note">{t('لم يتم العثور على تطبيقات قابلة للتشغيل على الجهاز.', locale)}</p>
+          : speechApps.map(app => <label key={app.packageName} className="android-provider">
+              <span><strong>{app.label}</strong><small className="android-provider-note">{app.packageName}</small></span>
+              <input type="checkbox" checked={app.enabled}
+                onChange={event => toggleSpeechApp(app.packageName, event.target.checked)} />
+            </label>)}
+      </div>
+      <p className="android-capture-note">{t('سيقرأ الهاتف اسم التطبيق وعنوان الإشعار ونصه كما وصلك. لا يتم إرسال محتوى الإشعارات إلى خادم، ويمكنك إيقاف القراءة من المفتاح العام أو مفتاح كل تطبيق.', locale)}</p>
+    </div>
     <div className="android-provider-list">
       {providers.map(provider => <label key={provider.id} className="android-provider">
         <span>{provider.label}{provider.id === 'didi' && <small className="android-provider-note"> {t('غير مُتحقق منه على جهاز حقيقي؛ الالتقاط معطّل افتراضيًا', locale)}</small>}</span>
